@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Uder Conductor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#EEF1F5;--card:#fff;--ink:#14213D;--mute:#5B6678;--line:#D5DBE5;--accent:#F5B700;--on-accent:#14213D;--ok:#1F9D63;--bad:#D64545;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1626;--card:#17233A;--ink:#EEF1F5;--mute:#9AA6BA;--line:#2A3956;--ok:#3CC884;--bad:#F07575}}
+:root[data-theme="dark"]{--bg:#0E1626;--card:#17233A;--ink:#EEF1F5;--mute:#9AA6BA;--line:#2A3956;--ok:#3CC884;--bad:#F07575}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.app{max-width:440px;margin:0 auto;padding:0 16px 32px}
+header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0}
+.logo{font-weight:800;font-size:26px;letter-spacing:-1px}
+.logo i{font-style:normal;color:var(--accent);background:var(--ink);padding:0 6px;border-radius:6px;margin-right:6px}
+.logo small{font-weight:600;font-size:12px;color:var(--mute);margin-left:6px;letter-spacing:0}
+#map{height:300px;border-radius:20px;border:1px solid var(--line);margin-bottom:14px;z-index:1}
+.card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;border:1px solid var(--line)}
+h2{margin:0 0 6px;font-size:22px;letter-spacing:-.5px}
+p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
+.btn{width:100%;border:0;border-radius:16px;padding:16px;font:800 16px "Sora",sans-serif;cursor:pointer;background:var(--accent);color:var(--on-accent);margin-top:14px}
+.btn.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);font-weight:600}
+.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.st:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:9px 13px;font:600 13px "Sora",sans-serif;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.search{display:flex;gap:8px}
+input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}
+.go{border:0;border-radius:14px;padding:0 16px;background:var(--ink);color:var(--bg);font:700 14px "Sora",sans-serif;cursor:pointer}
+.res{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px;margin-top:8px;font:600 13px "Sora",sans-serif;cursor:pointer}
+.opt{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:14px;margin-top:10px;font:600 15px "Sora",sans-serif;cursor:pointer}
+.opt small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:2px}
+.opt b{font-size:18px}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--bg)}
+.lbl{font-size:13px;font-weight:600;color:var(--mute);margin:18px 0 0}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:var(--ok);width:0}
+.tag{display:inline-block;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;background:var(--line);color:var(--ink)}
+.plate{font-weight:800;letter-spacing:2px;border:2px solid var(--ink);border-radius:8px;padding:3px 10px;font-size:14px}
+.st{border:0;background:none;font-size:34px;color:var(--line);cursor:pointer;padding:2px}.st.on{color:var(--accent)}
+.fare{font-size:40px;font-weight:800;letter-spacing:-1.5px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;max-width:90%;z-index:2000}
+.fl{display:block;font-size:13px;font-weight:600;color:var(--mute);margin:14px 0 6px}
+.ck{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--mute);line-height:1.4}
+select{width:100%;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}.nav{display:inline-block;margin-top:10px;color:var(--ink);font-weight:700;font-size:14px}</style></head><body>
+<div class="app"><header><div class="logo"><i>U</i>der<small>Conductor</small></div></header><main id="v"></main></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+var sb=supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co","sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ"),D={u:null,p:null,c:null,on:false,sig:""},tm=null,wid=null,last=0;
+function $(x){return document.getElementById(x)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function M(n){return "$"+Math.round(n).toLocaleString("es-AR")}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function err(m){var e=$("err");if(e)e.textContent=m}
+function age(s){var d=new Date(s),t=new Date(),a=t.getFullYear()-d.getFullYear(),m=t.getMonth()-d.getMonth();if(m<0||(m===0&&t.getDate()<d.getDate()))a--;return a}
+function fields(a){return a.map(function(f){return '<label class="fl" for="'+f[0]+'">'+f[1]+'</label><input id="'+f[0]+'" '+f[2]+' style="width:100%">'}).join("")}
+function view(h){clearInterval(tm);$("v").innerHTML=h}
+function login(){view('<div class="card"><h2>Ingresá como conductor</h2>'+fields([["e","Email",'type="email" autocomplete="email"'],["w","Contraseña",'type="password" autocomplete="current-password"']])+'<p id="err" role="alert" style="color:var(--bad);margin-top:12px"></p><button class="btn" onclick="doLogin()">Ingresar</button><button class="btn ghost" onclick="reg()">Quiero ser conductor</button></div>')}
+function reg(){var mx=new Date().toISOString().slice(0,10);view('<div class="card"><h2>Registro de conductor</h2><p>Después de registrarte, revisamos tus datos antes de habilitarte.</p>'+fields([["e","Email",'type="email"'],["w","Contraseña (mínimo 8)",'type="password" autocomplete="new-password"'],["n","Nombre/s",""],["a","Apellido",""],["d","Fecha de nacimiento",'type="date" max="'+mx+'"'],["i","DNI",'inputmode="numeric" maxlength="10"'],["ve","Vehículo (marca, modelo y color)",""],["pa","Patente",'maxlength="9"']])+'<label class="fl" for="ti">Tipo de servicio</label><select id="ti"><option>Remis</option><option>Taxi</option><option>Uder X</option></select><label class="ck"><input type="checkbox" id="k" style="flex:none;width:20px;height:20px">Acepto los términos, que Uder guarde mis datos y que Uder retiene una comisión por el uso de la plataforma. Mi ganancia por cada viaje es la que muestra la app.</label><p id="err" role="alert" style="color:var(--bad);margin-top:12px"></p><button class="btn" onclick="doReg()">Crear cuenta</button><button class="btn ghost" onclick="login()">Volver</button></div>')}
+function doLogin(){var e=$("e").value.trim(),w=$("w").value;if(!e||!w)return err("Completá email y contraseña.");err("Ingresando…");sb.auth.signInWithPassword({email:e,password:w}).then(function(r){if(r.error)return err("Email o contraseña incorrectos.");D.u=r.data.user;load()})}
+function doReg(){var e=$("e").value.trim(),w=$("w").value,n=$("n").value.trim(),a=$("a").value.trim(),d=$("d").value,i=$("i").value.replace(/\D/g,""),ve=$("ve").value.trim(),pa=$("pa").value.trim().toUpperCase(),re=/^[A-Za-z\u00C0-\u00FF'. -]{2,}$/;
+if(!/^\S+@\S+\.\S+$/.test(e))return err("Escribí un email válido.");if(w.length<8)return err("La contraseña debe tener al menos 8 caracteres.");
+if(!re.test(n)||!re.test(a))return err("Revisá tu nombre y apellido.");if(!d||age(d)<21)return err("Tenés que ser mayor de 21 años para ser conductor.");
+if(i.length<7||i.length>8)return err("El DNI debe tener 7 u 8 números.");if(ve.length<4)return err("Escribí tu vehículo.");if(pa.length<6)return err("Escribí la patente.");
+if(!$("k").checked)return err("Tenés que aceptar los términos.");err("Creando tu cuenta…");
+sb.auth.signUp({email:e,password:w}).then(function(r){if(r.error||!r.data.session)return err(r.error?"No se pudo crear la cuenta: "+r.error.message:"No se pudo iniciar sesión. Revisá que la confirmación por email esté desactivada.");var id=r.data.user.id;D.u=r.data.user;
+return sb.from("perfiles").insert({id:id,rol:"conductor",nombre:n,apellido:a,fecha_nac:d,dni:i}).then(function(p){if(p.error)return err("No se pudo guardar tu perfil: "+p.error.message);
+return sb.from("conductores").insert({id:id,vehiculo:ve,patente:pa,tipo:$("ti").value}).then(function(c){if(c.error)return err("No se pudo guardar tu vehículo: "+c.error.message);load()})})})}
+function load(){sb.from("perfiles").select("*").eq("id",D.u.id).single().then(function(p){if(!p.data||p.data.rol!=="conductor"){sb.auth.signOut();login();toast("Esta cuenta no es de conductor.");return}D.p=p.data;panel()})}
+function out(){untrack();sb.auth.signOut();D.on=false;login()}
+function panel(){D.sig="";refresh();tm=setInterval(refresh,4000)}
+function refresh(){var uid=D.u.id;Promise.all([sb.from("conductores").select("*").eq("id",uid).single(),sb.from("viajes").select("*").eq("conductor_id",uid).in("estado",["aceptado","en_camino","en_curso"]).limit(1),D.on?sb.from("viajes").select("*").eq("estado","buscando").order("creado_en"):Promise.resolve({data:[]})]).then(function(r){D.c=r[0].data;var act=(r[1].data||[])[0],off=r[2].data||[];if(!D.c)return;var sg=JSON.stringify([D.c.verificado,D.on,act,off.map(function(o){return o.id})]);if(sg===D.sig)return;D.sig=sg;draw(act,off)})}
+function draw(act,off){var h='<div class="card"><div class="row"><b>'+esc(D.p.nombre)+' '+esc(D.p.apellido)+'</b><span class="tag">'+esc(D.c.tipo)+'</span></div><p>'+esc(D.c.vehiculo)+' · '+esc(D.c.patente)+'</p></div>';
+if(!D.c.verificado){h+='<div class="card"><h2>Tu cuenta está en revisión</h2><p>Todavía no podés recibir pedidos. Cuando verifiquemos tus datos, esta pantalla se habilita sola.</p></div>'}
+else if(act){var tx={aceptado:["Voy en camino","en_camino"],en_camino:["Iniciar viaje","en_curso"],en_curso:["Finalizar viaje","finalizado"]}[act.estado];
+h+='<div class="card"><h2>Viaje con '+esc(act.pasajero_nombre)+'</h2><div class="fare">'+M(act.ganancia_conductor)+'</div><p>Tu ganancia por este viaje. '+(act.forma_pago==="Efectivo"?"Cobrá "+M(act.monto)+" en mano al pasajero.":"El pasajero ya pagó con Mercado Pago.")+'</p><div class="route"><div>'+esc(act.origen_nombre)+(act.origen_ref?" · "+esc(act.origen_ref):"")+'<small>Retiro</small></div><div>'+esc(act.destino_nombre)+(act.destino_ref?" · "+esc(act.destino_ref):"")+'<small>Destino</small></div></div><a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+(act.estado==="en_curso"?act.destino_lat+","+act.destino_lng:act.origen_lat+","+act.origen_lng)+'">Abrir navegación ↗</a><button class="btn" onclick="avanzar(\''+act.id+'\',\''+tx[1]+'\')">'+tx[0]+'</button></div>'}
+else if(!D.on){h+='<div class="card"><h2>Estás desconectado</h2><p>Conectate para recibir pedidos de pasajeros.</p><button class="btn" onclick="setOn(true)">Conectarme</button></div>'}
+else{h+='<div class="card"><div class="row"><h2>Pedidos</h2><span class="tag">Conectado</span></div>'+(off.length?off.map(function(o){return '<div class="card" style="margin:12px 0 0"><div class="row"><span class="tag">'+esc(o.tipo)+'</span><span class="tag">'+esc(o.forma_pago)+'</span></div><div class="fare" style="font-size:30px">'+M(o.ganancia_conductor)+'</div><p>Tu ganancia · '+o.km+' km · '+esc(o.pasajero_nombre)+(o.forma_pago==="Efectivo"?" · cobrás "+M(o.monto)+" en mano":"")+'</p><div class="route"><div>'+esc(o.origen_nombre)+'</div><div>'+esc(o.destino_nombre)+'</div></div><button class="btn" style="margin-top:0" onclick="aceptar(\''+o.id+'\')">Aceptar viaje</button></div>'}).join(""):'<p>Esperando pedidos… Mantené esta pantalla abierta.</p>')+'<button class="btn ghost" onclick="setOn(false)">Desconectarme</button></div>'}
+h+='<button class="btn ghost" onclick="out()">Cerrar sesión</button>';$("v").innerHTML=h}
+function setOn(b){sb.from("conductores").update({conectado:b}).eq("id",D.u.id).then(function(r){if(r.error)return toast("No se pudo cambiar el estado.");D.on=b;b?track():untrack();D.sig="";refresh()})}
+function track(){if(wid!==null||!navigator.geolocation)return;wid=navigator.geolocation.watchPosition(function(p){if(Date.now()-last<8000)return;last=Date.now();sb.from("conductores").update({lat:p.coords.latitude,lng:p.coords.longitude,actualizado_en:new Date().toISOString()}).eq("id",D.u.id).then(function(){})},function(){toast("Activá la ubicación del celular para que te vean los pasajeros.")},{enableHighAccuracy:true})}
+function untrack(){if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null}if(D.u&&D.on)sb.from("conductores").update({conectado:false}).eq("id",D.u.id).then(function(){})}
+function aceptar(id){sb.from("viajes").update({conductor_id:D.u.id,conductor_nombre:D.p.nombre+" "+D.p.apellido.charAt(0)+".",vehiculo:D.c.vehiculo,patente:D.c.patente,estado:"aceptado"}).eq("id",id).eq("estado","buscando").select().then(function(r){if(r.error||!r.data||!r.data.length)toast("Otro conductor ya tomó este viaje.");else toast("¡Viaje aceptado!");D.sig="";refresh()})}
+function avanzar(id,est){sb.from("viajes").update({estado:est}).eq("id",id).then(function(r){if(r.error)toast("No se pudo actualizar el viaje.");else if(est==="finalizado")toast("Viaje finalizado. ¡Buen trabajo!");D.sig="";refresh()})}
+sb.auth.getSession().then(function(r){if(!r.data.session)return login();D.u=r.data.session.user;load()});
+</script></body></html>

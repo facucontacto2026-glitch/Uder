@@ -68,5 +68,23 @@ function revisar(id,ap){var x=L.filter(function(y){return y.id===id})[0],m=null;
 if(ap&&!x.doc_licencia&&!confirm("Este conductor no subió documentos. ¿Aprobar igual?"))return;
 if(!ap){m=prompt("Motivo (lo va a ver el conductor):");if(m===null)return}
 sb.rpc("admin_revisar",{cid:id,aprobar:ap,motivo:m}).then(function(r){toast(r.error?"Error: "+r.error.message:ap?"Conductor aprobado":"Conductor rechazado");load()})}
+var SD=[];
+function M(n){return (n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString("es-AR")}
+function load(){Promise.all([sb.rpc("admin_lista_conductores"),sb.rpc("admin_saldos")]).then(function(r){if(r[0].error){login("No se pudo cargar: "+r[0].error.message);return}L=r[0].data||[];SD=r[1].data||[];if(r[1].error)toast("Saldos: "+r[1].error.message);draw()})}
+function chips(){return '<div class="chips">'+[["pendiente","Pendientes",cnt("pendiente")],["aprobado","Aprobados",cnt("aprobado")],["rechazado","Rechazados",cnt("rechazado")],["saldos","Saldos",null]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+(t[2]===null?"":" ("+t[2]+")")+'</button>'}).join("")+'</div>'}
+function saldos(){var n=0,f=0,c=0;SD.forEach(function(s){n+=Number(s.viajes);f+=Number(s.facturado);c+=Number(s.comision_total)});
+var h='<div class="card"><h2>Resumen</h2><div class="row" style="align-items:flex-start;margin-top:10px"><div style="flex:1"><b style="font-size:20px;display:block">'+n+'</b><span style="font-size:12px;color:var(--mute)">Viajes</span></div><div style="flex:1"><b style="font-size:20px;display:block">'+M(f)+'</b><span style="font-size:12px;color:var(--mute)">Facturado</span></div><div style="flex:1"><b style="font-size:20px;display:block">'+M(c)+'</b><span style="font-size:12px;color:var(--mute)">Tu comisión</span></div></div><p style="margin-top:10px;font-size:12px">Solo viajes finalizados, en efectivo o con pago confirmado.</p></div>';
+var rows=SD.filter(function(s){return Number(s.viajes)>0||Number(s.pendiente)!==0});
+h+=rows.length?rows.map(function(s){var p=Number(s.pendiente),txt=p>0?'<span style="color:var(--ok)">Pagale '+M(p)+'</span>':p<0?'<span style="color:var(--bad)">Te debe '+M(-p)+'</span>':'Al día';
+return '<div class="card"><div class="row"><b>'+esc(s.nombre)+'</b><span class="tag">'+s.viajes+' viajes</span></div><p style="margin-top:8px">Mercado Pago, le corresponde: '+M(s.a_favor_mp)+'<br>Efectivo, te debe tu comisión: '+M(s.comision_efectivo)+'<br>Ya liquidado: '+M(s.liquidado)+'</p><div class="fare" style="font-size:28px;margin-top:8px">'+txt+'</div>'+(p!==0?'<button class="btn" onclick="liquidar(\''+s.conductor_id+'\')">'+(p>0?"Registrar que le pagué":"Registrar que me pagó")+'</button>':'')+'</div>'}).join(""):'<div class="card"><p>Todavía no hay viajes finalizados.</p></div>';
+return h}
+function liquidar(id){var s=SD.filter(function(x){return x.conductor_id===id})[0],p=Number(s.pendiente),pago=p>0;
+var t=prompt(pago?"¿Cuánto le pagaste a "+s.nombre+"? (en pesos)":"¿Cuánto te pagó "+s.nombre+"? (en pesos)",String(Math.abs(p)));if(t===null)return;
+var n=Math.round(Number(String(t).replace(/[^0-9.]/g,"")));if(!n||n<=0){toast("Monto inválido.");return}
+if(n>Math.abs(p)&&!confirm("El monto es mayor al saldo pendiente. ¿Registrarlo igual?"))return;
+sb.rpc("admin_liquidar",{p_cid:id,p_monto:pago?n:-n,p_nota:"Registrado desde el panel"}).then(function(r){toast(r.error?"Error: "+r.error.message:"Pago registrado");load()})}
+function draw(){var h=chips();
+if(tab==="saldos"){h+=saldos()}else{var rows=L.filter(function(x){return x.estado_revision===tab});h+=rows.length?rows.map(card).join(""):'<div class="card"><p>No hay conductores en esta lista.</p></div>'}
+h+='<button class="btn ghost" onclick="load()">Actualizar</button><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h)}
 sb.auth.getSession().then(function(r){if(!r.data.session)login();else check()});
 </script></body></html>

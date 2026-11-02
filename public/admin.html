@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><title>Uder Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#EEF1F5;--card:#fff;--ink:#14213D;--mute:#5B6678;--line:#D5DBE5;--accent:#F5B700;--on-accent:#14213D;--ok:#1F9D63;--bad:#D64545;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1626;--card:#17233A;--ink:#EEF1F5;--mute:#9AA6BA;--line:#2A3956;--ok:#3CC884;--bad:#F07575}}
+:root[data-theme="dark"]{--bg:#0E1626;--card:#17233A;--ink:#EEF1F5;--mute:#9AA6BA;--line:#2A3956;--ok:#3CC884;--bad:#F07575}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.app{max-width:440px;margin:0 auto;padding:0 16px 32px}
+header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0}
+.logo{font-weight:800;font-size:26px;letter-spacing:-1px}
+.logo i{font-style:normal;color:var(--accent);background:var(--ink);padding:0 6px;border-radius:6px;margin-right:6px}
+.logo small{font-weight:600;font-size:12px;color:var(--mute);margin-left:6px;letter-spacing:0}
+#map{height:300px;border-radius:20px;border:1px solid var(--line);margin-bottom:14px;z-index:1}
+.card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;border:1px solid var(--line)}
+h2{margin:0 0 6px;font-size:22px;letter-spacing:-.5px}
+p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
+.btn{width:100%;border:0;border-radius:16px;padding:16px;font:800 16px "Sora",sans-serif;cursor:pointer;background:var(--accent);color:var(--on-accent);margin-top:14px}
+.btn.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);font-weight:600}
+.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.st:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:9px 13px;font:600 13px "Sora",sans-serif;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.search{display:flex;gap:8px}
+input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}
+.go{border:0;border-radius:14px;padding:0 16px;background:var(--ink);color:var(--bg);font:700 14px "Sora",sans-serif;cursor:pointer}
+.res{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px;margin-top:8px;font:600 13px "Sora",sans-serif;cursor:pointer}
+.opt{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:14px;margin-top:10px;font:600 15px "Sora",sans-serif;cursor:pointer}
+.opt small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:2px}
+.opt b{font-size:18px}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--bg)}
+.lbl{font-size:13px;font-weight:600;color:var(--mute);margin:18px 0 0}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:var(--ok);width:0}
+.tag{display:inline-block;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;background:var(--line);color:var(--ink)}
+.plate{font-weight:800;letter-spacing:2px;border:2px solid var(--ink);border-radius:8px;padding:3px 10px;font-size:14px}
+.st{border:0;background:none;font-size:34px;color:var(--line);cursor:pointer;padding:2px}.st.on{color:var(--accent)}
+.fare{font-size:40px;font-weight:800;letter-spacing:-1.5px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;max-width:90%;z-index:2000}
+.fl{display:block;font-size:13px;font-weight:600;color:var(--mute);margin:14px 0 6px}
+.ck{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--mute);line-height:1.4}
+select{width:100%;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}.nav{display:inline-block;margin-top:10px;color:var(--ink);font-weight:700;font-size:14px}</style></head><body>
+<div class="app"><header><div class="logo"><i>U</i>der<small>Administrador</small></div></header><main id="v"></main></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+var sb=supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co","sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ"),L=[],tab="pendiente";
+function $(x){return document.getElementById(x)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function view(h){$("v").innerHTML=h}
+function edad(s){var d=new Date(s),t=new Date(),a=t.getFullYear()-d.getFullYear(),m=t.getMonth()-d.getMonth();if(m<0||(m===0&&t.getDate()<d.getDate()))a--;return a}
+function login(m){view('<div class="card"><h2>Panel de administrador</h2><label class="fl" for="e">Email</label><input id="e" type="email" autocomplete="email" style="width:100%"><label class="fl" for="w">Contraseña</label><input id="w" type="password" autocomplete="current-password" style="width:100%"><p id="err" role="alert" style="color:var(--bad);margin-top:12px">'+esc(m||"")+'</p><button class="btn" onclick="doLogin()">Ingresar</button></div>')}
+function doLogin(){var e=$("e").value.trim(),w=$("w").value;if(!e||!w){$("err").textContent="Completá email y contraseña.";return}$("err").textContent="Ingresando…";sb.auth.signInWithPassword({email:e,password:w}).then(function(r){if(r.error){$("err").textContent="Email o contraseña incorrectos.";return}check()})}
+function check(){sb.rpc("es_admin").then(function(r){if(r.data!==true){sb.auth.signOut();login("Esta cuenta no es de administrador.");return}load()})}
+function load(){sb.rpc("admin_lista_conductores").then(function(r){if(r.error){login("No se pudo cargar: "+r.error.message);return}L=r.data||[];draw()})}
+function setTab(t){tab=t;draw()}
+function cnt(t){return L.filter(function(x){return x.estado_revision===t}).length}
+function draw(){var rows=L.filter(function(x){return x.estado_revision===tab});
+var h='<div class="chips">'+[["pendiente","Pendientes"],["aprobado","Aprobados"],["rechazado","Rechazados"]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+' ('+cnt(t[0])+')</button>'}).join("")+'</div>';
+h+=rows.length?rows.map(card).join(""):'<div class="card"><p>No hay conductores en esta lista.</p></div>';
+h+='<button class="btn ghost" onclick="load()">Actualizar</button><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h)}
+function card(x){var docs=[["Licencia",x.doc_licencia],["Seguro",x.doc_seguro],["Cédula",x.doc_vehiculo]];
+return '<div class="card"><div class="row"><b>'+esc(x.nombre)+' '+esc(x.apellido)+'</b><span class="tag">'+esc(x.tipo)+'</span></div><p>'+esc(x.email)+'<br>DNI '+esc(x.dni)+' · '+edad(x.fecha_nac)+' años<br>'+esc(x.vehiculo)+' · '+esc(x.patente)+'<br>Registrado: '+new Date(x.creado_en).toLocaleDateString("es-AR")+'</p>'+(x.motivo_rechazo?'<p style="color:var(--bad);margin-top:8px">Motivo: '+esc(x.motivo_rechazo)+'</p>':'')+'<div class="chips">'+docs.map(function(d){return d[1]?'<button class="chip" onclick="verDoc(\''+esc(d[1])+'\')">'+d[0]+'</button>':'<span class="tag">'+d[0]+': falta</span>'}).join("")+'</div>'+(tab!=="aprobado"?'<button class="btn" onclick="revisar(\''+x.id+'\',true)">Aprobar</button>':'')+(tab!=="rechazado"?'<button class="btn ghost" onclick="revisar(\''+x.id+'\',false)">'+(tab==="aprobado"?"Suspender":"Rechazar")+'</button>':'')+'</div>'}
+function verDoc(p){var w=window.open("","_blank");sb.storage.from("documentos").createSignedUrl(p,120).then(function(r){if(r.error||!r.data){if(w)w.close();toast("No se pudo abrir el documento.");return}if(w)w.location=r.data.signedUrl;else window.open(r.data.signedUrl)})}
+function revisar(id,ap){var x=L.filter(function(y){return y.id===id})[0],m=null;
+if(ap&&!x.doc_licencia&&!confirm("Este conductor no subió documentos. ¿Aprobar igual?"))return;
+if(!ap){m=prompt("Motivo (lo va a ver el conductor):");if(m===null)return}
+sb.rpc("admin_revisar",{cid:id,aprobar:ap,motivo:m}).then(function(r){toast(r.error?"Error: "+r.error.message:ap?"Conductor aprobado":"Conductor rechazado");load()})}
+sb.auth.getSession().then(function(r){if(!r.data.session)login();else check()});
+</script></body></html>

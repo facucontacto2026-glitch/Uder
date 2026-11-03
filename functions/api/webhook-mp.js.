@@ -1,0 +1,14 @@
+// Mercado Pago avisa acá cuando cambia el estado de un pago.
+// Por ahora solo lo registra en los logs. La confirmación que habilita el viaje la hace verificar-pago.
+export async function onRequest({ request, env }) {
+  const token = env.MP_ACCESS_TOKEN;
+  let id = new URL(request.url).searchParams.get("data.id");
+  try { const b = await request.json(); if (!id && b && b.data) id = b.data.id; } catch {}
+  if (token && id) {
+    try {
+      const p = await (await fetch("https://api.mercadopago.com/v1/payments/" + id, { headers: { Authorization: "Bearer " + token } })).json();
+      console.log("Pago", id, "estado:", p.status, "referencia:", p.external_reference, "monto:", p.transaction_amount);
+    } catch (e) { console.error(e); }
+  }
+  return new Response("ok", { status: 200 });
+}

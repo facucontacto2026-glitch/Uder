@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><title>Uder Admin</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
 :root{--bg:#EEF1F5;--card:#fff;--ink:#14213D;--mute:#5B6678;--line:#D5DBE5;--accent:#F5B700;--on-accent:#14213D;--ok:#1F9D63;--bad:#D64545;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -43,6 +44,8 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 .ck{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--mute);line-height:1.4}
 select{width:100%;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}.nav{display:inline-block;margin-top:10px;color:var(--ink);font-weight:700;font-size:14px}</style></head><body>
 <div class="app"><header><div class="logo"><i>U</i>der<small>Administrador</small></div></header><main id="v"></main></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>var LF=L</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 var sb=supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co","sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ"),L=[],tab="pendiente";
@@ -61,7 +64,7 @@ function draw(){var rows=L.filter(function(x){return x.estado_revision===tab});
 var h='<div class="chips">'+[["pendiente","Pendientes"],["aprobado","Aprobados"],["rechazado","Rechazados"]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+' ('+cnt(t[0])+')</button>'}).join("")+'</div>';
 h+=rows.length?rows.map(card).join(""):'<div class="card"><p>No hay conductores en esta lista.</p></div>';
 h+='<button class="btn ghost" onclick="load()">Actualizar</button><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h)}
-function card(x){var docs=[["Licencia",x.doc_licencia],["Seguro",x.doc_seguro],["Cédula",x.doc_vehiculo]];
+function card(x){var docs=[["Licencia",x.doc_licencia],["Seguro",x.doc_seguro],["Cédula",x.doc_vehiculo],["VTV",x.doc_vtv]];
 return '<div class="card"><div class="row"><b>'+esc(x.nombre)+' '+esc(x.apellido)+'</b><span class="tag">'+esc(x.tipo)+'</span></div><p>'+esc(x.email)+'<br>DNI '+esc(x.dni)+' · '+edad(x.fecha_nac)+' años<br>'+esc(x.vehiculo)+' · '+esc(x.patente)+'<br>Registrado: '+new Date(x.creado_en).toLocaleDateString("es-AR")+'</p>'+(x.motivo_rechazo?'<p style="color:var(--bad);margin-top:8px">Motivo: '+esc(x.motivo_rechazo)+'</p>':'')+'<div class="chips">'+docs.map(function(d){return d[1]?'<button class="chip" onclick="verDoc(\''+esc(d[1])+'\')">'+d[0]+'</button>':'<span class="tag">'+d[0]+': falta</span>'}).join("")+'</div>'+(tab!=="aprobado"?'<button class="btn" onclick="revisar(\''+x.id+'\',true)">Aprobar</button>':'')+(tab!=="rechazado"?'<button class="btn ghost" onclick="revisar(\''+x.id+'\',false)">'+(tab==="aprobado"?"Suspender":"Rechazar")+'</button>':'')+'</div>'}
 function verDoc(p){var w=window.open("","_blank");sb.storage.from("documentos").createSignedUrl(p,120).then(function(r){if(r.error||!r.data){if(w)w.close();toast("No se pudo abrir el documento.");return}if(w)w.location=r.data.signedUrl;else window.open(r.data.signedUrl)})}
 function revisar(id,ap){var x=L.filter(function(y){return y.id===id})[0],m=null;
@@ -71,7 +74,7 @@ sb.rpc("admin_revisar",{cid:id,aprobar:ap,motivo:m}).then(function(r){toast(r.er
 var SD=[];
 function M(n){return (n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString("es-AR")}
 function load(){Promise.all([sb.rpc("admin_lista_conductores"),sb.rpc("admin_saldos")]).then(function(r){if(r[0].error){login("No se pudo cargar: "+r[0].error.message);return}L=r[0].data||[];SD=r[1].data||[];if(r[1].error)toast("Saldos: "+r[1].error.message);draw()})}
-function chips(){return '<div class="chips">'+[["pendiente","Pendientes",cnt("pendiente")],["aprobado","Aprobados",cnt("aprobado")],["rechazado","Rechazados",cnt("rechazado")],["saldos","Saldos",null]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+(t[2]===null?"":" ("+t[2]+")")+'</button>'}).join("")+'</div>'}
+function chips(){return '<div class="chips">'+[["pendiente","Pendientes",cnt("pendiente")],["aprobado","Aprobados",cnt("aprobado")],["rechazado","Rechazados",cnt("rechazado")],["saldos","Saldos",null],["envivo","En vivo",null]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+(t[2]===null?"":" ("+t[2]+")")+'</button>'}).join("")+'</div>'}
 function saldos(){var n=0,f=0,c=0;SD.forEach(function(s){n+=Number(s.viajes);f+=Number(s.facturado);c+=Number(s.comision_total)});
 var h='<div class="card"><h2>Resumen</h2><div class="row" style="align-items:flex-start;margin-top:10px"><div style="flex:1"><b style="font-size:20px;display:block">'+n+'</b><span style="font-size:12px;color:var(--mute)">Viajes</span></div><div style="flex:1"><b style="font-size:20px;display:block">'+M(f)+'</b><span style="font-size:12px;color:var(--mute)">Facturado</span></div><div style="flex:1"><b style="font-size:20px;display:block">'+M(c)+'</b><span style="font-size:12px;color:var(--mute)">Tu comisión</span></div></div><p style="margin-top:10px;font-size:12px">Solo viajes finalizados, en efectivo o con pago confirmado.</p></div>';
 var rows=SD.filter(function(s){return Number(s.viajes)>0||Number(s.pendiente)!==0});
@@ -83,7 +86,16 @@ var t=prompt(pago?"¿Cuánto le pagaste a "+s.nombre+"? (en pesos)":"¿Cuánto t
 var n=Math.round(Number(String(t).replace(/[^0-9.]/g,"")));if(!n||n<=0){toast("Monto inválido.");return}
 if(n>Math.abs(p)&&!confirm("El monto es mayor al saldo pendiente. ¿Registrarlo igual?"))return;
 sb.rpc("admin_liquidar",{p_cid:id,p_monto:pago?n:-n,p_nota:"Registrado desde el panel"}).then(function(r){toast(r.error?"Error: "+r.error.message:"Pago registrado");load()})}
-function draw(){var h=chips();
+var VM=null,VG=null,VT=0,VI=null;
+function ago(t){if(!t)return"sin datos";var s=Math.round((Date.now()-new Date(t))/1000);return s<60?"hace "+s+" s":"hace "+Math.round(s/60)+" min"}
+function cargarVivo(){sb.rpc("admin_viajes_activos").then(function(r){if(tab!=="envivo"||!$("mapa"))return;var a=r.data||[];
+if(!VM){VM=LF.map("mapa").setView([-25.8,-64.967],14);LF.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© Colaboradores de OpenStreetMap"}).addTo(VM);VG=LF.layerGroup().addTo(VM)}
+VG.clearLayers();var b=[];
+function pt(la,lo,c,t,rad){if(la==null)return;b.push([la,lo]);LF.circleMarker([la,lo],{radius:rad||9,color:"#fff",weight:3,fillColor:c,fillOpacity:1}).bindTooltip(t).addTo(VG)}
+a.forEach(function(v){pt(v.origen_lat,v.origen_lng,"#14213D","Retiro: "+v.origen_nombre);pt(v.destino_lat,v.destino_lng,"#D64545","Destino: "+v.destino_nombre);pt(v.pas_lat,v.pas_lng,"#1F9D63","Pasajero: "+v.pasajero_nombre);pt(v.cond_lat,v.cond_lng,"#F5B700","Conductor: "+v.conductor_nombre+" · "+v.patente,12);LF.polyline([[v.origen_lat,v.origen_lng],[v.destino_lat,v.destino_lng]],{color:"#14213D",weight:2,dashArray:"6 8"}).addTo(VG)});
+if(b.length&&!VT){VM.fitBounds(b,{padding:[40,40],maxZoom:16});VT=1}
+$("lista").innerHTML=a.length?a.map(function(v){return '<div class="card"><div class="row"><b>'+esc(v.conductor_nombre)+' · '+esc(v.patente)+'</b><span class="tag">'+esc({aceptado:"Aceptado",en_camino:"En camino",en_curso:"En viaje"}[v.estado]||v.estado)+'</span></div><p>Pasajero: '+esc(v.pasajero_nombre)+'<br>'+esc(v.origen_nombre)+' → '+esc(v.destino_nombre)+'<br>Ubicación del conductor: '+ago(v.cond_actualizado)+'</p></div>'}).join(""):'<div class="card"><p>No hay viajes en curso en este momento.</p></div>'})}
+function draw(){clearInterval(VI);var h=chips();if(tab==="envivo"){VM=null;VT=0;h+='<div id="mapa" style="height:320px;border-radius:20px;border:1px solid var(--line);margin-bottom:14px"></div><div id="lista"></div><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h);cargarVivo();VI=setInterval(cargarVivo,5000);return}
 if(tab==="saldos"){h+=saldos()}else{var rows=L.filter(function(x){return x.estado_revision===tab});h+=rows.length?rows.map(card).join(""):'<div class="card"><p>No hay conductores en esta lista.</p></div>'}
 h+='<button class="btn ghost" onclick="load()">Actualizar</button><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h)}
 sb.auth.getSession().then(function(r){if(!r.data.session)login();else check()});

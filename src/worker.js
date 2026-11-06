@@ -1,4 +1,4 @@
-// Uder · Backend en Cloudflare Workers
+// Uder · Backend en Cloudflare Workers (Mercado Pago API + Supabase)
 const SB = "https://mmgvttmgchnbppcemrwg.supabase.co";
 
 const json = (s, o) => new Response(JSON.stringify(o), { 
@@ -10,11 +10,9 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// Iconos vectoriales puros de alto contraste (sin dependencias externas)
+// Iconos vectoriales
 function servirIcono(tipo) {
   const esChofer = (tipo === "conductor");
-  
-  // Colores invertidos para diferenciar claramente Pasajero y Chofer
   const fondoExterior = esChofer ? "#F5B700" : "#14213D";
   const circuloCentro = esChofer ? "#14213D" : "#F5B700";
   const letraColor    = esChofer ? "#F5B700" : "#14213D";
@@ -22,32 +20,24 @@ function servirIcono(tipo) {
   const etiqueta      = esChofer ? "CHOFER" : "UDER";
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-    <!-- Fondo completo -->
     <rect width="512" height="512" rx="100" fill="${fondoExterior}"/>
-    <!-- Círculo brillante central dentro de la zona segura de Android -->
     <circle cx="256" cy="235" r="150" fill="${circuloCentro}"/>
-    <!-- Letra U gigante centrada -->
     <text x="256" y="305" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="200" fill="${letraColor}" text-anchor="middle">U</text>
-    <!-- Texto inferior -->
     <text x="256" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="46" fill="${textoColor}" text-anchor="middle" letter-spacing="4">${etiqueta}</text>
   </svg>`;
 
   return new Response(svg, {
-    headers: {
-      "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=604800"
-    }
+    headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=604800" }
   });
 }
 
-// 1. Buscador de calles
+// 1. Buscador oficial de calles
 async function buscarCalle(request) {
   const q = (new URL(request.url).searchParams.get("q") || "").trim();
   if (!q) return json(200, { resultados: [] });
 
   const numMatch = q.match(/\b\d{1,5}\b/);
   const num = numMatch ? numMatch[0] : "";
-
   let resultados = [];
 
   try {
@@ -90,7 +80,72 @@ async function buscarCalle(request) {
   return json(200, { resultados });
 }
 
-// 2. Crear cobro con Mercado Pago
+// 2. DÉBITO DIRECTO CON TARJETA (CHECKOUT TRANSPARENTE / INVISIBLE)
+async function procesarPagoTarjeta(request, env) {
+  const token = env.MP_ACCESS_TOKEN;
+  if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
+
+  let b;
+  try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
+
+  const monto = Math.round(Number(b.monto));
+  if (!(monto >= 500 && monto <= 300000)) return json(400, { error: "Monto fuera de rango" });
+  if (!b.token) return json(400, { error: "Falta token de tarjeta" });
+
+  const paymentData = {
+    transaction_amount: monto,
+    token: b.token,
+    description: String(b.descripcion || "Viaje Uder").slice(0, 120),
+    installments: 1,
+    payer: {
+      email: b.email || "pasajero@uder.app",
+      identification: {
+        type: "DNI",
+        number: String(b.dni || "0").replace(/\D/g, "").slice(0, 8)
+      }
+    },
+    statement_descriptor: "UDER VIAJES",
+    external_reference: "uder-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8)
+  };
+
+  try {
+    const r = await fetch("https://api.mercadopago.com/v1/payments", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": "uder-pay-" + (b.viaje_id || Date.now())
+      },
+      body: JSON.stringify(paymentData)
+    });
+    const j = await r.json();
+
+    if (r.ok && j.status === "approved") {
+      // Si el pago se aprobó, actualizar Supabase
+      const key = env.SUPABASE_SECRET_KEY;
+      if (b.viaje_id && key && /^[0-9a-f-]{36}$/i.test(b.viaje_id)) {
+        try {
+          const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=minimal" };
+          await fetch(`${SB}/rest/v1/viajes?id=eq.${b.viaje_id}`, {
+            method: "PATCH",
+            headers: h,
+            body: JSON.stringify({ pago_estado: "aprobado", mp_ref: String(j.id) })
+          });
+        } catch(e) {}
+      }
+      return json(200, { aprobado: true, id: j.id, estado: "approved" });
+    } else {
+      console.error("MP Rechazo:", j);
+      const motivo = j.status_detail || j.message || "Pago rechazado por el banco emisor";
+      return json(200, { aprobado: false, estado: j.status, detalle: motivo });
+    }
+  } catch (e) {
+    console.error(e);
+    return json(502, { error: "Error al procesar cobro bancario" });
+  }
+}
+
+// 3. Crear cobro con Checkout Pro (opción alternativa)
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -140,7 +195,7 @@ async function crearPago(request, env) {
   }
 }
 
-// 3. Verificar cobro
+// 4. Verificar cobro
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -179,7 +234,7 @@ async function verificarPago(request, env) {
   }
 }
 
-// 4. Crear viaje en Supabase
+// 5. Crear viaje en Supabase
 async function pedirViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -201,7 +256,7 @@ async function pedirViaje(request, env) {
   }
 }
 
-// 5. Consultar estado del viaje
+// 6. Consultar estado del viaje
 async function estadoViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -228,7 +283,7 @@ async function estadoViaje(request, env) {
   }
 }
 
-// 6. Cancelar viaje
+// 7. Cancelar viaje
 async function cancelarViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -258,12 +313,13 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Servir iconos nativos de alta resolución (SVG y PNG)
+    // Iconos
     if (pathname === "/icon-pasajero.svg" || pathname === "/icon-pasajero.png") return servirIcono("pasajero");
     if (pathname === "/icon-conductor.svg" || pathname === "/icon-conductor.png") return servirIcono("conductor");
 
     // Rutas de API
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);
+    if (pathname === "/api/procesar-pago-tarjeta" && request.method === "POST") return procesarPagoTarjeta(request, env);
     if (pathname === "/api/crear-pago" && request.method === "POST") return crearPago(request, env);
     if (pathname === "/api/verificar-pago" && request.method === "GET") return verificarPago(request, env);
     if (pathname === "/api/pedir-viaje" && request.method === "POST") return pedirViaje(request, env);
@@ -272,7 +328,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Rutas limpias
+    // Rutas amigables
     if (pathname === "/conductor" || pathname === "/conductor/") {
       url.pathname = "/conductor.html";
       return env.ASSETS.fetch(new Request(url, request));

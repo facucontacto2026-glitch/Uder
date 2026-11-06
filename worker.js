@@ -1,13 +1,16 @@
-// Uder · funciones de cobro con Mercado Pago.
-// La carpeta "public" se sirve sola. Este código solo atiende las direcciones que empiezan con /api/.
-// Las claves (MP_ACCESS_TOKEN y SUPABASE_SECRET_KEY) se cargan como Secretos en Cloudflare.
-
+// Uder · Backend en Cloudflare Workers (Mercado Pago + Supabase + Rutas limpias)
 const SB = "https://mmgvttmgchnbppcemrwg.supabase.co";
+
 const json = (s, o) => new Response(JSON.stringify(o), { 
   status: s, 
   headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
 });
 
+function sbHeaders(key) {
+  return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
+}
+
+// 1. Crear preferencia de cobro en Mercado Pago
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -19,6 +22,8 @@ async function crearPago(request, env) {
 
   const base = new URL(request.url).origin;
   const ref = "uder-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  const viajeId = b.viaje_id || "";
+
   const pref = {
     items: [{ 
       title: String(b.descripcion || "Viaje Uder").slice(0, 120), 
@@ -32,7 +37,7 @@ async function crearPago(request, env) {
       identification: { type: "DNI", number: String(b.dni || "").replace(/\D/g, "").slice(0, 8) }
     },
     back_urls: { 
-      success: base + "/?pago=ok", 
+      success: base + "/?pago=ok" + (viajeId ? "&viaje=" + viajeId : ""), 
       failure: base + "/?pago=error", 
       pending: base + "/?pago=pendiente" 
     },
@@ -48,10 +53,7 @@ async function crearPago(request, env) {
       body: JSON.stringify(pref)
     });
     const j = await r.json();
-    if (!r.ok) { 
-      console.error("MP error", JSON.stringify(j)); 
-      return json(502, { error: "Mercado Pago rechazó la solicitud" }); 
-    }
+    if (!r.ok) { console.error("MP error", JSON.stringify(j)); return json(502, { error: "Mercado Pago rechazó la solicitud" }); }
     return json(200, { url: j.init_point, ref });
   } catch (e) {
     console.error(e);
@@ -59,6 +61,7 @@ async function crearPago(request, env) {
   }
 }
 
+// 2. Verificar cobro con Mercado Pago y actualizar Supabase
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -71,69 +74,135 @@ async function verificarPago(request, env) {
   if (!id) return json(400, { aprobado: false, error: "Falta payment_id" });
 
   try {
-    // 1. Consultamos a Mercado Pago si el cobro se acreditó de verdad
     const mpRes = await fetch("https://api.mercadopago.com/v1/payments/" + id, {
       headers: { Authorization: "Bearer " + token }
     });
     const p = await mpRes.json();
-
-    // Verificamos estado y que la referencia coincida si viene especificada
     const aprobado = (p.status === "approved") && (!ref || p.external_reference === ref);
 
-    if (!aprobado) {
-      return json(200, { aprobado: false, estado: p.status });
-    }
+    if (!aprobado) return json(200, { aprobado: false, estado: p.status });
 
-    // 2. Si viene un ID de viaje y tenemos Supabase configurado, actualizamos la base de datos
     const key = env.SUPABASE_SECRET_KEY;
     if (viaje && key && /^[0-9a-f-]{36}$/i.test(viaje)) {
       try {
-        const h = key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
-        await fetch(`${SB}/rest/v1/viajes?id=eq.${viaje}&pago_estado=eq.pendiente`, {
+        const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=minimal" };
+        await fetch(`${SB}/rest/v1/viajes?id=eq.${viaje}`, {
           method: "PATCH",
-          headers: { ...h, "Content-Type": "application/json", Prefer: "return=minimal" },
-          body: JSON.stringify({ pago_estado: "aprobado", mp_ref: ref || p.external_reference })
+          headers: h,
+          body: JSON.stringify({ pago_estado: "aprobado", estado: "buscando", mp_ref: ref || p.external_reference })
         });
       } catch (dbErr) {
-        console.error("Error al actualizar Supabase:", dbErr);
+        console.error("Error al actualizar viaje:", dbErr);
       }
     }
 
     return json(200, { aprobado: true, estado: "approved" });
   } catch (e) {
     console.error(e);
-    return json(502, { aprobado: false, error: "Error al verificar con Mercado Pago" });
+    return json(502, { aprobado: false, error: "Error de verificación" });
+  }
+}
+
+// 3. Crear viaje en Supabase
+async function pedirViaje(request, env) {
+  const key = env.SUPABASE_SECRET_KEY;
+  if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
+  let b;
+  try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
+
+  try {
+    const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=representation" };
+    const r = await fetch(`${SB}/rest/v1/viajes`, {
+      method: "POST",
+      headers: h,
+      body: JSON.stringify(b)
+    });
+    const data = await r.json();
+    if (!r.ok) { console.error("DB error", data); return json(500, { error: "No se pudo crear el viaje" }); }
+    return json(200, { viaje: data[0] });
+  } catch (e) {
+    console.error(e);
+    return json(500, { error: "Error al guardar el viaje" });
+  }
+}
+
+// 4. Consultar estado del viaje y posición del chofer
+async function estadoViaje(request, env) {
+  const key = env.SUPABASE_SECRET_KEY;
+  if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return json(400, { error: "Falta id" });
+
+  try {
+    const h = sbHeaders(key);
+    const r = await fetch(`${SB}/rest/v1/viajes?id=eq.${id}&select=*`, { headers: h });
+    const lista = await r.json();
+    const v = lista && lista[0];
+    if (!v) return json(404, { error: "Viaje no encontrado" });
+
+    let condPos = null;
+    if (v.conductor_id) {
+      const cr = await fetch(`${SB}/rest/v1/conductores?id=eq.${v.conductor_id}&select=lat,lng,actualizado_en`, { headers: h });
+      const cdata = await cr.json();
+      if (cdata && cdata[0]) condPos = cdata[0];
+    }
+
+    return json(200, { viaje: v, conductor_pos: condPos });
+  } catch (e) {
+    console.error(e);
+    return json(500, { error: "Error de consulta" });
+  }
+}
+
+// 5. Cancelar viaje
+async function cancelarViaje(request, env) {
+  const key = env.SUPABASE_SECRET_KEY;
+  if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
+  let b;
+  try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
+  if (!b.id) return json(400, { error: "Falta id" });
+
+  try {
+    const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=minimal" };
+    await fetch(`${SB}/rest/v1/viajes?id=eq.${b.id}&estado=in.(buscando,aceptado)`, {
+      method: "PATCH",
+      headers: h,
+      body: JSON.stringify({ estado: "cancelado" })
+    });
+    return json(200, { ok: true });
+  } catch (e) {
+    return json(500, { error: "No se pudo cancelar" });
   }
 }
 
 async function webhookMp(request, env) {
-  const token = env.MP_ACCESS_TOKEN;
-  let id = new URL(request.url).searchParams.get("data.id");
-  try { 
-    const b = await request.json(); 
-    if (!id && b && b.data) id = b.data.id; 
-  } catch {}
-
-  if (token && id) {
-    try {
-      const p = await (await fetch("https://api.mercadopago.com/v1/payments/" + id, { 
-        headers: { Authorization: "Bearer " + token } 
-      })).json();
-      console.log("Pago", id, "estado:", p.status, "referencia:", p.external_reference, "monto:", p.transaction_amount);
-    } catch (e) { 
-      console.error(e); 
-    }
-  }
   return new Response("ok", { status: 200 });
 }
 
 export default {
   async fetch(request, env) {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
+
+    // Rutas de API
     if (pathname === "/api/crear-pago" && request.method === "POST") return crearPago(request, env);
     if (pathname === "/api/verificar-pago" && request.method === "GET") return verificarPago(request, env);
+    if (pathname === "/api/pedir-viaje" && request.method === "POST") return pedirViaje(request, env);
+    if (pathname === "/api/estado-viaje" && request.method === "GET") return estadoViaje(request, env);
+    if (pathname === "/api/cancelar-viaje" && request.method === "POST") return cancelarViaje(request, env);
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
+
+    // Rutas limpias sin .html
+    if (pathname === "/conductor" || pathname === "/conductor/") {
+      url.pathname = "/conductor.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+    if (pathname === "/admin" || pathname === "/admin/") {
+      url.pathname = "/admin.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+
     return env.ASSETS.fetch(request);
   }
 };

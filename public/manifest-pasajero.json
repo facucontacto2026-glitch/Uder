@@ -1,0 +1,19 @@
+{
+  "name": "Uder · Viajes",
+  "short_name": "Uder",
+  "description": "Pedí tu viaje en Rosario de la Frontera",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#14213D",
+  "theme_color": "#14213D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-pasajero.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -160,7 +160,7 @@ body{
   color:#fff
 }
 
-/* TARJETAS DE SERVICIO (REMIS / UDER) */
+/* TARJETAS DE SERVICIO */
 .ride-card{
   display:flex;
   align-items:center;
@@ -219,7 +219,7 @@ body{
   color:#000
 }
 
-/* BARRA DE FORMA DE PAGO */
+/* BARRA DE PAGO */
 .payment-bar{
   display:flex;
   align-items:center;
@@ -265,34 +265,24 @@ body{
   margin-top:6px
 }
 
-/* RESULTADOS DE BÚSQUEDA */
-.search-res-item{
-  display:flex;
-  align-items:center;
-  gap:14px;
-  padding:12px 0;
-  border-bottom:1px solid var(--line);
-  cursor:pointer;
-  text-align:left;
+/* INPUTS PARA FORMULARIOS */
+.field-input{
   width:100%;
-  background:transparent;
-  border-left:0;border-right:0;border-top:0
+  padding:14px;
+  border-radius:10px;
+  border:1px solid #D5DBE5;
+  background:#F9F9F9;
+  font:600 15px 'Plus Jakarta Sans',sans-serif;
+  margin-top:6px;
+  margin-bottom:14px;
+  outline:none
 }
-.search-res-item i{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  background:var(--surface);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-style:normal;
-  flex-shrink:0
+.field-input:focus{
+  border-color:#000;
+  background:#fff
 }
-.search-res-item div b{display:block;font-size:15px;color:#000}
-.search-res-item div small{font-size:12px;color:var(--ink-secondary)}
 
-/* BARRA DE NAVEGACIÓN INFERIOR (UBER STYLE) */
+/* BARRA DE NAVEGACIÓN INFERIOR */
 .bottom-nav{
   position:fixed;
   bottom:0;
@@ -323,23 +313,6 @@ body{
 }
 .nav-item.active{color:#000}
 .nav-item svg{width:22px;height:22px}
-
-/* INPUTS PARA FORMULARIOS */
-.field-input{
-  width:100%;
-  padding:14px;
-  border-radius:10px;
-  border:1px solid #D5DBE5;
-  background:#F9F9F9;
-  font:600 15px 'Plus Jakarta Sans',sans-serif;
-  margin-top:6px;
-  margin-bottom:14px;
-  outline:none
-}
-.field-input:focus{
-  border-color:#000;
-  background:#fff
-}
 
 /* TOAST */
 .toast{
@@ -377,13 +350,38 @@ body{
   padding:3px 8px;
   font-size:13px
 }
+.search-res-item{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+  text-align:left;
+  width:100%;
+  background:transparent;
+  border-left:0;border-right:0;border-top:0
+}
+.search-res-item i{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:var(--surface);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-style:normal;
+  flex-shrink:0
+}
+.search-res-item div b{display:block;font-size:15px;color:#000}
+.search-res-item div small{font-size:12px;color:var(--ink-secondary)}
 </style>
 </head>
 <body>
 <div class="app">
 
   <!-- TOP BAR -->
-  <div class="top-bar">
+  <div class="top-bar" id="top_bar">
     <div class="top-loc" onclick="loc()">
       <i></i> Rosario de la Frontera ⌵
     </div>
@@ -393,11 +391,11 @@ body{
   <!-- MAPA DE FONDO -->
   <div id="map"></div>
 
-  <!-- VISTA PRINCIPAL (DINÁMICA) -->
+  <!-- VISTA PRINCIPAL -->
   <main id="v" class="main-view"></main>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR (ESTILO UBER) -->
-  <nav class="bottom-nav">
+  <!-- BARRA DE NAVEGACIÓN INFERIOR (SOLO CUANDO ESTÁ LOGUEADO) -->
+  <nav class="bottom-nav" id="bottom_nav" style="display:none">
     <button id="nav_inicio" class="nav-item active" onclick="cambiarSeccion('home')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       Inicio
@@ -424,7 +422,7 @@ if('serviceWorker' in navigator){
 }
 
 var CEN={lat:-25.798,lng:-64.968},BB={w:-65.05,e:-64.90,n:-25.74,s:-25.86};
-var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿A dónde vamos hoy?",ph:"home",oref:"",dref:"",viajeId:null,mapFitDone:false},tm=null,pollTm=null;
+var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿A dónde vamos hoy?",ph:"welcome",oref:"",dref:"",viajeId:null,mapFitDone:false},tm=null,pollTm=null;
 
 var TY=[
   ["Remis", "Servicio tradicional de remis", 1.0, "🚗", "4 min"],
@@ -446,12 +444,12 @@ function lab(n, r){
 
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
 
-// GESTIÓN DE SESIÓN DE USUARIO
+// GESTIÓN ESTRICTA DE SESIÓN (OBLIGATORIA PARA PEDIR VIAJES)
 var U = null;
 try { U = JSON.parse(localStorage.getItem("uder_user") || "null"); } catch(e){}
 function save(){ try { localStorage.setItem("uder_user", JSON.stringify(U)); } catch(e){} }
 
-// CIERRE DE SESIÓN ASINCRÓNICO Y LIMPIO
+// CERRAR SESIÓN ESTRICTO: SALE DE TODO Y MUESTRA LA PANTALLA DE LOGIN
 async function logout(){
   toast("Cerrando sesión…");
   try {
@@ -463,10 +461,9 @@ async function logout(){
     sessionStorage.clear();
   } catch(e){}
   toast("Sesión cerrada");
-  cambiarSeccion("cuenta");
+  go("welcome");
 }
 
-// SINCRONIZAR USUARIO AUTENTICADO
 function sincronizarUsuario(usr){
   var meta = usr.user_metadata || {};
   var nomComp = meta.full_name || meta.name || "";
@@ -479,7 +476,7 @@ function sincronizarUsuario(usr){
     dni: meta.dni || ""
   };
   save();
-  cambiarSeccion("cuenta");
+  cambiarSeccion("home");
 }
 
 sb.auth.onAuthStateChange(function(event, session){
@@ -491,6 +488,8 @@ sb.auth.onAuthStateChange(function(event, session){
 sb.auth.getSession().then(function(r){
   if(r.data && r.data.session && r.data.session.user){
     sincronizarUsuario(r.data.session.user);
+  } else if(!U) {
+    go("welcome");
   }
 });
 
@@ -528,12 +527,16 @@ function doRegistroEmail(){
     if(r.error) { toast("Error: " + r.error.message); return; }
     toast("¡Cuenta creada!");
     if(r.data.user) sincronizarUsuario(r.data.user);
-    else cambiarSeccion("cuenta");
+    else go("welcome");
   });
 }
 
-// CAMBIAR PESTAÑAS INFERIORES
+// CAMBIO DE PESTAÑAS (SOLO PERMITIDO SI ESTÁ LOGUEADO)
 function cambiarSeccion(sec){
+  if(!U){
+    go("welcome");
+    return;
+  }
   document.querySelectorAll(".nav-item").forEach(function(btn){ btn.classList.remove("active"); });
   if(sec === "home"){
     $("nav_inicio").classList.add("active");
@@ -570,11 +573,16 @@ function price(i){
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
 function pedirViajeReal(){
+  if(!U){
+    toast("Tenés que iniciar sesión para pedir un viaje");
+    go("welcome");
+    return;
+  }
   var monto = Math.round(price(S.ty));
   var cuadras = getCuadras();
   var payload = {
-    pasajero_id: U && U.id ? U.id : null,
-    pasajero_nombre: U ? (U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : "")) : "Pasajero",
+    pasajero_id: U.id || null,
+    pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""),
     tipo: TY[S.ty][0],
     forma_pago: S.pg,
     monto: monto,
@@ -1011,15 +1019,24 @@ function cambiarPago(){
   go("opt");
 }
 
-// CONTROL DE PANTALLAS
+// CONTROL DE PANTALLAS (SI NO ESTÁ LOGUEADO, SOLO PUEDE VER LOGIN / REGISTRO)
 function go(ph){
   clearInterval(tm);clearInterval(pollTm);
-  S.ph=ph;
-  var v=$("v");
-  
-  // El mapa solo se muestra al pedir viaje o en viaje
-  var showMap = (ph === "home" || ph === "opt" || ph === "search" || ph === "pick" || ph === "trip");
+
+  // Si no está logueado, BLOQUEAR el acceso al mapa o a pedir viajes
+  if(!U && ph !== "welcome" && ph !== "reg"){
+    ph = "welcome";
+  }
+
+  S.ph = ph;
+  var v = $("v");
+
+  // Mostrar el mapa y la barra inferior SOLAMENTE si el usuario inició sesión
+  var showMap = (U && (ph === "home" || ph === "opt" || ph === "search" || ph === "pick" || ph === "trip"));
   $("map").style.display = showMap ? "block" : "none";
+  $("top_bar").style.display = U ? "flex" : "none";
+  $("bottom_nav").style.display = U ? "flex" : "none";
+
   if(showMap) map.invalidateSize();
 
   if(ph==="home"||ph==="opt"){
@@ -1027,10 +1044,49 @@ function go(ph){
     S.mapFitDone = false;
   }
 
-  // 1. INICIO
+  // PANTALLA PRINCIPAL DE LOGIN (CUANDO NO ESTÁ LOGUEADO O CIERRA SESIÓN)
+  if(ph==="welcome"){
+    v.innerHTML = 
+      '<div style="text-align:center;padding:30px 10px">' +
+        '<div style="width:72px;height:72px;background:#000;color:var(--accent);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;margin-bottom:18px">U</div>' +
+        '<h2 style="font-size:26px;font-weight:800;margin:0 0 8px">Te damos la bienvenida a Uder</h2>' +
+        '<p style="color:var(--ink-secondary);font-size:15px;margin:0 0 26px">Iniciá sesión o registrate para viajar en Rosario de la Frontera.</p>' +
+        
+        '<button class="btn-uber" style="background:#fff;color:#000;border:1px solid #ddd;margin-bottom:16px" onclick="loginGoogle()">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.43 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.99 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.57 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>' +
+          'Continuar con Google' +
+        '</button>' +
+
+        '<div style="text-align:left;background:var(--surface);border-radius:14px;padding:18px;margin-bottom:14px">' +
+          '<div style="font-weight:700;margin-bottom:10px">O ingresá con tu correo</div>' +
+          '<input id="l_e" type="email" placeholder="Email" class="field-input">' +
+          '<input id="l_w" type="password" placeholder="Contraseña" class="field-input">' +
+          '<button class="btn-uber" onclick="doLoginEmail()">Ingresar</button>' +
+        '</div>' +
+
+        '<button class="btn-ghost-uber" onclick="go(\'reg\')">¿No tenés cuenta? Registrate gratis</button>' +
+      '</div>';
+  }
+
+  // PANTALLA CREAR CUENTA
+  if(ph==="reg"){
+    v.innerHTML = 
+      '<div style="padding:20px 10px">' +
+        '<h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Crear cuenta</h2>' +
+        '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Registrate gratis para pedir viajes.</p>' +
+        '<input id="r_n" placeholder="Nombre/s" class="field-input">' +
+        '<input id="r_a" placeholder="Apellido" class="field-input">' +
+        '<input id="r_e" type="email" placeholder="Email" class="field-input">' +
+        '<input id="r_w" type="password" placeholder="Contraseña (mínimo 6)" class="field-input">' +
+        '<button class="btn-uber" onclick="doRegistroEmail()">Crear cuenta</button>' +
+        '<button class="btn-ghost-uber" onclick="go(\'welcome\')">Volver al inicio</button>' +
+      '</div>';
+  }
+
+  // PANTALLA INICIO (MAPA)
   if(ph==="home"){
     var placeholderTxt = S.mode === "o" ? "¿Dónde te retiramos? (ej: guemes 248)" : "¿A dónde vas? (ej: peron 412)";
-    var saludo = U && U.nombre ? ("¿A dónde vamos, " + esc(U.nombre) + "?") : "¿A dónde vamos hoy?";
+    var saludo = "¿A dónde vamos, " + esc(U.nombre) + "?";
     v.innerHTML = 
       '<h2 style="font-size:22px;font-weight:800;margin:0 0 12px">'+saludo+'</h2>' +
       '<div class="chips-row">' +
@@ -1064,7 +1120,7 @@ function go(ph){
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
-  // 2. ACTIVIDAD
+  // PANTALLA ACTIVIDAD
   if(ph==="actividad"){
     v.innerHTML = '<div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Cargando tus viajes…</p></div>';
     
@@ -1117,80 +1173,40 @@ function go(ph){
     });
   }
 
-  // 3. CUENTA (PERFIL O INICIAR SESIÓN)
+  // PANTALLA CUENTA (PERFIL DEL USUARIO)
   if(ph==="cuenta"){
-    if(U && U.nombre){
-      // USUARIO LOGUEADO
-      v.innerHTML = 
-        '<div style="padding:10px 0">' +
-          '<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">' +
-            '<div style="width:68px;height:68px;border-radius:50%;background:#000;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900">' +
-              esc(U.nombre.charAt(0)) +
-            '</div>' +
-            '<div>' +
-              '<h2 style="margin:0;font-size:22px;font-weight:800">'+esc(U.nombre)+' '+(U.apellido?esc(U.apellido):'')+'</h2>' +
-              '<div style="margin-top:4px"><span style="background:var(--surface);padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;color:var(--ink-secondary)">⭐ 5.0 · Pasajero</span></div>' +
-            '</div>' +
-          '</div>' +
-
-          '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px">' +
-            '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">INFORMACIÓN DE TU CUENTA</div>' +
-            '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Nombre:</b> '+esc(U.nombre)+' '+(U.apellido?esc(U.apellido):'')+'</div>' +
-            (U.email ? '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Email:</b> '+esc(U.email)+'</div>' : '') +
-            '<div style="font-size:14px;padding:8px 0"><b>Ciudad:</b> Rosario de la Frontera, Salta</div>' +
-          '</div>' +
-
-          '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:24px">' +
-            '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">MEDIOS DE PAGO HABILITADOS</div>' +
-            '<div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano)</div>' +
-            '<div style="font-size:14px;padding:6px 0">🔵 <b>Mercado Pago</b> (Débito, Crédito o Saldo)</div>' +
-          '</div>' +
-
-          '<button class="btn-uber" style="background:#FFF0F0;color:var(--bad);border:1px solid #FFCDD2" onclick="logout()">' +
-            'Cerrar sesión' +
-          '</button>' +
-        '</div>';
-    } else {
-      // USUARIO DESLOGUEADO
-      v.innerHTML = 
-        '<div style="text-align:center;padding:20px 0">' +
-          '<div style="width:68px;height:68px;border-radius:50%;background:var(--surface);display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:14px">👤</div>' +
-          '<h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Iniciá sesión en Uder</h2>' +
-          '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 24px">Para pedir viajes con tu cuenta y guardar tu historial.</p>' +
-
-          '<button class="btn-uber" style="background:#fff;color:#000;border:1px solid #ddd;margin-bottom:14px" onclick="loginGoogle()">' +
-            '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.43 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.99 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.57 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>' +
-            'Continuar con Google' +
-          '</button>' +
-
-          '<div style="text-align:left;background:var(--surface);border-radius:14px;padding:18px;margin-bottom:14px">' +
-            '<div style="font-weight:700;margin-bottom:10px">O con tu correo</div>' +
-            '<input id="l_e" type="email" placeholder="Email" class="field-input">' +
-            '<input id="l_w" type="password" placeholder="Contraseña" class="field-input">' +
-            '<button class="btn-uber" onclick="doLoginEmail()">Ingresar</button>' +
-          '</div>' +
-
-          '<button class="btn-ghost-uber" onclick="go(\'reg\')">¿No tenés cuenta? Registrate</button>' +
-        '</div>';
-    }
-  }
-
-  // PANTALLA REGISTRO
-  if(ph==="reg"){
     v.innerHTML = 
       '<div style="padding:10px 0">' +
-        '<h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Crear cuenta</h2>' +
-        '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Registrate gratis para pedir viajes.</p>' +
-        '<input id="r_n" placeholder="Nombre/s" class="field-input">' +
-        '<input id="r_a" placeholder="Apellido" class="field-input">' +
-        '<input id="r_e" type="email" placeholder="Email" class="field-input">' +
-        '<input id="r_w" type="password" placeholder="Contraseña (mínimo 6)" class="field-input">' +
-        '<button class="btn-uber" onclick="doRegistroEmail()">Crear cuenta</button>' +
-        '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'cuenta\')">Volver</button>' +
+        '<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">' +
+          '<div style="width:68px;height:68px;border-radius:50%;background:#000;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900">' +
+            esc(U.nombre.charAt(0)) +
+          '</div>' +
+          '<div>' +
+            '<h2 style="margin:0;font-size:22px;font-weight:800">'+esc(U.nombre)+' '+(U.apellido?esc(U.apellido):'')+'</h2>' +
+            '<div style="margin-top:4px"><span style="background:var(--surface);padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;color:var(--ink-secondary)">⭐ 5.0 · Pasajero</span></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px">' +
+          '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">INFORMACIÓN DE TU CUENTA</div>' +
+          '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Nombre:</b> '+esc(U.nombre)+' '+(U.apellido?esc(U.apellido):'')+'</div>' +
+          (U.email ? '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Email:</b> '+esc(U.email)+'</div>' : '') +
+          '<div style="font-size:14px;padding:8px 0"><b>Ciudad:</b> Rosario de la Frontera, Salta</div>' +
+        '</div>' +
+
+        '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:24px">' +
+          '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">MEDIOS DE PAGO HABILITADOS</div>' +
+          '<div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano)</div>' +
+          '<div style="font-size:14px;padding:6px 0">🔵 <b>Mercado Pago</b> (Débito, Crédito o Saldo)</div>' +
+        '</div>' +
+
+        '<button class="btn-uber" style="background:#FFF0F0;color:var(--bad);border:1px solid #FFCDD2" onclick="logout()">' +
+          'Cerrar sesión' +
+        '</button>' +
       '</div>';
   }
 
-  // OTRAS PANTALLAS (ELEGIR VIAJE, RADAR, EN CAMINO)
+  // PANTALLAS DE VIAJE
   if(ph==="opt"){
     var cuadras = getCuadras();
     var noche = esNocturno();
@@ -1290,9 +1306,13 @@ function go(ph){
   }
 }
 
-// ARRANQUE AUTOMÁTICO
+// ARRANQUE
 if(!volverMP()) {
-  cambiarSeccion("home");
+  if(U && U.id){
+    cambiarSeccion("home");
+  } else {
+    go("welcome");
+  }
 }
 </script>
 </body>

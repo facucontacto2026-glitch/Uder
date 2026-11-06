@@ -10,7 +10,85 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// 1. Crear cobro con Mercado Pago
+// 1. Buscador oficial de calles y alturas para Rosario de la Frontera
+async function buscarCalle(request) {
+  const q = (new URL(request.url).searchParams.get("q") || "").trim();
+  if (!q) return json(200, { resultados: [] });
+
+  const numMatch = q.match(/\b\d{1,5}\b/);
+  const num = numMatch ? numMatch[0] : "";
+  const soloTexto = q.replace(/\b\d{1,5}\b/g, "").replace(/\b(que es en el|que es en|en el|en|barrio|b°|bº)\b/gi, "").trim();
+
+  const headers = { 
+    "User-Agent": "Uder-RosarioDeLaFrontera/1.0 (contacto@uder.app)",
+    "Accept": "application/json" 
+  };
+
+  let resultados = [];
+
+  // A. Consultar Georef (Datos Oficiales del Gobierno Argentino para Salta)
+  try {
+    const geoUrl = `https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=6&provincia=salta&departamento=rosario%20de%20la%20frontera&direccion=${encodeURIComponent(q)}`;
+    const gr = await fetch(geoUrl);
+    const gj = await gr.json();
+    if (gj.direcciones && gj.direcciones.length) {
+      gj.direcciones.forEach(d => {
+        if (d.ubicacion && d.ubicacion.lat != null) {
+          resultados.push({
+            lat: parseFloat(d.ubicacion.lat),
+            lng: parseFloat(d.ubicacion.lon),
+            nombre: d.nomenclatura ? d.nomenclatura.split(",")[0] : q,
+            num: num
+          });
+        }
+      });
+    }
+  } catch(e) {}
+
+  // B. Consultar OpenStreetMap Nominatim con vista acotada a Rosario de la Frontera
+  if (!resultados.length) {
+    try {
+      const viewbox = "-65.05,-25.75,-64.90,-25.86";
+      const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ar&viewbox=${viewbox}&bounded=0&limit=6&q=${encodeURIComponent(q + ", Rosario de la Frontera, Salta")}`;
+      const nr = await fetch(nomUrl, { headers });
+      const ndata = await nr.json();
+      if (Array.isArray(ndata) && ndata.length) {
+        ndata.forEach(x => {
+          resultados.push({
+            lat: parseFloat(x.lat),
+            lng: parseFloat(x.lon),
+            nombre: x.display_name.split(",").slice(0, 3).join(","),
+            num: num
+          });
+        });
+      }
+    } catch(e) {}
+  }
+
+  // C. Si no encontró por altura, probar solo el nombre de la calle
+  if (!resultados.length && soloTexto) {
+    try {
+      const viewbox = "-65.05,-25.75,-64.90,-25.86";
+      const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ar&viewbox=${viewbox}&bounded=0&limit=6&q=${encodeURIComponent(soloTexto + ", Rosario de la Frontera, Salta")}`;
+      const nr = await fetch(nomUrl, { headers });
+      const ndata = await nr.json();
+      if (Array.isArray(ndata) && ndata.length) {
+        ndata.forEach(x => {
+          resultados.push({
+            lat: parseFloat(x.lat),
+            lng: parseFloat(x.lon),
+            nombre: x.display_name.split(",").slice(0, 3).join(","),
+            num: num
+          });
+        });
+      }
+    } catch(e) {}
+  }
+
+  return json(200, { resultados });
+}
+
+// 2. Crear cobro con Mercado Pago
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -61,7 +139,7 @@ async function crearPago(request, env) {
   }
 }
 
-// 2. Verificar cobro con Mercado Pago
+// 3. Verificar cobro con Mercado Pago
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -103,7 +181,7 @@ async function verificarPago(request, env) {
   }
 }
 
-// 3. Crear viaje en Supabase
+// 4. Crear viaje en Supabase
 async function pedirViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -126,7 +204,7 @@ async function pedirViaje(request, env) {
   }
 }
 
-// 4. Consultar estado del viaje y chofer
+// 5. Consultar estado del viaje y chofer
 async function estadoViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -154,7 +232,7 @@ async function estadoViaje(request, env) {
   }
 }
 
-// 5. Cancelar viaje
+// 6. Cancelar viaje
 async function cancelarViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -185,6 +263,7 @@ export default {
     const { pathname } = url;
 
     // Rutas de API
+    if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);
     if (pathname === "/api/crear-pago" && request.method === "POST") return crearPago(request, env);
     if (pathname === "/api/verificar-pago" && request.method === "GET") return verificarPago(request, env);
     if (pathname === "/api/pedir-viaje" && request.method === "POST") return pedirViaje(request, env);

@@ -57,8 +57,8 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 var CEN={lat:-25.800,lng:-64.967},BB={w:-65.10,e:-64.88,n:-25.72,s:-25.88};
-var S={o:null,on:"",d:null,dn:"",mode:"d",ty:1,pg:"Efectivo",p:0,dr:null,km:0,res:[],msg:"Tocá “Mi ubicación”, buscá una calle o tocá el mapa.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
-var TY=[["Remis","Cómodo y con precio cerrado",1.0],["Taxi","Con taxímetro habilitado",1.1],["Uder X","Auto particular, el más económico",.85]];
+var S={o:null,on:"",d:null,dn:"",mode:"d",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"Tocá “Mi ubicación”, buscá una calle o tocá el mapa.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
+var TY=[["Remis","Servicio estándar",1.0],["Taxi","Con habilitación",1.05],["Uder X","Auto particular",0.95]];
 var PG=["Efectivo","Mercado Pago","Tarjeta"];
 
 function $(x){return document.getElementById(x)}
@@ -92,8 +92,34 @@ function saveCard(){
   U.card={brand:brand(n),last4:n.slice(-4)};save();toast("Tarjeta guardada: "+U.card.brand+" ··"+U.card.last4);var b=S.back||"home";S.back="";go(b)
 }
 
+// SISTEMA DE TARIFAS: DÍA vs NOCHE + CUADRAS
+function esNocturno(){
+  var h = new Date().getHours();
+  return (h >= 22 || h < 6); // 22:00 a 06:00
+}
+
+function getCuadras(){
+  // 1 km = 10 cuadras
+  return Math.max(1, Math.ceil(S.km * 10));
+}
+
+function price(i){
+  var cuadras = getCuadras();
+  var noche = esNocturno();
+  // Base hasta 10 cuadras: $2600 día / $3600 noche
+  var base = noche ? 3600 : 2600;
+  var total = base;
+  if(cuadras > 10){
+    // A partir de la cuadra 11: $320 por cada cuadra extra
+    total += (cuadras - 10) * 320;
+  }
+  var mult = (TY[i] && TY[i][2]) ? TY[i][2] : 1.0;
+  return Math.round(total * mult);
+}
+
 function pedirViajeReal(){
   var monto = Math.round(price(S.ty));
+  var cuadras = getCuadras();
   var payload = {
     pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""),
     tipo: TY[S.ty][0],
@@ -101,6 +127,7 @@ function pedirViajeReal(){
     monto: monto,
     ganancia_conductor: Math.round(monto * 0.85),
     km: Number(S.km.toFixed(1)),
+    cuadras: cuadras,
     origen_nombre: S.on,
     origen_ref: S.oref || "",
     origen_lat: S.o.lat,
@@ -123,13 +150,13 @@ function pedirViajeReal(){
   .then(function(r){ return r.json() })
   .then(function(j){
     if(!j.viaje) {
-      console.error("Error devuelto por servidor:", j);
+      console.error("Error devuelto:", j);
       throw new Error("Error al crear viaje");
     }
     S.viajeId = j.viaje.id;
     try {
       sessionStorage.setItem("uder_trip", JSON.stringify({
-        viajeId: S.viajeId, o:S.o, on:S.on, oref:S.oref, d:S.d, dn:S.dn, dref:S.dref, km:S.km, ty:S.ty, pg:S.pg
+        viajeId: S.viajeId, o:S.o, on:S.on, oref:S.oref, d:S.d, dn:S.dn, dref:S.dref, km:S.km, cuadras:cuadras, ty:S.ty, pg:S.pg
       }));
     } catch(e){}
 
@@ -252,7 +279,6 @@ function cancelarViajeActual(){
 
 function M(n){return "$"+Math.round(n).toLocaleString("es-AR")}
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
-function price(i){return (1500+S.km*620)*TY[i][2]}
 function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 function api(u){return fetch(u,{headers:{"Accept":"application/json"}}).then(function(r){return r.json()})}
 
@@ -270,7 +296,6 @@ function calcularRutaReal(origen, destino){
       };
     })
     .catch(function(){
-      // Fallback si el servidor está ocupado
       var dist = Math.max(0.5, hav(origen, destino) * 1.35);
       return { km: dist, puntos: [[origen.lat, origen.lng], [destino.lat, destino.lng]] };
     });
@@ -298,9 +323,11 @@ function draw(keep){
   if(S.o && S.d){
     calcularRutaReal(S.o, S.d).then(function(res){
       S.km = res.km;
+      S.cuadras = getCuadras();
       routeLine = L.polyline(res.puntos, {color:"#14213D", weight:5, opacity:0.85}).addTo(G);
       var distEl = $("calc_dist");
-      if(distEl) distEl.textContent = S.km.toFixed(1) + " km por calles";
+      var tagHorario = esNocturno() ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
+      if(distEl) distEl.innerHTML = S.cuadras + " cuadras (" + S.km.toFixed(1) + " km) · " + tagHorario;
     });
   }
 
@@ -337,7 +364,6 @@ function loc(){
       bestPos = {p: p, acc: acc};
     }
 
-    // Si la precisión es mejor a 20 metros, clavamos la ubicación
     if(acc <= 20){
       navigator.geolocation.clearWatch(watchId);
       aplicarUbicacion(p, acc);
@@ -347,7 +373,6 @@ function loc(){
     go("home");
   }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 0});
 
-  // Si a los 5 segundos no bajó de 20m, usamos la mejor que encontró
   setTimeout(function(){
     navigator.geolocation.clearWatch(watchId);
     if(bestPos) aplicarUbicacion(bestPos.p, bestPos.acc);
@@ -378,11 +403,12 @@ function find(){
 function pickRes(i){var r=S.res[i],ref=r.num&&r.n.indexOf(r.num)<0?"altura "+r.num:"";if(S.mode==="o")S.oref=ref;else S.dref=ref;setPt(S.mode,r.p,r.n)}
 function opts(){
   if(!S.o||!S.d){toast("Marcá origen y destino");return}
-  if(hav(S.o,S.d)<.05){toast("El destino está muy cerca del punto de partida");return}
+  if(hav(S.o,S.d)<.05){toast("El destino está muy cerca");return}
   
   toast("Calculando recorrido exacto…");
   calcularRutaReal(S.o, S.d).then(function(res){
     S.km = res.km;
+    S.cuadras = getCuadras();
     go("opt");
   });
 }
@@ -405,12 +431,18 @@ function go(ph){
   if(ph==="card"){v.innerHTML='<div class="card"><h2>Tarjeta</h2><label class="fl">Número</label><input id="c_n" inputmode="numeric"><div class="row"><div><label class="fl">Vencimiento</label><input id="c_e" placeholder="MM/AA"></div><div><label class="fl">CVV</label><input id="c_c" type="password"></div></div><label class="fl">Titular</label><input id="c_t"><p id="err" style="color:var(--bad);margin-top:10px"></p><button class="btn" onclick="saveCard()">Guardar</button><button class="btn ghost" onclick="go(S.back||\'home\')">Volver</button></div>'}
 
   if(ph==="home"){
-    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. Portón negro" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.km.toFixed(1)+" km por calles":"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
+    var tagH = esNocturno() ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
+    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. Portón negro" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
   if(ph==="opt"){
-    v.innerHTML='<div class="card"><h2>Elegí tu viaje</h2><p>'+lab(S.on,S.oref)+' → '+lab(S.dn,S.dref)+' · <b>'+S.km.toFixed(1)+' km reales</b></p>'+TY.map(function(t,i){return '<button class="opt" aria-pressed="'+(i===S.ty)+'" onclick="S.ty='+i+';go(\'opt\')"><span>'+t[0]+'<small>'+t[1]+'</small></span><b>'+M(price(i))+'</b></button>'}).join("")+'<div class="lbl">Forma de pago</div>'+PG.map(function(x){return '<button class="opt" aria-pressed="'+(x===S.pg)+'" onclick="S.pg=\''+x+'\';go(\'opt\')">'+x+(x==="Tarjeta"&&U&&U.card?" ·· "+esc(U.card.last4):"")+'</button>'}).join("")+'<button class="btn" onclick="ask()">Pedir '+TY[S.ty][0]+' · '+M(price(S.ty))+'</button><button class="btn ghost" onclick="go(\'home\')">Cambiar ruta</button></div>';
+    var cuadras = getCuadras();
+    var noche = esNocturno();
+    var horarioTexto = noche ? "🌙 Tarifa Nocturna (Base $3.600)" : "☀️ Tarifa Diurna (Base $2.600)";
+    var detalleCuadras = cuadras <= 10 ? cuadras + " cuadras (cubre la base)" : cuadras + " cuadras (" + (cuadras - 10) + " extras × $320)";
+
+    v.innerHTML='<div class="card"><h2>Elegí tu viaje</h2><p>'+lab(S.on,S.oref)+' → '+lab(S.dn,S.dref)+'<br><b>'+detalleCuadras+'</b><br><small style="color:var(--mute)">'+horarioTexto+'</small></p>'+TY.map(function(t,i){return '<button class="opt" aria-pressed="'+(i===S.ty)+'" onclick="S.ty='+i+';go(\'opt\')"><span>'+t[0]+'<small>'+t[1]+'</small></span><b>'+M(price(i))+'</b></button>'}).join("")+'<div class="lbl">Forma de pago</div>'+PG.map(function(x){return '<button class="opt" aria-pressed="'+(x===S.pg)+'" onclick="S.pg=\''+x+'\';go(\'opt\')">'+x+(x==="Tarjeta"&&U&&U.card?" ·· "+esc(U.card.last4):"")+'</button>'}).join("")+'<button class="btn" onclick="ask()">Pedir '+TY[S.ty][0]+' · '+M(price(S.ty))+'</button><button class="btn ghost" onclick="go(\'home\')">Cambiar ruta</button></div>';
   }
 
   if(ph==="search"){

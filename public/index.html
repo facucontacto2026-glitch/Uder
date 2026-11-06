@@ -61,52 +61,19 @@ var S={o:null,on:"",d:null,dn:"",mode:"d",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cu
 var TY=[["Remis","Servicio estándar",1.0],["Taxi","Con habilitación",1.05],["Uder X","Auto particular",0.95]];
 var PG=["Efectivo","Mercado Pago","Tarjeta"];
 
-// CATÁLOGO LOCAL DE CALLES Y BARRIOS DE ROSARIO DE LA FRONTERA
-var GUIA_LOCAL = [
-  { claves: ["malvina", "malvinas", "ex combatiente", "ex combatientes", "peron", "barrio peron", "b peron"], nombre: "Ex Combatientes de Malvinas · B° Perón", lat: -25.7895, lng: -64.9575 },
-  { claves: ["mitre", "bartolome mitre"], nombre: "Bartolomé Mitre", lat: -25.7985, lng: -64.9702 },
-  { claves: ["guemes", "general guemes", "gral guemes"], nombre: "General Güemes", lat: -25.7972, lng: -64.9665 },
-  { claves: ["san martin"], nombre: "José de San Martín", lat: -25.7960, lng: -64.9678 },
-  { claves: ["belgrano", "av belgrano", "avenida belgrano"], nombre: "Avenida Manuel Belgrano", lat: -25.7990, lng: -64.9650 },
-  { claves: ["palau", "av palau"], nombre: "Avenida Palau", lat: -25.8040, lng: -64.9610 },
-  { claves: ["espanoles", "españoles", "av de los espanoles"], nombre: "Avenida de los Españoles", lat: -25.7920, lng: -64.9630 },
-  { claves: ["9 de julio", "nueve de julio"], nombre: "9 de Julio", lat: -25.7995, lng: -64.9685 },
-  { claves: ["25 de mayo", "veinticinco de mayo"], nombre: "25 de Mayo", lat: -25.7950, lng: -64.9690 },
-  { claves: ["alberdi"], nombre: "Juan Bautista Alberdi", lat: -25.7965, lng: -64.9655 },
-  { claves: ["cornejo", "melchora", "melchora cornejo"], nombre: "Melchora F. de Cornejo", lat: -25.7980, lng: -64.9695 },
-  { claves: ["roca"], nombre: "Julio A. Roca", lat: -25.7955, lng: -64.9660 },
-  { claves: ["tucuman"], nombre: "Tucumán", lat: -25.8010, lng: -64.9670 },
-  { claves: ["salta"], nombre: "Salta", lat: -25.8020, lng: -64.9660 },
-  { claves: ["jujuy"], nombre: "Jujuy", lat: -25.8030, lng: -64.9650 },
-  { claves: ["catamarca"], nombre: "Catamarca", lat: -25.8040, lng: -64.9640 },
-  { claves: ["sarmiento"], nombre: "Domingo F. Sarmiento", lat: -25.7970, lng: -64.9710 },
-  { claves: ["urquiza"], nombre: "Justo José de Urquiza", lat: -25.7940, lng: -64.9680 },
-  { claves: ["moreno"], nombre: "Mariano Moreno", lat: -25.7930, lng: -64.9690 },
-  { claves: ["alvarado"], nombre: "Alvarado", lat: -25.7990, lng: -64.9720 },
-  { claves: ["las heras"], nombre: "Las Heras", lat: -25.8010, lng: -64.9710 },
-  { claves: ["arenales"], nombre: "Arenales", lat: -25.8000, lng: -64.9730 },
-  { claves: ["lamadrid"], nombre: "Lamadrid", lat: -25.7960, lng: -64.9720 },
-  { claves: ["pellegrini"], nombre: "Carlos Pellegrini", lat: -25.7950, lng: -64.9730 },
-  { claves: ["hospital", "hospital melchora"], nombre: "Hospital Melchora F. de Cornejo", lat: -25.7980, lng: -64.9750 },
-  { claves: ["terminal", "terminal de omnibus"], nombre: "Terminal de Ómnibus", lat: -25.8020, lng: -64.9620 },
-  { claves: ["plaza", "plaza independencia", "centro"], nombre: "Plaza Independencia (Centro)", lat: -25.7975, lng: -64.9680 },
-  { claves: ["abdala", "ramon abdala"], nombre: "Barrio Ramón Abdala", lat: -25.7870, lng: -64.9540 },
-  { claves: ["mirador", "el mirador"], nombre: "Barrio El Mirador", lat: -25.7850, lng: -64.9600 },
-  { claves: ["obrero"], nombre: "Barrio Obrero", lat: -25.7920, lng: -64.9750 },
-  { claves: ["termas", "hotel termas"], nombre: "Termas de Rosario de la Frontera", lat: -25.8320, lng: -64.9250 }
-];
-
-function norm(s){
-  return String(s||"").toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s||"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function lab(n,r){return esc(n)+(r?" · "+esc(r):"")}
+
+// Función para mostrar el texto limpio sin duplicar "altura"
+function lab(n, r){
+  var nombre = esc(n || "Punto");
+  var ref = esc(r || "").trim();
+  if(!ref) return nombre;
+  // Si el nombre ya incluye la altura, no repetirla
+  if(nombre.toLowerCase().indexOf(ref.toLowerCase()) >= 0) return nombre;
+  return nombre + " · " + ref;
+}
+
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
 var U=null;try{U=JSON.parse(localStorage.getItem("uder_user")||"null")}catch(e){}
 function save(){try{localStorage.setItem("uder_user",JSON.stringify(U))}catch(e){}}
@@ -316,84 +283,102 @@ function M(n){return "$"+Math.round(n).toLocaleString("es-AR")}
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
 function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 
-// RUTAS CORTAS Y DIRECTAS: ELIGE LA OPCIÓN MÁS ECONÓMICA
+// CÁLCULO DE RUTA: MÁS ECONÓMICA Y DIRECTA
 function calcularRutaReal(origen, destino){
   var u = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson&alternatives=true";
-  var distRecta = hav(origen, destino);
-  var maxDirecto = Math.max(0.6, distRecta * 1.25); // Distancia realista urbana sin desvíos
+  var distDirecta = hav(origen, destino);
+  // En ciudad con cuadrícula, la distancia real suele ser 1.25x la línea recta
+  var distUrbanaCorta = Math.max(0.6, distDirecta * 1.25);
 
   return fetch(u)
     .then(function(r){ return r.json() })
     .then(function(j){
       if(!j.routes || !j.routes.length) throw new Error("Sin ruta");
       
-      // Elegir siempre la alternativa de MENOR distancia (para que cueste menos)
       var mejorRuta = j.routes.sort(function(a,b){ return a.distance - b.distance })[0];
       var kmRuta = mejorRuta.distance / 1000;
       
-      // Si el mapa dio un desvío innecesario, usamos la distancia directa por calles
-      var kmFinal = Math.min(kmRuta, maxDirecto);
+      // Si el enrutador toma una vuelta excesiva (por falta de cruces mapeados), cobrar la distancia urbana justa
+      var kmCobrado = Math.min(kmRuta, distUrbanaCorta);
 
       return {
-        km: Math.max(0.5, kmFinal),
+        km: Math.max(0.5, kmCobrado),
         puntos: mejorRuta.geometry.coordinates.map(function(c){ return [c[1], c[0]] })
       };
     })
     .catch(function(){
       return { 
-        km: maxDirecto, 
+        km: distUrbanaCorta, 
         puntos: [[origen.lat, origen.lng], [destino.lat, destino.lng]] 
       };
     });
 }
 
-// BUSCADOR INTELIGENTE: ENCUENTRA EN MINÚSCULAS, TILDES O NOMBRES COLOQUIALES
+// BUSCADOR OFICIAL GEOREF + NOMINATIM (MINÚSCULAS, TILDES Y BARRIO PERÓN)
 function buscarDireccion(textoUsuario){
   var numMatch = textoUsuario.match(/\b\d{1,5}\b/);
   var num = numMatch ? numMatch[0] : "";
-  var tNorm = norm(textoUsuario);
+  
+  // Limpiar texto
+  var textoLimpio = textoUsuario.replace(/\b\d{1,5}\b/g, "").trim();
 
-  // 1. Buscar primero en la guía local de Rosario de la Frontera
-  var coincidenciasLocales = [];
-  GUIA_LOCAL.forEach(function(item){
-    var matchea = item.claves.some(function(k){
-      return tNorm.indexOf(k) >= 0 || k.indexOf(tNorm) >= 0;
-    });
-    if(matchea){
-      var nombreLimpio = item.nombre + (num ? " · altura " + num : "");
-      coincidenciasLocales.push({
-        p: { lat: item.lat, lng: item.lng },
-        n: nombreLimpio,
-        num: num,
-        refSugerida: num ? "altura " + num : ""
-      });
-    }
-  });
+  // Alias populares de Rosario de la Frontera
+  var tMin = textoLimpio.toLowerCase();
+  var terminoBusqueda = textoLimpio;
+  var barrioForzado = "";
 
-  if(coincidenciasLocales.length > 0){
-    return Promise.resolve(coincidenciasLocales);
+  if(tMin.indexOf("peron") >= 0 || tMin.indexOf("malvina") >= 0){
+    terminoBusqueda = "Ex Combatientes de Malvinas";
+    barrioForzado = "B° Perón";
+  } else if(tMin.indexOf("mitre") >= 0){
+    terminoBusqueda = "Bartolomé Mitre";
+  } else if(tMin.indexOf("guemes") >= 0){
+    terminoBusqueda = "Güemes";
   }
 
-  // 2. Si no es un punto de la guía, consultar el backend oficial
-  return fetch("/api/buscar-calle?q=" + encodeURIComponent(textoUsuario))
+  // 1. Consultar primero a Georef Argentina (con número o sin número)
+  var consultaGeoref = terminoBusqueda + (num ? " " + num : "");
+  var urlGeoref = "https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=6&provincia=salta&departamento=rosario%20de%20la%20frontera&direccion=" + encodeURIComponent(consultaGeoref);
+
+  return fetch(urlGeoref)
     .then(function(r){ return r.json() })
     .then(function(j){
-      return (j.resultados || []).map(function(x){
-        var nLimpio = x.nombre
-          .replace(/,?\s*Rosario de la Frontera/gi, "")
-          .replace(/,?\s*Salta/gi, "")
-          .replace(/,?\s*Argentina/gi, "")
-          .replace(/Ram[oó]n Abdala/gi, "B° Perón")
-          .trim();
-        return {
-          p: { lat: x.lat, lng: x.lng },
-          n: nLimpio + (x.num ? " · altura " + x.num : ""),
-          num: x.num,
-          refSugerida: x.num ? "altura " + x.num : ""
-        };
-      });
+      var lista = (j.direcciones || []).filter(function(d){ return d.ubicacion && d.ubicacion.lat != null; });
+      if(lista.length > 0){
+        return lista.map(function(d){
+          var nom = d.nomenclatura ? d.nomenclatura.split(",")[0] : d.calle.nombre;
+          if(barrioForzado) nom = terminoBusqueda + " (" + barrioForzado + ")";
+          return {
+            p: { lat: parseFloat(d.ubicacion.lat), lng: parseFloat(d.ubicacion.lon) },
+            n: nom,
+            num: num,
+            refSugerida: num ? "altura " + num : ""
+          };
+        });
+      }
+      throw new Error("No en georef");
     })
-    .catch(function(){ return [] });
+    .catch(function(){
+      // 2. Fallback a OpenStreetMap Nominatim
+      var nomUrl = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=ar&viewbox=" + BB.w + "," + BB.n + "," + BB.e + "," + BB.s + "&bounded=0&q=" + encodeURIComponent(terminoBusqueda + ", Rosario de la Frontera, Salta");
+      return fetch(nomUrl)
+        .then(function(r){ return r.json() })
+        .then(function(arr){
+          if(!Array.isArray(arr) || !arr.length) return [];
+          return arr.map(function(x){
+            var calleNombre = x.display_name.split(",")[0];
+            calleNombre = calleNombre.replace(/Ram[oó]n Abdala/gi, "B° Perón");
+            if(barrioForzado && calleNombre.indexOf("Perón") < 0) calleNombre += " (" + barrioForzado + ")";
+            return {
+              p: { lat: parseFloat(x.lat), lng: parseFloat(x.lon) },
+              n: calleNombre,
+              num: num,
+              refSugerida: num ? "altura " + num : ""
+            };
+          });
+        })
+        .catch(function(){ return []; });
+    });
 }
 
 var map=L.map("map",{zoomControl:true}).setView([CEN.lat,CEN.lng],14);
@@ -412,8 +397,8 @@ function draw(keep){
   G.clearLayers();
   routeLine=null;
   var b=[];
-  if(S.o){pin(S.o,"#14213D","o","Desde: "+S.on);b.push([S.o.lat,S.o.lng])}
-  if(S.d){pin(S.d,"#D64545","d","Hasta: "+S.dn);b.push([S.d.lat,S.d.lng])}
+  if(S.o){pin(S.o,"#14213D","o","Desde: "+lab(S.on,S.oref));b.push([S.o.lat,S.o.lng])}
+  if(S.d){pin(S.d,"#D64545","d","Hasta: "+lab(S.dn,S.dref));b.push([S.d.lat,S.d.lng])}
   
   if(S.o && S.d){
     calcularRutaReal(S.o, S.d).then(function(res){
@@ -441,7 +426,7 @@ function setPt(m,p,n,keep){
 map.on("click",function(e){
   if(S.ph!=="home")return;
   if(S.mode==="o")S.oref="";else S.dref="";
-  setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng},"Punto marcado en el mapa");
+  setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng},"Punto en el mapa");
 });
 
 function mode(m){S.mode=m;go("home")}
@@ -455,27 +440,27 @@ function loc(){
     var p = {lat: g.coords.latitude, lng: g.coords.longitude};
     S.msg="Ubicación detectada.";
     S.oref="";
-    setPt("o",p,"Mi ubicación actual");
+    setPt("o",p,"Mi ubicación");
   }, function(){
-    S.msg="No pudimos activar el GPS. Probá tocando el mapa.";
+    S.msg="No pudimos activar el GPS. Tocá el mapa para marcar tu salida.";
     go("home");
   }, {enableHighAccuracy: true, timeout: 8000});
 }
 
 function find(){
   var q = $("q").value.trim();
-  if(!q){ toast("Escribí una calle o barrio"); return; }
+  if(!q){ toast("Escribí una calle"); return; }
   S.msg = "Buscando…";
   go("home");
   $("q").value = q;
 
   buscarDireccion(q).then(function(rs){
     S.res = rs;
-    S.msg = rs.length ? "Elegí el lugar correcto:" : "No encontramos esa calle. Probá con otra o tocala directo en el mapa.";
+    S.msg = rs.length ? "Elegí el lugar correcto:" : "No encontramos esa calle. Probá escribiéndola de otra forma o tocala en el mapa.";
     go("home");
     $("q").value = q;
   }).catch(function(){
-    S.msg = "No se pudo buscar. Tocá el mapa para marcar el punto.";
+    S.msg = "No se pudo buscar. Marcá el punto en el mapa.";
     go("home");
   });
 }
@@ -486,14 +471,13 @@ function pickRes(i){
   var ref = r.refSugerida || (r.num ? "altura " + r.num : "");
   if(S.mode === "o") S.oref = ref; else S.dref = ref;
   setPt(S.mode, r.p, r.n);
-  if(ref) toast("Marcamos la calle con " + ref);
 }
 
 function opts(){
   if(!S.o||!S.d){toast("Marcá origen y destino");return}
   if(hav(S.o,S.d)<.05){toast("El destino está muy cerca");return}
   
-  toast("Calculando la ruta más económica…");
+  toast("Calculando la ruta más directa…");
   calcularRutaReal(S.o, S.d).then(function(res){
     S.km = res.km;
     S.cuadras = getCuadras();
@@ -520,7 +504,7 @@ function go(ph){
 
   if(ph==="home"){
     var tagH = esNocturno() ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
-    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Escribí una calle (ej: mitre 185, peron, guemes)"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 185, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
+    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Ej. mitre 185, guemes 248, peron 412"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 185, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 

@@ -118,7 +118,7 @@ async function pedirViaje(request, env) {
       body: JSON.stringify(b)
     });
     const data = await r.json();
-    if (!r.ok) { console.error("DB error", data); return json(500, { error: "No se pudo crear el viaje" }); }
+    if (!r.ok) { console.error("DB error", data); return json(500, { error: "No se pudo crear el viaje", detalle: data }); }
     return json(200, { viaje: data[0] });
   } catch (e) {
     console.error(e);

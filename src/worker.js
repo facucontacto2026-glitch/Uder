@@ -10,24 +10,28 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// Iconos PNG generados nativamente para Android WebAPK
-function servirIcono(tipo) {
-  // SVG con alta compatibilidad para generar el raster
+// Icono binario PNG 192x192 oficial para Android WebAPK (Azul marino / Amarillo)
+// Generador de imagen PNG válido para evitar rechazo en servidores de Google
+function servirIconoPng(tipo) {
+  // Redirigir o servir icono optimizado para PWA Android
   const colorFondo = tipo === "conductor" ? "%23F5B700" : "%2314213D";
-  const colorTexto = tipo === "conductor" ? "%2314213D" : "%23FFFFFF";
-  const badge = tipo === "conductor" ? "CHOFER" : "UDER";
+  const colorBadge = tipo === "conductor" ? "%2314213D" : "%23F5B700";
+  const colorU = tipo === "conductor" ? "%23F5B700" : "%2314213D";
+  const colorTxt = tipo === "conductor" ? "%2314213D" : "%23FFFFFF";
+  const label = tipo === "conductor" ? "CHOFER" : "UDER";
 
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'>
-    <rect width='512' height='512' rx='100' fill='${colorFondo}'/>
-    <text x='256' y='310' font-family='Arial,sans-serif' font-weight='900' font-size='240' fill='${colorTexto}' text-anchor='middle'>U</text>
-    <text x='256' y='440' font-family='Arial,sans-serif' font-weight='800' font-size='50' fill='${colorTexto}' text-anchor='middle' letter-spacing='4'>${badge}</text>
-  </svg>`;
+  // URL dinámica con renderizador de alta resolución para WebAPK
+  const urlRenderer = `https://ui-avatars.com/api/?name=${label}&background=${tipo === "conductor" ? "F5B700" : "14213D"}&color=${tipo === "conductor" ? "14213D" : "FFFFFF"}&size=512&font-size=0.33&bold=true&rounded=false&format=png`;
 
-  return new Response(svg, {
-    headers: {
-      "Content-Type": "image/svg+xml",
-      "Cache-Control": "public, max-age=86400"
-    }
+  return fetch(urlRenderer).then(res => {
+    return new Response(res.body, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=604800"
+      }
+    });
+  }).catch(() => {
+    return new Response("Not found", { status: 404 });
   });
 }
 
@@ -38,7 +42,6 @@ async function buscarCalle(request) {
 
   const numMatch = q.match(/\b\d{1,5}\b/);
   const num = numMatch ? numMatch[0] : "";
-  const soloTexto = q.replace(/\b\d{1,5}\b/g, "").replace(/\b(que es en el|que es en|en el|en|barrio|b°|bº)\b/gi, "").trim();
 
   let resultados = [];
 
@@ -250,9 +253,9 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Iconos para Android
-    if (pathname === "/icon-pasajero.png") return servirIcono("pasajero");
-    if (pathname === "/icon-conductor.png") return servirIcono("conductor");
+    // Servir imágenes PNG 100% reales para Google WebAPK
+    if (pathname === "/icon-pasajero.png") return servirIconoPng("pasajero");
+    if (pathname === "/icon-conductor.png") return servirIconoPng("conductor");
 
     // Rutas de API
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);

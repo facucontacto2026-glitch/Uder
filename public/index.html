@@ -47,6 +47,7 @@ body{
   background:#fff
 }
 
+/* TOP BAR ESTILO UBER */
 .top-bar{
   display:flex;
   justify-content:space-between;
@@ -85,6 +86,7 @@ body{
   margin-right:4px
 }
 
+/* MAPA */
 #map{
   width:100%;
   height:290px;
@@ -92,12 +94,14 @@ body{
   z-index:1
 }
 
+/* CONTENEDOR PRINCIPAL */
 .main-view{
   flex:1;
   padding:16px 20px 85px;
   background:#fff
 }
 
+/* BUSCADOR FLOTANTE TIPO PÍLDORA */
 .search-pill{
   display:flex;
   align-items:center;
@@ -129,6 +133,7 @@ body{
   cursor:pointer
 }
 
+/* CHIPS */
 .chips-row{
   display:flex;
   gap:8px;
@@ -155,6 +160,7 @@ body{
   color:#fff
 }
 
+/* TARJETAS DE SERVICIO (REMIS / UDER) */
 .ride-card{
   display:flex;
   align-items:center;
@@ -213,6 +219,7 @@ body{
   color:#000
 }
 
+/* BARRA DE FORMA DE PAGO INTERACTIVA */
 .payment-bar{
   display:flex;
   align-items:center;
@@ -223,14 +230,123 @@ body{
   margin:14px 0;
   cursor:pointer;
   font-weight:700;
-  font-size:14px
+  font-size:14px;
+  transition:background 0.2s
 }
+.payment-bar:active{background:#ececec}
 .payment-bar div{
   display:flex;
   align-items:center;
   gap:10px
 }
 
+/* VENTANA DESLIZABLE DESDE ABAJO (BOTTOM SHEET DE PAGOS) */
+.bottom-sheet-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(2px);
+  z-index:4000;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  animation:fadeIn 0.2s ease
+}
+.bottom-sheet-content{
+  background:#fff;
+  border-radius:24px 24px 0 0;
+  padding:14px 20px 32px;
+  max-height:80vh;
+  overflow-y:auto;
+  box-shadow:0 -4px 25px rgba(0,0,0,0.2);
+  animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1)
+}
+.sheet-drag{
+  width:44px;
+  height:4px;
+  background:#E0E0E0;
+  border-radius:2px;
+  margin:0 auto 16px
+}
+.pay-card-option{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 16px;
+  border:1.5px solid var(--line);
+  border-radius:14px;
+  margin-bottom:12px;
+  cursor:pointer;
+  transition:all 0.15s ease
+}
+.pay-card-option:active{background:var(--surface)}
+.pay-card-option.selected{
+  border-color:#000;
+  background:#FAFAFA
+}
+.pay-opt-left{
+  display:flex;
+  align-items:center;
+  gap:14px
+}
+.pay-opt-icon{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  background:var(--surface);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  flex-shrink:0
+}
+.pay-opt-text b{
+  font-size:15px;
+  display:flex;
+  align-items:center;
+  gap:8px
+}
+.pay-opt-text p{
+  margin:2px 0 0;
+  font-size:12px;
+  color:var(--ink-secondary)
+}
+
+/* BADGES ILUSTRATIVOS DE TARJETAS */
+.card-badges{
+  display:inline-flex;
+  align-items:center;
+  gap:4px
+}
+.badge-visa{
+  background:#1A1F71;
+  color:#fff;
+  font-size:8px;
+  font-weight:900;
+  padding:1px 5px;
+  border-radius:3px;
+  letter-spacing:0.5px
+}
+.badge-amex{
+  background:#006FCF;
+  color:#fff;
+  font-size:8px;
+  font-weight:900;
+  padding:1px 4px;
+  border-radius:3px;
+  letter-spacing:0.5px
+}
+
+@keyframes slideUp{
+  from{transform:translateY(100%)}
+  to{transform:translateY(0)}
+}
+@keyframes fadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+
+/* BOTONES PRINCIPALES */
 .btn-uber{
   width:100%;
   height:54px;
@@ -257,6 +373,7 @@ body{
   margin-top:6px
 }
 
+/* INPUTS PARA FORMULARIOS */
 .field-input{
   width:100%;
   padding:14px;
@@ -273,6 +390,7 @@ body{
   background:#fff
 }
 
+/* BARRA DE NAVEGACIÓN INFERIOR */
 .bottom-nav{
   position:fixed;
   bottom:0;
@@ -304,6 +422,7 @@ body{
 .nav-item.active{color:#000}
 .nav-item svg{width:22px;height:22px}
 
+/* TOAST */
 .toast{
   position:fixed;
   left:50%;
@@ -316,7 +435,7 @@ body{
   font-size:14px;
   font-weight:600;
   box-shadow:0 4px 15px rgba(0,0,0,0.2);
-  z-index:3000;
+  z-index:5000;
   max-width:85%;
   text-align:center
 }
@@ -383,6 +502,62 @@ body{
   <!-- VISTA PRINCIPAL -->
   <main id="v" class="main-view"></main>
 
+  <!-- VENTANA DESLIZABLE MODAL DE PAGOS (BOTTOM SHEET) -->
+  <div id="sheet_pago" class="bottom-sheet-overlay" style="display:none" onclick="cerrarModalPago(event)">
+    <div class="bottom-sheet-content" onclick="event.stopPropagation()">
+      <div class="sheet-drag"></div>
+      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:20px;font-weight:800">Elige un método de pago</h3>
+        <button onclick="cerrarModalPago()" style="border:0;background:none;font-size:24px;cursor:pointer;color:var(--ink-secondary);padding:0">&times;</button>
+      </div>
+
+      <!-- OPCIÓN 1: EFECTIVO -->
+      <div class="pay-card-option" id="opt_efectivo" onclick="seleccionarMetodo('Efectivo')">
+        <div class="pay-opt-left">
+          <div class="pay-opt-icon">💵</div>
+          <div class="pay-opt-text">
+            <b>Efectivo</b>
+            <p>Pagás en mano al chofer al finalizar el viaje</p>
+          </div>
+        </div>
+        <div id="check_efectivo" style="font-size:18px;font-weight:800;color:var(--ok)">✓</div>
+      </div>
+
+      <!-- OPCIÓN 2: TARJETA CON LOGOS ILUSTRATIVOS -->
+      <div class="pay-card-option" id="opt_tarjeta" onclick="seleccionarTarjetaOAgregar()">
+        <div class="pay-opt-left">
+          <div class="pay-opt-icon">💳</div>
+          <div class="pay-opt-text" id="txt_tarjeta_box">
+            <b>
+              Tarjetas 
+              <span class="card-badges">
+                <span class="badge-visa">VISA</span>
+                <svg width="18" height="11" viewBox="0 0 24 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#EB001B"/><circle cx="16.5" cy="7.5" r="7.5" fill="#F79E1B" fill-opacity="0.85"/></svg>
+                <span class="badge-amex">AMEX</span>
+              </span>
+            </b>
+            <p id="sub_tarjeta_txt">Débito directo al instante sin salir de la app</p>
+          </div>
+        </div>
+        <div id="check_tarjeta" style="font-size:18px;font-weight:800;color:var(--ok);display:none">✓</div>
+      </div>
+
+      <!-- OPCIÓN 3: MERCADO PAGO -->
+      <div class="pay-card-option" id="opt_mp" onclick="seleccionarMetodo('Mercado Pago')">
+        <div class="pay-opt-left">
+          <div class="pay-opt-icon">🔵</div>
+          <div class="pay-opt-text">
+            <b>Mercado Pago</b>
+            <p>Dinero en cuenta, tarjetas guardadas o Mercado Crédito</p>
+          </div>
+        </div>
+        <div id="check_mp" style="font-size:18px;font-weight:800;color:var(--ok);display:none">✓</div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- BARRA DE NAVEGACIÓN INFERIOR -->
   <nav class="bottom-nav" id="bottom_nav" style="display:none">
     <button id="nav_inicio" class="nav-item active" onclick="cambiarSeccion('home')">
@@ -403,13 +578,10 @@ body{
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<!-- SDK OFICIAL MERCADO PAGO V2 PARA COBROS TRANSPARENTES -->
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 
 <script>
 var sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ");
-
-// INICIALIZAR MERCADO PAGO CON TU PUBLIC KEY DE PRODUCCIÓN
 var mp = new MercadoPago("APP_USR-619e8167-a16b-472a-9e9b-71eef85dbb38");
 
 if('serviceWorker' in navigator){
@@ -534,8 +706,11 @@ function doRegistroEmail(){
   }).then(function(r){
     if(r.error) { toast("Error: " + r.error.message); return; }
     toast("¡Cuenta creada!");
-    if(r.data.user) sincronizarUsuario(r.data.user);
-    else go("welcome");
+    if(r.data.user) {
+      sincronizarUsuario(r.data.user);
+    } else {
+      go("welcome");
+    }
   });
 }
 
@@ -551,7 +726,7 @@ function editarNombrePerfil(){
   }
 }
 
-// TOKENIZACIÓN Y REGISTRO DE TARJETA CON SDK MERCADO PAGO
+// TOKENIZACIÓN DE TARJETA CON SDK MERCADO PAGO
 function guardarTarjetaNativa(){
   var num = $("c_n").value.replace(/\D/g,"");
   var exp = $("c_e").value.trim();
@@ -585,13 +760,14 @@ function guardarTarjetaNativa(){
       last4: num.slice(-4),
       titular: nom,
       dni: dni,
-      num: num, // Guardamos temporal para pago inmediato
+      num: num,
       exp: exp
     };
     save();
     toast("Tarjeta " + U.card.brand + " ···· " + U.card.last4 + " vinculada ✓");
     S.pg = "Tarjeta";
-    cambiarSeccion("cuenta");
+    if(S.ph === "opt") go("opt");
+    else cambiarSeccion("cuenta");
   }).catch(function(e){
     console.error(e);
     toast("El banco rechazó la tarjeta. Revisá los datos.");
@@ -605,6 +781,60 @@ function eliminarTarjeta(){
     if(S.pg === "Tarjeta") S.pg = "Efectivo";
     toast("Tarjeta eliminada");
     cambiarSeccion("cuenta");
+  }
+}
+
+// CONTROL DE MODAL DESLIZABLE DE PAGOS (BOTTOM SHEET)
+function abrirModalPago(){
+  actualizarUIModalPago();
+  $("sheet_pago").style.display = "flex";
+}
+
+function cerrarModalPago(){
+  $("sheet_pago").style.display = "none";
+}
+
+function actualizarUIModalPago(){
+  // Deseleccionar todos
+  $("opt_efectivo").classList.remove("selected");
+  $("opt_tarjeta").classList.remove("selected");
+  $("opt_mp").classList.remove("selected");
+  $("check_efectivo").style.display = "none";
+  $("check_tarjeta").style.display = "none";
+  $("check_mp").style.display = "none";
+
+  // Mostrar tarjeta guardada o texto para agregar
+  if(U && U.card){
+    $("txt_tarjeta_box").innerHTML = '<b>' + esc(U.card.brand) + ' ···· ' + esc(U.card.last4) + '</b><p>Débito automático al instante</p>';
+  } else {
+    $("txt_tarjeta_box").innerHTML = '<b>Tarjetas <span class="card-badges"><span class="badge-visa">VISA</span><svg width="18" height="11" viewBox="0 0 24 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#EB001B"/><circle cx="16.5" cy="7.5" r="7.5" fill="#F79E1B" fill-opacity="0.85"/></svg><span class="badge-amex">AMEX</span></span></b><p>Agregar tarjeta de débito o crédito</p>';
+  }
+
+  // Marcar seleccionado actual
+  if(S.pg === "Efectivo"){
+    $("opt_efectivo").classList.add("selected");
+    $("check_efectivo").style.display = "block";
+  } else if(S.pg === "Tarjeta"){
+    $("opt_tarjeta").classList.add("selected");
+    $("check_tarjeta").style.display = "block";
+  } else if(S.pg === "Mercado Pago"){
+    $("opt_mp").classList.add("selected");
+    $("check_mp").style.display = "block";
+  }
+}
+
+function seleccionarMetodo(metodo){
+  S.pg = metodo;
+  cerrarModalPago();
+  if(S.ph === "opt") go("opt");
+}
+
+function seleccionarTarjetaOAgregar(){
+  if(U && U.card){
+    seleccionarMetodo("Tarjeta");
+  } else {
+    cerrarModalPago();
+    go("tarjeta_form");
   }
 }
 
@@ -648,7 +878,7 @@ function price(i){
 
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
-// PEDIR VIAJE (CON PROCESAMIENTO TRANSPARENTE EN SEGUNDO PLANO)
+// PEDIR VIAJE
 function pedirViajeReal(){
   if(!U || !U.nombre){
     toast("Iniciá sesión para pedir un viaje");
@@ -659,14 +889,12 @@ function pedirViajeReal(){
   var monto = Math.round(price(S.ty));
   var cuadras = getCuadras();
 
-  // Si eligió Tarjeta pero no tiene una cargada
   if(S.pg === "Tarjeta" && !(U && U.card)){
     toast("Cargá tu tarjeta para continuar");
     go("tarjeta_form");
     return;
   }
 
-  // 1. Crear el viaje en Supabase
   var payload = {
     pasajero_id: U.id || null,
     pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""),
@@ -706,16 +934,11 @@ function pedirViajeReal(){
       }));
     } catch(e){}
 
-    // COBRO TRANSPARENTE CON TARJETA
     if(S.pg === "Tarjeta"){
       procesarTarjetaSilenciosa(j.viaje.id, monto);
-    } 
-    // COBRO CHECKOUT PRO
-    else if(S.pg === "Mercado Pago"){
+    } else if(S.pg === "Mercado Pago"){
       pagarMP(j.viaje.id, monto);
-    } 
-    // EFECTIVO
-    else {
+    } else {
       go("search");
     }
   })
@@ -724,14 +947,12 @@ function pedirViajeReal(){
   });
 }
 
-// PROCESAR TARJETA EN SEGUNDO PLANO SIN SALIR DE UDER
 function procesarTarjetaSilenciosa(viajeId, monto){
   toast("Debitando de tu tarjeta…");
 
-  // Solicitar CVV rápido si es necesario o tokenizar directo
   var cvv = prompt("Ingresá el código de seguridad (CVV de 3 dígitos) de tu tarjeta " + U.card.brand + " ···· " + U.card.last4 + ":");
   if(!cvv || cvv.length < 3){
-    toast("Operación cancelada. El viaje queda en Efectivo.");
+    toast("Cancelado. El viaje queda en Efectivo.");
     S.pg = "Efectivo";
     go("search");
     return;
@@ -769,7 +990,7 @@ function procesarTarjetaSilenciosa(viajeId, monto){
         toast("¡Pago debitado con éxito! 💳 ✓");
         go("search");
       } else {
-        alert("El banco rechazó el débito: " + (res.detalle || "Fondos insuficientes o tarjeta bloqueada") + ".\n\nTu viaje se mantiene en Efectivo.");
+        alert("El banco rechazó el débito: " + (res.detalle || "Fondos insuficientes") + ".\n\nEl viaje se mantiene en Efectivo.");
         S.pg = "Efectivo";
         go("search");
       }
@@ -778,9 +999,8 @@ function procesarTarjetaSilenciosa(viajeId, monto){
       S.pg = "Efectivo";
       go("search");
     });
-
   }).catch(function(){
-    toast("Código de seguridad incorrecto. El viaje se mantiene en Efectivo.");
+    toast("Código de seguridad incorrecto. El viaje queda en Efectivo.");
     S.pg = "Efectivo";
     go("search");
   });
@@ -1170,16 +1390,7 @@ function opts(){
   });
 }
 
-function cambiarPago(){
-  var opciones = ["Efectivo"];
-  if(U && U.card) opciones.push("Tarjeta");
-  opciones.push("Mercado Pago");
-
-  var idx = opciones.indexOf(S.pg);
-  S.pg = opciones[(idx + 1) % opciones.length];
-  go("opt");
-}
-
+// PANTALLAS
 function go(ph){
   clearInterval(tm);clearInterval(pollTm);
 
@@ -1202,322 +1413,4 @@ function go(ph){
     S.mapFitDone = false;
   }
 
-  // 1. INICIO (MAPA)
-  if(ph==="home"){
-    var placeholderTxt = S.mode === "o" ? "¿Dónde te retiramos? (ej: guemes 248)" : "¿A dónde vas? (ej: peron 412)";
-    var saludo = "¿A dónde vamos, " + esc(U.nombre) + "?";
-    v.innerHTML = 
-      '<h2 style="font-size:22px;font-weight:800;margin:0 0 12px">'+saludo+'</h2>' +
-      '<div class="chips-row">' +
-        '<button class="chip-uber" onclick="loc()">🎯 Mi ubicación</button>' +
-        '<button class="chip-uber" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button>' +
-        '<button class="chip-uber" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button>' +
-      '</div>' +
-      '<div class="search-pill">' +
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>' +
-        '<input id="q" placeholder="'+placeholderTxt+'">' +
-        '<button class="search-btn" onclick="find()">Buscar</button>' +
-      '</div>' +
-      (S.res.length ? 
-        '<div style="margin-bottom:14px">' +
-          S.res.map(function(r,i){
-            return '<button class="search-res-item" onclick="pickRes('+i+')">' +
-              '<i>📍</i>' +
-              '<div><b>'+esc(r.n)+'</b><small>Rosario de la Frontera</small></div>' +
-            '</button>';
-          }).join("") +
-        '</div>' : '') +
-      '<div style="background:var(--surface);border-radius:12px;padding:12px 16px;margin-bottom:14px">' +
-        '<div style="font-size:11px;color:var(--ink-secondary);font-weight:800;letter-spacing:0.5px">RUTA SELECCIONADA</div>' +
-        '<div style="font-size:14px;margin-top:6px"><b>Salida:</b> '+(S.o?lab(S.on,S.oref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div>' +
-        '<div style="font-size:14px;margin-top:4px"><b>Destino:</b> '+(S.d?lab(S.dn,S.dref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div>' +
-      '</div>' +
-      (S.o && S.d ? 
-        '<button class="btn-uber" onclick="opts()">Ver precios y viajes</button>' : 
-        '<button class="btn-uber" style="background:#E0E0E0;color:#888;cursor:not-allowed">Elegí origen y destino</button>');
-
-    $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
-  }
-
-  // 2. ACTIVIDAD (HISTORIAL DE VIAJES)
-  if(ph==="actividad"){
-    v.innerHTML = '<div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Cargando tus viajes…</p></div>';
-    
-    var req = sb.from("viajes").select("*");
-    if(U && U.id){
-      req = req.eq("pasajero_id", U.id);
-    } else if(U && U.nombre){
-      req = req.ilike("pasajero_nombre", "%" + U.nombre + "%");
-    }
-
-    req.order("creado_en", { ascending: false }).limit(20).then(function(r){
-      var viajes = r.data || [];
-      if(!viajes.length){
-        v.innerHTML = 
-          '<div style="text-align:center;padding:50px 20px">' +
-            '<div style="font-size:48px;margin-bottom:12px">🚗</div>' +
-            '<h3 style="margin:0 0 8px;font-size:22px;font-weight:800">No tenés viajes aún</h3>' +
-            '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 24px">Cuando pidas un auto en Rosario de la Frontera, va a figurar acá.</p>' +
-            '<button class="btn-uber" onclick="cambiarSeccion(\'home\')">Pedir un viaje</button>' +
-          '</div>';
-        return;
-      }
-
-      var h = '<h2 style="font-size:24px;font-weight:800;margin:0 0 16px">Tus viajes</h2>';
-      viajes.forEach(function(x){
-        var f = new Date(x.creado_en);
-        var fTxt = f.toLocaleDateString("es-AR", { day:"numeric", month:"short" }) + " · " + f.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit" });
-        var estadoBadge = x.estado === "finalizado" ? '<span style="background:#E8F5E9;color:#1B5E20;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">Completado</span>' :
-                          x.estado === "cancelado" ? '<span style="background:#FFEBEE;color:#C62828;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">Cancelado</span>' :
-                          '<span style="background:#FFF3CD;color:#856404;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">En curso</span>';
-
-        h += '<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.03)">' +
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
-            '<div><b>'+esc(x.tipo)+'</b><small style="display:block;color:var(--ink-secondary)">'+fTxt+'</small></div>' +
-            '<b style="font-size:16px">'+M(x.monto)+'</b>' +
-          '</div>' +
-          '<div style="font-size:13px;line-height:1.5">' +
-            '<div>📍 '+esc(x.origen_nombre)+'</div>' +
-            '<div>🏁 '+esc(x.destino_nombre)+'</div>' +
-          '</div>' +
-          '<div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">' +
-            estadoBadge +
-            '<span style="font-size:12px;color:var(--ink-secondary)">'+esc(x.forma_pago)+'</span>' +
-          '</div>' +
-        '</div>';
-      });
-      v.innerHTML = h;
-    }).catch(function(){
-      v.innerHTML = '<div style="text-align:center;padding:40px 20px"><p>No se pudo cargar la actividad.</p><button class="btn-uber" onclick="cambiarSeccion(\'actividad\')">Reintentar</button></div>';
-    });
-  }
-
-  // 3. CUENTA (PERFIL, TARJETA Y CIERRE)
-  if(ph==="cuenta"){
-    var nomUser = (U && U.nombre) ? U.nombre : "Facundo";
-    var apeUser = (U && U.apellido) ? U.apellido : "";
-    var mailUser = (U && U.email) ? U.email : "Sin correo registrado";
-
-    v.innerHTML = 
-      '<div style="padding:10px 0">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">' +
-          '<div style="display:flex;align-items:center;gap:14px">' +
-            '<div style="width:64px;height:64px;border-radius:50%;background:#000;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900">' +
-              esc(nomUser.charAt(0)) +
-            '</div>' +
-            '<div>' +
-              '<h2 style="margin:0;font-size:22px;font-weight:800">'+esc(nomUser)+' '+esc(apeUser)+'</h2>' +
-              '<span style="background:var(--surface);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;color:var(--ink-secondary)">⭐ 5.0 · Pasajero</span>' +
-            '</div>' +
-          '</div>' +
-          '<button class="chip-uber" onclick="editarNombrePerfil()">✏️ Editar</button>' +
-        '</div>' +
-
-        '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px">' +
-          '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">INFORMACIÓN DE TU CUENTA</div>' +
-          '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Nombre:</b> '+esc(nomUser)+' '+esc(apeUser)+'</div>' +
-          '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Email:</b> '+esc(mailUser)+'</div>' +
-          '<div style="font-size:14px;padding:8px 0"><b>Ciudad:</b> Rosario de la Frontera, Salta</div>' +
-        '</div>' +
-
-        '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:24px">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-            '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px">MÉTODOS DE PAGO</div>' +
-            (!U || !U.card ? '<button class="chip-uber" style="padding:4px 10px;font-size:12px" onclick="go(\'tarjeta_form\')">+ Agregar tarjeta</button>' : '') +
-          '</div>' +
-          '<div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano al chofer)</div>' +
-          '<div style="font-size:14px;padding:6px 0">🔵 <b>Mercado Pago</b> (Checkout online)</div>' +
-          (U && U.card ? 
-            '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #E8E8E8;margin-top:6px">' +
-              '<span>💳 <b>'+esc(U.card.brand)+' ···· '+esc(U.card.last4)+'</b> <small style="color:var(--ok)">(Débito directo)</small></span>' +
-              '<button style="border:0;background:none;color:var(--bad);font-weight:700;font-size:12px;cursor:pointer" onclick="eliminarTarjeta()">Quitar</button>' +
-            '</div>' : '') +
-        '</div>' +
-
-        '<button class="btn-uber" style="background:#FFF0F0;color:var(--bad);border:1px solid #FFCDD2" onclick="logout()">' +
-          'Cerrar sesión' +
-        '</button>' +
-      '</div>';
-  }
-
-  // 4. FORMULARIO TARJETA NATIVA
-  if(ph==="tarjeta_form"){
-    v.innerHTML = 
-      '<div style="padding:10px 0">' +
-        '<h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Agregar tarjeta</h2>' +
-        '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Débito o crédito para cobrarte automáticamente los viajes sin salir de Uder.</p>' +
-        '<label style="font-size:12px;font-weight:700">NÚMERO DE TARJETA</label>' +
-        '<input id="c_n" inputmode="numeric" placeholder="4500 0000 0000 0000" maxlength="19" class="field-input" oninput="this.value=this.value.replace(/\\D/g,\'\').slice(0,19).replace(/(.{4})/g,\'$1 \').trim()">' +
-        '<div style="display:flex;gap:12px">' +
-          '<div style="flex:1">' +
-            '<label style="font-size:12px;font-weight:700">VENCIMIENTO</label>' +
-            '<input id="c_e" inputmode="numeric" placeholder="MM/AA" maxlength="5" class="field-input" oninput="var d=this.value.replace(/\\D/g,\'\').slice(0,4);this.value=d.length>2?d.slice(0,2)+\'/\'+d.slice(2):d">' +
-          '</div>' +
-          '<div style="flex:1">' +
-            '<label style="font-size:12px;font-weight:700">CVV</label>' +
-            '<input id="c_c" type="password" inputmode="numeric" placeholder="123" maxlength="4" class="field-input">' +
-          '</div>' +
-        '</div>' +
-        '<label style="font-size:12px;font-weight:700">TITULAR DE LA TARJETA</label>' +
-        '<input id="c_t" placeholder="Como figura en el plástico" class="field-input">' +
-        '<label style="font-size:12px;font-weight:700">DNI DEL TITULAR</label>' +
-        '<input id="c_dni" inputmode="numeric" placeholder="Número de documento" maxlength="8" class="field-input">' +
-        '<button class="btn-uber" onclick="guardarTarjetaNativa()">Vincular tarjeta</button>' +
-        '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'cuenta\')">Cancelar</button>' +
-      '</div>';
-  }
-
-  // 5. LOGIN / BIENVENIDA
-  if(ph==="welcome"){
-    v.innerHTML = 
-      '<div style="text-align:center;padding:30px 10px">' +
-        '<div style="width:72px;height:72px;background:#000;color:var(--accent);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;margin-bottom:18px">U</div>' +
-        '<h2 style="font-size:26px;font-weight:800;margin:0 0 8px">Te damos la bienvenida a Uder</h2>' +
-        '<p style="color:var(--ink-secondary);font-size:15px;margin:0 0 26px">Iniciá sesión o registrate para viajar en Rosario de la Frontera.</p>' +
-        
-        '<button class="btn-uber" style="background:#fff;color:#000;border:1px solid #ddd;margin-bottom:16px" onclick="loginGoogle()">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.43 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.99 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.57 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>' +
-          'Continuar con Google' +
-        '</button>' +
-
-        '<div style="text-align:left;background:var(--surface);border-radius:14px;padding:18px;margin-bottom:14px">' +
-          '<div style="font-weight:700;margin-bottom:10px">O ingresá con tu correo</div>' +
-          '<input id="l_e" type="email" placeholder="Email" class="field-input">' +
-          '<input id="l_w" type="password" placeholder="Contraseña" class="field-input">' +
-          '<button class="btn-uber" onclick="doLoginEmail()">Ingresar</button>' +
-        '</div>' +
-
-        '<button class="btn-ghost-uber" onclick="go(\'reg\')">¿No tenés cuenta? Registrate gratis</button>' +
-      '</div>';
-  }
-
-  // 6. REGISTRO
-  if(ph==="reg"){
-    v.innerHTML = 
-      '<div style="padding:20px 10px">' +
-        '<h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Crear cuenta</h2>' +
-        '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Registrate gratis para pedir viajes.</p>' +
-        '<input id="r_n" placeholder="Nombre/s" class="field-input">' +
-        '<input id="r_a" placeholder="Apellido" class="field-input">' +
-        '<input id="r_e" type="email" placeholder="Email" class="field-input">' +
-        '<input id="r_w" type="password" placeholder="Contraseña (mínimo 6)" class="field-input">' +
-        '<button class="btn-uber" onclick="doRegistroEmail()">Crear cuenta</button>' +
-        '<button class="btn-ghost-uber" onclick="go(\'welcome\')">Volver al inicio</button>' +
-      '</div>';
-  }
-
-  // 7. ELEGIR VIAJE
-  if(ph==="opt"){
-    var cuadras = getCuadras();
-    var noche = esNocturno();
-    var tagTarifa = noche ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
-
-    var txtPago = S.pg === "Tarjeta" && U && U.card ? 
-                  "💳 " + U.card.brand + " ···· " + U.card.last4 + " (Débito directo)" : 
-                  (S.pg === "Mercado Pago" ? "🔵 Mercado Pago" : "💵 Efectivo (Pago en mano)");
-
-    v.innerHTML = 
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
-        '<h3 style="margin:0;font-size:20px;font-weight:800">Elige un viaje</h3>' +
-        '<span style="font-size:12px;font-weight:700;color:var(--ink-secondary)">'+cuadras+' cuadras ('+S.km.toFixed(1)+' km) · '+tagTarifa+'</span>' +
-      '</div>' +
-      TY.map(function(t,i){
-        var isSelected = (i === S.ty);
-        return '<div class="ride-card '+(isSelected?'selected':'')+'" onclick="S.ty='+i+';go(\'opt\')">' +
-          '<div class="ride-left">' +
-            '<div class="ride-icon">'+t[3]+'</div>' +
-            '<div class="ride-info">' +
-              '<h4>'+t[0]+' <span>👤 4</span></h4>' +
-              '<p>'+t[4]+' · '+t[1]+'</p>' +
-            '</div>' +
-          '</div>' +
-          '<div class="ride-price">' +
-            '<b>'+M(price(i))+'</b>' +
-          '</div>' +
-        '</div>';
-      }).join("") +
-      '<div class="payment-bar" onclick="cambiarPago()">' +
-        '<div>' +
-          '<span>'+txtPago+'</span>' +
-        '</div>' +
-        '<span style="color:var(--ink-secondary)">Cambiar ❯</span>' +
-      '</div>' +
-      '<button class="btn-uber" onclick="pedirViajeReal()">' +
-        'Elegir viaje '+TY[S.ty][0]+' · '+M(price(S.ty)) +
-      '</button>' +
-      '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'home\')">Modificar ruta</button>';
-  }
-
-  // 8. RADAR Y EN CURSO
-  if(ph==="search"){
-    v.innerHTML = 
-      '<div style="text-align:center;padding:15px 0">' +
-        '<h3 style="margin:0 0 6px;font-size:20px;font-weight:800">Buscando tu '+TY[S.ty][0]+'…</h3>' +
-        '<p style="margin:0 0 16px;color:var(--ink-secondary);font-size:14px">Avisando a los conductores más cercanos en Rosario de la Frontera.</p>' +
-        '<div class="bar" style="height:6px;border-radius:10px;background:#EEEEEE;overflow:hidden;margin-bottom:20px"><i style="width:65%;display:block;height:100%;background:#000"></i></div>' +
-        '<button class="btn-uber" style="background:var(--surface);color:#000" onclick="cancelarViajeActual()">Cancelar pedido</button>' +
-      '</div>';
-    pollTm = setInterval(consultarViaje, 2500);
-  }
-
-  if(ph==="pick"){
-    var d = S.dr || ["Conductor", "Auto en camino", "---"];
-    v.innerHTML = 
-      '<div style="padding:10px 0">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-          '<div>' +
-            '<h3 style="margin:0;font-size:20px;font-weight:800">'+esc(d[0])+' viene a buscarte</h3>' +
-            '<p style="margin:4px 0 0;color:var(--ink-secondary);font-size:14px">'+esc(d[1])+'</p>' +
-          '</div>' +
-          '<div class="plate" style="font-size:15px">'+esc(d[2])+'</div>' +
-        '</div>' +
-        '<div id="eta_chofer" style="margin:16px 0">' +
-          '<span class="badge-status">🚗 Localizando conductor en el mapa…</span>' +
-        '</div>' +
-        '<div style="background:var(--surface);padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;display:flex;justify-content:space-between">' +
-          '<span>Forma de pago: <b>'+esc(S.pg)+'</b></span>' +
-          '<span>Total: <b>'+M(price(S.ty))+'</b></span>' +
-        '</div>' +
-        '<button class="btn-ghost-uber" style="color:var(--bad)" onclick="cancelarViajeActual()">Cancelar viaje</button>' +
-      '</div>';
-    pollTm = setInterval(consultarViaje, 2500);
-  }
-
-  if(ph==="trip"){
-    v.innerHTML = 
-      '<div style="padding:10px 0">' +
-        '<h3 style="margin:0;font-size:20px;font-weight:800">Viaje en curso</h3>' +
-        '<p style="margin:4px 0 14px;color:var(--ink-secondary);font-size:14px">Con '+esc(S.dr[0])+' hacia tu destino</p>' +
-        '<div id="eta_destino" style="margin-bottom:16px">' +
-          '<span class="badge-status">En viaje a destino…</span>' +
-        '</div>' +
-        '<div style="background:var(--surface);padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center">' +
-          '<span style="font-size:14px;font-weight:600">Total a pagar:</span>' +
-          '<b style="font-size:20px">'+M(price(S.ty))+'</b>' +
-        '</div>' +
-      '</div>';
-    pollTm = setInterval(consultarViaje, 2500);
-  }
-
-  if(ph==="done"){
-    v.innerHTML = 
-      '<div style="text-align:center;padding:20px 0">' +
-        '<h2 style="font-size:26px;font-weight:800;margin:0">¡Llegaste a destino!</h2>' +
-        '<div style="font-size:42px;font-weight:900;margin:16px 0;letter-spacing:-1px">'+M(price(S.ty))+'</div>' +
-        '<p style="color:var(--ink-secondary);margin-bottom:24px">'+(S.pg==="Efectivo"?"Pagale en efectivo a tu chofer.":"El cobro fue procesado automáticamente.")+'</p>' +
-        '<button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;draw();cambiarSeccion(\'home\')">Listo</button>' +
-      '</div>';
-  }
-}
-
-// ARRANQUE
-if(!volverMP()) {
-  if(U && U.nombre && U.nombre !== "Pasajero"){
-    cambiarSeccion("home");
-  } else {
-    go("welcome");
-  }
-}
-</script>
-</body>
-</html>
+  //

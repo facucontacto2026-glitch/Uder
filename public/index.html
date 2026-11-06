@@ -46,6 +46,7 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;max-width:90%;z-index:2000}
 .fl{display:block;font-size:13px;font-weight:600;color:var(--mute);margin:14px 0 6px}
 .ck{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--mute);line-height:1.4}
+.badge-chofer{display:inline-flex;align-items:center;gap:6px;background:#e8f7ee;color:#1F9D63;font-weight:700;padding:6px 12px;border-radius:12px;font-size:13px}
 </style>
 </head>
 <body>
@@ -57,15 +58,13 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 var CEN={lat:-25.798,lng:-64.968},BB={w:-65.05,e:-64.90,n:-25.74,s:-25.86};
-var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿Dónde te buscamos? Escribí tu calle o tocá '🎯 Mi ubicación'.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
+var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿Dónde te buscamos? Escribí tu calle o tocá '🎯 Mi ubicación'.",ph:"home",oref:"",dref:"",viajeId:null,mapFitDone:false},tm=null,pollTm=null;
 
-// SOLO REMIS Y UDER (SIN TAXI)
 var TY=[
   ["Remis","Servicio tradicional de remis",1.0],
   ["Uder","Auto particular, el más económico",0.95]
 ];
 
-// SOLO EFECTIVO Y MERCADO PAGO (SIN TARJETA)
 var PG=["Efectivo","Mercado Pago"];
 
 function $(x){return document.getElementById(x)}
@@ -224,6 +223,58 @@ function volverMP(){
   toast("El pago no se completó.");go("opt");return true;
 }
 
+// SEGUIMIENTO EN VIVO DEL CHOFER EN EL MAPA
+var carMarker = null;
+
+function actualizarPosicionChofer(pos){
+  if(!pos || pos.lat == null || pos.lng == null) return;
+  var p = [pos.lat, pos.lng];
+
+  // Crear el marcador del auto si aún no existe
+  if(!carMarker){
+    var carHtml = '<div style="background:#14213D;color:#F5B700;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.5);transform:scale(1);animation:pulseCar 1.5s infinite">🚗</div>';
+    carMarker = L.marker(p, {
+      icon: L.divIcon({ className: '', html: carHtml, iconSize: [38, 38], iconAnchor: [19, 19] }),
+      zIndexOffset: 2000
+    }).addTo(map);
+    carMarker.bindTooltip("Tu conductor", { permanent: false, direction: "top" });
+  } else {
+    carMarker.setLatLng(p);
+  }
+
+  // Si el chofer va a buscar al pasajero
+  if(S.ph === "pick" && S.o){
+    var distKm = hav({lat: pos.lat, lng: pos.lng}, S.o);
+    var cuadras = Math.max(1, Math.round(distKm * 10));
+    var elDist = $("eta_chofer");
+
+    if(elDist){
+      if(distKm < 0.12){
+        elDist.innerHTML = '<span class="badge-chofer" style="background:#fff3cd;color:#856404">🔔 <b>¡Tu conductor ya está en tu puerta!</b></span>';
+      } else {
+        var txtDist = distKm < 1 ? Math.round(distKm * 1000) + " metros" : distKm.toFixed(1) + " km";
+        elDist.innerHTML = '<span class="badge-chofer">🚗 Conductor a <b>' + cuadras + ' cuadras</b> (' + txtDist + ')</span>';
+      }
+    }
+
+    // Centrar el mapa para ver al chofer y el punto de salida
+    if(!S.mapFitDone){
+      map.fitBounds([p, [S.o.lat, S.o.lng]], { padding: [60, 60], maxZoom: 17 });
+      S.mapFitDone = true;
+    }
+  }
+
+  // Si el viaje ya está en curso hacia el destino
+  if(S.ph === "trip" && S.d){
+    var distDest = hav({lat: pos.lat, lng: pos.lng}, S.d);
+    var elDest = $("eta_destino");
+    if(elDest){
+      var cuadrasRest = Math.max(1, Math.round(distDest * 10));
+      elDest.innerHTML = '<span class="badge-chofer">🏁 Faltan <b>' + cuadrasRest + ' cuadras</b> para llegar</span>';
+    }
+  }
+}
+
 function consultarViaje(){
   if(!S.viajeId) return;
   fetch("/api/estado-viaje?id="+encodeURIComponent(S.viajeId))
@@ -244,8 +295,9 @@ function consultarViaje(){
       go("pick");
     }
 
-    if(res.conductor_pos && car){
-      car.setLatLng([res.conductor_pos.lat, res.conductor_pos.lng]);
+    // Actualizar la posición del auto en el mapa en vivo
+    if(res.conductor_pos){
+      actualizarPosicionChofer(res.conductor_pos);
     }
 
     if(v.estado === "en_curso" && S.ph === "pick"){
@@ -282,7 +334,6 @@ function calcularRutaReal(origen, destino){
   var distDirecta = hav(origen, destino);
   var urlDirecta = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson&alternatives=true";
 
-  // Cruce céntrico habilitado en Rosario de la Frontera (Casanovas / 20 de Febrero / Illia)
   var cruceLng = -64.9620, cruceLat = -25.7935;
   var urlConCruce = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + cruceLng + "," + cruceLat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson";
 
@@ -293,7 +344,6 @@ function calcularRutaReal(origen, destino){
       var rDirecta = j.routes.sort(function(a,b){ return a.distance - b.distance; })[0];
       var kmDirecto = rDirecta.distance / 1000;
 
-      // Si la ruta automática se desvía más de 1.35x de la línea recta (da la vuelta norte innecesaria)
       if(kmDirecto > Math.max(0.6, distDirecta * 1.35)){
         return fetch(urlConCruce)
           .then(function(cr){ return cr.json(); })
@@ -398,7 +448,7 @@ function buscarDireccion(textoUsuario){
 
 var map=L.map("map",{zoomControl:true}).setView([CEN.lat,CEN.lng],14);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© Colaboradores de OpenStreetMap"}).addTo(map);
-var G=L.layerGroup().addTo(map),car=null,routeLine=null;
+var G=L.layerGroup().addTo(map),routeLine=null;
 
 function pin(p,c,m,t){
   var k=L.marker([p.lat,p.lng],{draggable:true,icon:L.divIcon({className:"",html:'<div style="width:22px;height:22px;border-radius:50%;background:'+c+';border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(G).bindTooltip(t);
@@ -431,7 +481,6 @@ function draw(keep){
   else if(b.length===1) map.setView(b[0],16);
 }
 
-// ASIGNAR PUNTO CON CAMBIO AUTOMÁTICO A DESTINO
 function setPt(m,p,n,keep){
   if(m==="o"){
     S.o=p;
@@ -472,7 +521,7 @@ function mode(m){S.mode=m;go("home")}
 // GEOLOCALIZACIÓN SATELITAL CON DETECTOR DE PC / CELULAR
 function loc(){
   if(!navigator.geolocation){S.msg="Tu navegador no permite ubicación.";go("home");return}
-  S.msg="Conectando satélites GPS precisos…";
+  S.msg="Buscando tu ubicación satelital precisa…";
   go("home");
 
   var mejorFix = null;
@@ -481,7 +530,6 @@ function loc(){
     if(!mejorFix || acc < mejorFix.acc){
       mejorFix = { lat: lat, lng: lng, acc: acc };
     }
-    // Si la precisión es de menos de 25 metros (GPS real de celular), aplicamos de inmediato
     if(acc <= 25){
       navigator.geolocation.clearWatch(wId);
       aplicarLoc(mejorFix.lat, mejorFix.lng, mejorFix.acc);
@@ -491,7 +539,6 @@ function loc(){
     go("home");
   }, { enableHighAccuracy: true, maximumAge: 0, timeout: 9000 });
 
-  // Si a los 4.5 segundos no bajó de 25m, usamos el mejor fix obtenido
   setTimeout(function(){
     navigator.geolocation.clearWatch(wId);
     if(mejorFix){
@@ -501,16 +548,13 @@ function loc(){
 }
 
 function aplicarLoc(lat, lng, acc){
-  // Verificamos si cayó dentro de Rosario de la Frontera
   var enRosario = (lng > BB.w && lng < BB.e && lat > BB.s && lat < BB.n);
-  
   if(enRosario){
     S.msg = "GPS satelital detectado (±" + Math.round(acc) + " m).";
     S.oref = "";
     setPt("o", { lat: lat, lng: lng }, "Mi ubicación actual");
-    map.setView([lat, lng], 17); // Zoom bien de cerca sobre tu puerta
+    map.setView([lat, lng], 17);
   } else {
-    // Si la IP de la compu te mandó a Salta Capital o Tucumán:
     S.msg = "Aviso: En la compu internet te ubica en Salta Capital (las PCs no tienen GPS). Te dejamos en el centro para probar.";
     setPt("o", { lat: CEN.lat, lng: CEN.lng }, "Centro (Punto de prueba)");
     map.setView([CEN.lat, CEN.lng], 16);
@@ -555,9 +599,6 @@ function opts(){
   });
 }
 
-function setCar(p){if(!car)car=L.circleMarker([p.lat,p.lng],{radius:11,color:"#14213D",weight:3,fillColor:"#F5B700",fillOpacity:1}).addTo(map);car.setLatLng([p.lat,p.lng])}
-function rmCar(){if(car){map.removeLayer(car);car=null}}
-
 function go(ph){
   if(ph==="home"&&!U)ph="welcome";
   clearInterval(tm);clearInterval(pollTm);
@@ -566,7 +607,11 @@ function go(ph){
   var showMap=!(ph==="welcome"||ph==="reg");
   $("map").style.display=showMap?"block":"none";
   if(showMap)map.invalidateSize();
-  if(ph==="home"||ph==="opt")rmCar();
+
+  if(ph==="home"||ph==="opt"){
+    if(carMarker){ map.removeLayer(carMarker); carMarker = null; }
+    S.mapFitDone = false;
+  }
 
   if(ph==="welcome"){v.innerHTML='<div class="card"><h2>Viajá seguro con Uder</h2><p>Rosario de la Frontera. Registrate para pedir tu auto en efectivo o con Mercado Pago.</p>'+(U?'<button class="btn" onclick="go(\'home\')">Continuar como '+esc(U.nombre)+'</button><button class="btn ghost" onclick="logout()">Cerrar sesión</button>':'<button class="btn" onclick="go(\'reg\')">Registrarme</button>')+'</div>'}
   if(ph==="reg"){var mx=new Date().toISOString().slice(0,10);v.innerHTML='<div class="card"><h2>Creá tu cuenta</h2><label class="fl">Nombre</label><input id="f_n"><label class="fl">Apellido</label><input id="f_a"><label class="fl">Nacimiento</label><input id="f_d" type="date" max="'+mx+'"><label class="fl">DNI</label><input id="f_i" inputmode="numeric" maxlength="10"><label class="ck"><input type="checkbox" id="f_k">Acepto los términos de Uder.</label><p id="err" style="color:var(--bad);margin-top:10px"></p><button class="btn" onclick="saveReg()">Crear cuenta</button><button class="btn ghost" onclick="go(\'welcome\')">Volver</button></div>'}
@@ -594,13 +639,13 @@ function go(ph){
 
   if(ph==="pick"){
     var d=S.dr||["Conductor asignado","Auto en camino","---"];
-    v.innerHTML='<div class="card"><h2>'+esc(d[0])+' aceptó tu viaje</h2><div class="row" style="margin:8px 0"><p>'+esc(d[1])+'</p><span class="plate">'+esc(d[2])+'</span></div><div class="row"><b>En camino a retirarte</b><span class="tag">'+esc(S.pg)+'</span></div><div class="bar"><i style="width:50%"></i></div><button class="btn ghost" onclick="cancelarViajeActual()">Cancelar viaje</button></div>';
-    pollTm=setInterval(consultarViaje, 3000);
+    v.innerHTML='<div class="card"><h2>'+esc(d[0])+' aceptó tu viaje</h2><div class="row" style="margin:8px 0"><p>'+esc(d[1])+'</p><span class="plate">'+esc(d[2])+'</span></div><div class="row"><b>En camino a retirarte</b><span class="tag">'+esc(S.pg)+'</span></div><div id="eta_chofer" style="margin:12px 0"><span class="badge-chofer">🚗 Localizando conductor en el mapa…</span></div><button class="btn ghost" onclick="cancelarViajeActual()">Cancelar viaje</button></div>';
+    pollTm=setInterval(consultarViaje, 2500);
   }
 
   if(ph==="trip"){
-    v.innerHTML='<div class="card"><h2>Viaje en curso</h2><p>Hacia '+lab(S.dn,S.dref)+' con '+esc(S.dr[0])+'</p><div class="row" style="margin-top:8px"><b>En viaje</b><b>'+M(price(S.ty))+'</b></div><div class="bar"><i style="width:85%"></i></div></div>';
-    pollTm=setInterval(consultarViaje, 3000);
+    v.innerHTML='<div class="card"><h2>Viaje en curso</h2><p>Hacia '+lab(S.dn,S.dref)+' con '+esc(S.dr[0])+'</p><div class="row" style="margin-top:8px"><b id="eta_destino">En viaje a destino</b><b>'+M(price(S.ty))+'</b></div><div class="bar"><i style="width:85%"></i></div></div>';
+    pollTm=setInterval(consultarViaje, 2500);
   }
 
   if(ph==="done"){

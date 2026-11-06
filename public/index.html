@@ -20,8 +20,6 @@
   --ink-secondary:#5E5E5E;
   --line:#EEEEEE;
   --accent:#F5B700;
-  --btn-black:#000000;
-  --btn-black-text:#FFFFFF;
   --ok:#0E8345;
   --bad:#DE1135;
   box-sizing:border-box;
@@ -96,14 +94,14 @@ body{
   z-index:1
 }
 
-/* CONTENEDOR PRINCIPAL / BOTTOM SHEET */
+/* CONTENEDOR PRINCIPAL */
 .main-view{
   flex:1;
   padding:16px 20px 85px;
   background:#fff
 }
 
-/* BUSCADOR FLOTANTE TIPO PÍLDORA (ESTILO UBER) */
+/* BUSCADOR FLOTANTE TIPO PÍLDORA */
 .search-pill{
   display:flex;
   align-items:center;
@@ -115,9 +113,7 @@ body{
   cursor:pointer;
   margin-bottom:16px
 }
-.search-pill svg{
-  flex-shrink:0
-}
+.search-pill svg{flex-shrink:0}
 .search-pill input{
   border:0;
   background:transparent;
@@ -137,7 +133,7 @@ body{
   cursor:pointer
 }
 
-/* BOTONES TIPO PASTILLA */
+/* CHIPS */
 .chips-row{
   display:flex;
   gap:8px;
@@ -164,7 +160,7 @@ body{
   color:#fff
 }
 
-/* TARJETAS DE SERVICIO (REMIS / UDER - EXACTAS A UBER) */
+/* TARJETAS DE SERVICIO (REMIS / UDER) */
 .ride-card{
   display:flex;
   align-items:center;
@@ -177,9 +173,7 @@ body{
   cursor:pointer;
   transition:all 0.15s ease
 }
-.ride-card:hover{
-  background:var(--surface)
-}
+.ride-card:hover{background:var(--surface)}
 .ride-card.selected{
   border-color:#000;
   background:#fff;
@@ -219,16 +213,13 @@ body{
   color:var(--ink-secondary);
   font-weight:500
 }
-.ride-price{
-  text-align:right
-}
 .ride-price b{
   font-size:18px;
   font-weight:800;
   color:#000
 }
 
-/* SELECTOR DE FORMA DE PAGO TIPO UBER */
+/* BARRA DE FORMA DE PAGO */
 .payment-bar{
   display:flex;
   align-items:center;
@@ -247,7 +238,7 @@ body{
   gap:10px
 }
 
-/* BOTONES DE ACCIÓN */
+/* BOTONES PRINCIPALES */
 .btn-uber{
   width:100%;
   height:54px;
@@ -260,12 +251,9 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
-  transition:background 0.2s
+  gap:10px
 }
-.btn-uber:active{
-  background:#333
-}
+.btn-uber:active{background:#333}
 .btn-ghost-uber{
   width:100%;
   height:48px;
@@ -288,9 +276,7 @@ body{
   text-align:left;
   width:100%;
   background:transparent;
-  border-left:0;
-  border-right:0;
-  border-top:0
+  border-left:0;border-right:0;border-top:0
 }
 .search-res-item i{
   width:36px;
@@ -303,17 +289,10 @@ body{
   font-style:normal;
   flex-shrink:0
 }
-.search-res-item div b{
-  display:block;
-  font-size:15px;
-  color:#000
-}
-.search-res-item div small{
-  font-size:12px;
-  color:var(--ink-secondary)
-}
+.search-res-item div b{display:block;font-size:15px;color:#000}
+.search-res-item div small{font-size:12px;color:var(--ink-secondary)}
 
-/* BOTTOM NAVIGATION BAR (UBER STYLE) */
+/* BARRA DE NAVEGACIÓN INFERIOR (UBER STYLE) */
 .bottom-nav{
   position:fixed;
   bottom:0;
@@ -342,15 +321,10 @@ body{
   background:none;
   border:0
 }
-.nav-item.active{
-  color:#000
-}
-.nav-item svg{
-  width:22px;
-  height:22px
-}
+.nav-item.active{color:#000}
+.nav-item svg{width:22px;height:22px}
 
-/* NOTIFICACIÓN FLOTANTE TOAST */
+/* TOAST */
 .toast{
   position:fixed;
   left:50%;
@@ -378,6 +352,14 @@ body{
   font-weight:700;
   font-size:13px
 }
+.plate{
+  font-weight:800;
+  letter-spacing:2px;
+  border:2px solid #000;
+  border-radius:6px;
+  padding:3px 8px;
+  font-size:13px
+}
 </style>
 </head>
 <body>
@@ -399,15 +381,15 @@ body{
 
   <!-- BARRA DE NAVEGACIÓN INFERIOR (ESTILO UBER) -->
   <nav class="bottom-nav">
-    <button class="nav-item active" onclick="go('home')">
+    <button id="nav_inicio" class="nav-item active" onclick="cambiarSeccion('home')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       Inicio
     </button>
-    <button class="nav-item" onclick="toast('Tus viajes recientes figuran aquí')">
+    <button id="nav_actividad" class="nav-item" onclick="cambiarSeccion('actividad')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
       Actividad
     </button>
-    <button class="nav-item" onclick="abrirCuenta()">
+    <button id="nav_cuenta" class="nav-item" onclick="cambiarSeccion('cuenta')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
       Cuenta
     </button>
@@ -427,7 +409,6 @@ if('serviceWorker' in navigator){
 var CEN={lat:-25.798,lng:-64.968},BB={w:-65.05,e:-64.90,n:-25.74,s:-25.86};
 var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿A dónde vamos hoy?",ph:"home",oref:"",dref:"",viajeId:null,mapFitDone:false},tm=null,pollTm=null;
 
-// SERVICIOS AL ESTILO UBER (REMIS Y UDER)
 var TY=[
   ["Remis", "Servicio tradicional de remis", 1.0, "🚗", "4 min"],
   ["Uder", "Auto particular, el más económico", 0.95, "🚘", "3 min"]
@@ -448,7 +429,7 @@ function lab(n, r){
 
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
 
-// GESTIÓN DE USUARIO
+// GESTIÓN DE SESIÓN DE USUARIO
 var U = null;
 try { U = JSON.parse(localStorage.getItem("uder_user") || "null"); } catch(e){}
 function save(){ try { localStorage.setItem("uder_user", JSON.stringify(U)); } catch(e){} }
@@ -458,20 +439,10 @@ function logout(){
   U = null;
   try { localStorage.removeItem("uder_user"); } catch(e){}
   toast("Sesión cerrada");
-  go("welcome");
+  cambiarSeccion("home");
 }
 
-function abrirCuenta(){
-  if(U) {
-    if(confirm("Estás conectado como: " + U.nombre + "\n\n¿Querés cerrar sesión?")){
-      logout();
-    }
-  } else {
-    go("welcome");
-  }
-}
-
-// SINCRONIZACIÓN DE SESIÓN CON GOOGLE Y SUPABASE
+// SINCRONIZACIÓN AUTOMÁTICA CON SUPABASE Y GOOGLE
 sb.auth.onAuthStateChange(function(event, session){
   if(session && session.user){
     sincronizarUsuario(session.user);
@@ -490,13 +461,13 @@ function sincronizarUsuario(usr){
   U = {
     id: usr.id,
     email: usr.email,
-    nombre: meta.first_name || partes[0] || "Pasajero",
-    apellido: meta.last_name || partes.slice(1).join(" ") || "",
-    dni: meta.dni || ""
+    nombre: meta.first_name || partes[0] || U?.nombre || "Facundo",
+    apellido: meta.last_name || partes.slice(1).join(" ") || U?.apellido || "",
+    dni: meta.dni || U?.dni || ""
   };
   save();
   if(S.ph === "welcome" || S.ph === "login" || S.ph === "reg"){
-    go("home");
+    cambiarSeccion("home");
   }
 }
 
@@ -506,8 +477,31 @@ function loginGoogle(){
     provider: 'google',
     options: { redirectTo: window.location.origin }
   }).catch(function(){
-    toast("No se pudo abrir Google. Probá con tu email.");
+    toast("No se pudo abrir Google. Probá ingresar.");
   });
+}
+
+function ingresarSinLogin(){
+  if(!U){
+    U = { id: null, nombre: "Facundo", apellido: "", email: "", dni: "" };
+    save();
+  }
+  cambiarSeccion("home");
+}
+
+// CAMBIAR ENTRE PESTAÑAS INFERIORES
+function cambiarSeccion(sec){
+  document.querySelectorAll(".nav-item").forEach(function(btn){ btn.classList.remove("active"); });
+  if(sec === "home"){
+    $("nav_inicio").classList.add("active");
+    go("home");
+  } else if(sec === "actividad"){
+    $("nav_actividad").classList.add("active");
+    go("actividad");
+  } else if(sec === "cuenta"){
+    $("nav_cuenta").classList.add("active");
+    go("cuenta");
+  }
 }
 
 function esNocturno(){
@@ -613,7 +607,7 @@ function volverMP(){
   var id=q.get("payment_id")||q.get("collection_id"), viajeId=q.get("viaje"), t=null;
   try{t=JSON.parse(sessionStorage.getItem("uder_trip")||"null")}catch(e){}
   history.replaceState(null,"",location.pathname);
-  if(!t && !viajeId){go("home");toast("No encontramos tu viaje.");return true}
+  if(!t && !viajeId){cambiarSeccion("home");toast("No encontramos tu viaje.");return true}
   if(t) Object.assign(S,t);
   if(viajeId) S.viajeId = viajeId;
   draw();
@@ -693,7 +687,7 @@ function consultarViaje(){
     if(v.estado === "cancelado"){
       clearInterval(pollTm);
       toast("El viaje fue cancelado.");
-      go("home");
+      cambiarSeccion("home");
       return;
     }
 
@@ -728,17 +722,16 @@ function cancelarViajeActual(){
   }
   clearInterval(pollTm);
   toast("Viaje cancelado");
-  go("home");
+  cambiarSeccion("home");
 }
 
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
-function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 
-// ENRUTAMIENTO REAL POR CALLES
+// CÁLCULO DE RUTA
 function calcularRutaReal(origen, destino){
   var distDirecta = hav(origen, destino);
   var urlDirecta = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson&alternatives=true";
-
   var cruceLng = -64.9620, cruceLat = -25.7935;
   var urlConCruce = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + cruceLng + "," + cruceLat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson";
 
@@ -789,7 +782,7 @@ function calcularRutaReal(origen, destino){
     });
 }
 
-// BUSCADOR INTELIGENTE DE DIRECCIONES
+// BUSCADOR DE CALLES
 function buscarDireccion(textoUsuario){
   var numMatch = textoUsuario.match(/\b\d{1,5}\b/);
   var num = numMatch ? numMatch[0] : "";
@@ -975,12 +968,15 @@ function cambiarPago(){
   go("opt");
 }
 
+// PANTALLAS
 function go(ph){
   clearInterval(tm);clearInterval(pollTm);
   S.ph=ph;
   var v=$("v");
-  var showMap=!(ph==="welcome");
-  $("map").style.display=showMap?"block":"none";
+  
+  // El mapa solo se muestra al pedir viaje o en viaje
+  var showMap = (ph === "home" || ph === "opt" || ph === "search" || ph === "pick" || ph === "trip");
+  $("map").style.display = showMap ? "block" : "none";
   if(showMap) map.invalidateSize();
 
   if(ph==="home"||ph==="opt"){
@@ -988,7 +984,7 @@ function go(ph){
     S.mapFitDone = false;
   }
 
-  // PANTALLA 1: HOME CON BUSCADOR FLOTANTE (ESTILO CAPTURA 4 DE UBER)
+  // PANTALLA INICIO (HOME)
   if(ph==="home"){
     var placeholderTxt = S.mode === "o" ? "¿Dónde te retiramos? (ej: guemes 248)" : "¿A dónde vas? (ej: peron 412)";
     v.innerHTML = 
@@ -1012,9 +1008,9 @@ function go(ph){
           }).join("") +
         '</div>' : '') +
       '<div style="background:var(--surface);border-radius:12px;padding:12px 16px;margin-bottom:14px">' +
-        '<div style="font-size:12px;color:var(--ink-secondary);font-weight:700">RUTA SELECCIONADA</div>' +
-        '<div style="font-size:14px;margin-top:4px"><b>Salida:</b> '+(S.o?lab(S.on,S.oref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div>' +
-        '<div style="font-size:14px;margin-top:2px"><b>Destino:</b> '+(S.d?lab(S.dn,S.dref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div>' +
+        '<div style="font-size:11px;color:var(--ink-secondary);font-weight:800;letter-spacing:0.5px">RUTA SELECCIONADA</div>' +
+        '<div style="font-size:14px;margin-top:6px"><b>Salida:</b> '+(S.o?lab(S.on,S.oref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div>' +
+        '<div style="font-size:14px;margin-top:4px"><b>Destino:</b> '+(S.d?lab(S.dn,S.dref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div>' +
       '</div>' +
       (S.o && S.d ? 
         '<button class="btn-uber" onclick="opts()">Ver precios y viajes</button>' : 
@@ -1023,7 +1019,7 @@ function go(ph){
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
-  // PANTALLA 2: ELEGIR VIAJE (ESTILO EXACTO A CAPTURA 3 DE UBER)
+  // PANTALLA ELEGIR VIAJE
   if(ph==="opt"){
     var cuadras = getCuadras();
     var noche = esNocturno();
@@ -1059,10 +1055,100 @@ function go(ph){
       '<button class="btn-uber" onclick="pedirViajeReal()">' +
         'Elegir viaje '+TY[S.ty][0]+' · '+M(price(S.ty)) +
       '</button>' +
-      '<button class="btn-ghost-uber" onclick="go(\'home\')">Modificar ruta</button>';
+      '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'home\')">Modificar ruta</button>';
   }
 
-  // PANTALLA 3: BUSCANDO CONDUCTOR (ESTILO RADAR)
+  // PANTALLA ACTIVIDAD (HISTORIAL REAL DE VIAJES DE SUPABASE)
+  if(ph==="actividad"){
+    v.innerHTML = '<div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Cargando tus viajes…</p></div>';
+    
+    var req = sb.from("viajes").select("*");
+    if(U && U.id){
+      req = req.eq("pasajero_id", U.id);
+    } else if(U && U.nombre){
+      req = req.ilike("pasajero_nombre", "%" + U.nombre + "%");
+    }
+
+    req.order("creado_en", { ascending: false }).limit(20).then(function(r){
+      var viajes = r.data || [];
+      if(!viajes.length){
+        v.innerHTML = 
+          '<div style="text-align:center;padding:50px 20px">' +
+            '<div style="font-size:48px;margin-bottom:12px">🚗</div>' +
+            '<h3 style="margin:0 0 8px;font-size:22px;font-weight:800">No tenés viajes aún</h3>' +
+            '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 24px">Cuando pidas un auto en Rosario de la Frontera, va a figurar acá.</p>' +
+            '<button class="btn-uber" onclick="cambiarSeccion(\'home\')">Pedir un viaje</button>' +
+          '</div>';
+        return;
+      }
+
+      var h = '<h2 style="font-size:24px;font-weight:800;margin:0 0 16px">Tus viajes</h2>';
+      viajes.forEach(function(x){
+        var f = new Date(x.creado_en);
+        var fTxt = f.toLocaleDateString("es-AR", { day:"numeric", month:"short" }) + " · " + f.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit" });
+        var estadoBadge = x.estado === "finalizado" ? '<span style="background:#E8F5E9;color:#1B5E20;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">Completado</span>' :
+                          x.estado === "cancelado" ? '<span style="background:#FFEBEE;color:#C62828;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">Cancelado</span>' :
+                          '<span style="background:#FFF3CD;color:#856404;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">En curso</span>';
+
+        h += '<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.03)">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
+            '<div><b>'+esc(x.tipo)+'</b><small style="display:block;color:var(--ink-secondary)">'+fTxt+'</small></div>' +
+            '<b style="font-size:16px">'+M(x.monto)+'</b>' +
+          '</div>' +
+          '<div style="font-size:13px;line-height:1.5">' +
+            '<div>📍 '+esc(x.origen_nombre)+'</div>' +
+            '<div>🏁 '+esc(x.destino_nombre)+'</div>' +
+          '</div>' +
+          '<div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">' +
+            estadoBadge +
+            '<span style="font-size:12px;color:var(--ink-secondary)">'+esc(x.forma_pago)+'</span>' +
+          '</div>' +
+        '</div>';
+      });
+      v.innerHTML = h;
+    }).catch(function(){
+      v.innerHTML = '<div style="text-align:center;padding:40px 20px"><p>No se pudo cargar la actividad.</p><button class="btn-uber" onclick="go(\'actividad\')">Reintentar</button></div>';
+    });
+  }
+
+  // PANTALLA CUENTA (PERFIL DEL USUARIO ESTILO UBER)
+  if(ph==="cuenta"){
+    var nomUser = (U && U.nombre) ? U.nombre : "Facundo";
+    var apeUser = (U && U.apellido) ? U.apellido : "";
+    var mailUser = (U && U.email) ? U.email : "Sin correo registrado";
+
+    v.innerHTML = 
+      '<div style="padding:10px 0">' +
+        '<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">' +
+          '<div style="width:68px;height:68px;border-radius:50%;background:#000;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900">' +
+            nomUser.charAt(0) +
+          '</div>' +
+          '<div>' +
+            '<h2 style="margin:0;font-size:22px;font-weight:800">'+esc(nomUser)+' '+esc(apeUser)+'</h2>' +
+            '<div style="margin-top:4px"><span style="background:var(--surface);padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;color:var(--ink-secondary)">⭐ 5.0 · Pasajero</span></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px">' +
+          '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">INFORMACIÓN DE TU CUENTA</div>' +
+          '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Nombre:</b> '+esc(nomUser)+' '+esc(apeUser)+'</div>' +
+          '<div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Email:</b> '+esc(mailUser)+'</div>' +
+          '<div style="font-size:14px;padding:8px 0"><b>Ciudad:</b> Rosario de la Frontera, Salta</div>' +
+        '</div>' +
+
+        '<div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:24px">' +
+          '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">MEDIOS DE PAGO HABILITADOS</div>' +
+          '<div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano)</div>' +
+          '<div style="font-size:14px;padding:6px 0">🔵 <b>Mercado Pago</b> (Débito, Crédito o Dinero en cuenta)</div>' +
+        '</div>' +
+
+        '<button class="btn-uber" style="background:#FFF0F0;color:var(--bad);border:1px solid #FFCDD2" onclick="logout()">' +
+          'Cerrar sesión' +
+        '</button>' +
+      '</div>';
+  }
+
+  // PANTALLAS DE VIAJE EN CURSO
   if(ph==="search"){
     v.innerHTML = 
       '<div style="text-align:center;padding:15px 0">' +
@@ -1074,7 +1160,6 @@ function go(ph){
     pollTm = setInterval(consultarViaje, 2500);
   }
 
-  // PANTALLA 4: CONDUCTOR EN CAMINO CON RADAR Y AUTITO
   if(ph==="pick"){
     var d = S.dr || ["Conductor", "Auto en camino", "---"];
     v.innerHTML = 
@@ -1098,7 +1183,6 @@ function go(ph){
     pollTm = setInterval(consultarViaje, 2500);
   }
 
-  // PANTALLA 5: VIAJE EN CURSO
   if(ph==="trip"){
     v.innerHTML = 
       '<div style="padding:10px 0">' +
@@ -1115,34 +1199,36 @@ function go(ph){
     pollTm = setInterval(consultarViaje, 2500);
   }
 
-  // PANTALLA 6: LLEGASTE A DESTINO
   if(ph==="done"){
     v.innerHTML = 
       '<div style="text-align:center;padding:20px 0">' +
         '<h2 style="font-size:26px;font-weight:800;margin:0">¡Llegaste a destino!</h2>' +
         '<div style="font-size:42px;font-weight:900;margin:16px 0;letter-spacing:-1px">'+M(price(S.ty))+'</div>' +
         '<p style="color:var(--ink-secondary);margin-bottom:24px">'+(S.pg==="Efectivo"?"Pagale en efectivo a tu chofer.":"El cobro fue completado con Mercado Pago.")+'</p>' +
-        '<button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;draw();go(\'home\')">Listo</button>' +
+        '<button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;draw();cambiarSeccion(\'home\')">Listo</button>' +
       '</div>';
   }
 
-  // BIENVENIDA / ONBOARDING (ESTILO CAPTURAS 1, 2 Y 5)
+  // PANTALLA BIENVENIDA (SOLO SI NO TIENE USUARIO)
   if(ph==="welcome"){
     v.innerHTML = 
       '<div style="text-align:center;padding:30px 10px">' +
         '<div style="width:64px;height:64px;background:#000;color:var(--accent);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;margin-bottom:16px">U</div>' +
         '<h2 style="font-size:26px;font-weight:800;margin:0 0 8px">Te damos la bienvenida a Uder</h2>' +
         '<p style="color:var(--ink-secondary);font-size:15px;margin:0 0 24px">La forma más rápida y segura de viajar en Rosario de la Frontera.</p>' +
-        '<button class="btn-uber" style="background:#fff;color:#000;border:1px solid #ddd;margin-bottom:10px" onclick="loginGoogle()">' +
+        '<button class="btn-uber" style="background:#fff;color:#000;border:1px solid #ddd;margin-bottom:12px" onclick="loginGoogle()">' +
           '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.43 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.99 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.57 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>' +
           'Continuar con Google' +
         '</button>' +
-        '<button class="btn-uber" onclick="go(\'home\')">Ingresar a la app</button>' +
+        '<button class="btn-uber" onclick="ingresarSinLogin()">Ingresar a la app</button>' +
       '</div>';
   }
 }
 
-if(!volverMP()) go("home");
+// ARRANQUE AUTOMÁTICO
+if(!volverMP()) {
+  cambiarSeccion("home");
+}
 </script>
 </body>
 </html>

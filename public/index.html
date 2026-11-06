@@ -29,6 +29,7 @@ h2{margin:0 0 6px;font-size:22px;letter-spacing:-.5px}
 p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
 .btn{width:100%;border:0;border-radius:16px;padding:16px;font:800 16px "Sora",sans-serif;cursor:pointer;background:var(--accent);color:var(--on-accent);margin-top:14px}
 .btn.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);font-weight:600}
+.btn.google{background:#fff;color:#14213D;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700}
 .btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.st:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
@@ -46,12 +47,14 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 .bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:var(--ok);width:0}
 .tag{display:inline-block;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;background:var(--line);color:var(--ink)}
 .plate{font-weight:800;letter-spacing:2px;border:2px solid var(--ink);border-radius:8px;padding:3px 10px;font-size:14px}
-.st{border:0;background:none;font-size:34px;color:var(--line);cursor:pointer;padding:2px}.st.on{color:var(--accent)}
 .fare{font-size:40px;font-weight:800;letter-spacing:-1.5px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;max-width:90%;z-index:2000}
 .fl{display:block;font-size:13px;font-weight:600;color:var(--mute);margin:14px 0 6px}
 .ck{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--mute);line-height:1.4}
 .badge-chofer{display:inline-flex;align-items:center;gap:6px;background:#e8f7ee;color:#1F9D63;font-weight:700;padding:6px 12px;border-radius:12px;font-size:13px}
+.separator{display:flex;align-items:center;gap:10px;margin:18px 0}
+.separator hr{flex:1;border:0;border-top:1px solid var(--line)}
+.separator span{font-size:12px;color:var(--mute);font-weight:600}
 </style>
 </head>
 <body>
@@ -63,9 +66,14 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 <div id="map" role="application" aria-label="Mapa de Rosario de la Frontera"></div>
 <main id="v"></main>
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-// PWA: Service Worker e Instalación
+// CONEXIÓN DIRECTA SUPABASE (AUTENTICACIÓN Y GOOGLE)
+var sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ");
+
+// PWA: Service Worker
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(function(){});
 }
@@ -87,7 +95,7 @@ function instalarPwa(){
       deferredPrompt = null;
     });
   } else {
-    alert("Para instalar en tu celular:\n\n1. Tocá los 3 puntitos ⋮ (o el botón compartir 📤 en iPhone).\n2. Elegí 'Instalar aplicación' o 'Agregar a Inicio'.");
+    alert("Para instalar en tu celular:\n\n1. Tocá los 3 puntitos ⋮ (o compartir 📤 en iPhone).\n2. Elegí 'Instalar aplicación' o 'Agregar a Inicio'.");
   }
 }
 
@@ -114,20 +122,102 @@ function lab(n, r){
 }
 
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
-var U=null;try{U=JSON.parse(localStorage.getItem("uder_user")||"null")}catch(e){}
-function save(){try{localStorage.setItem("uder_user",JSON.stringify(U))}catch(e){}}
-function logout(){U=null;try{localStorage.removeItem("uder_user")}catch(e){}toast("Tus datos se borraron");go("welcome")}
-function err(m){$("err").textContent=m}
-function age(s){var d=new Date(s),t=new Date(),a=t.getFullYear()-d.getFullYear(),m=t.getMonth()-d.getMonth();if(m<0||(m===0&&t.getDate()<d.getDate()))a--;return a}
 
-function saveReg(){
-  var n=$("f_n").value.trim(),a=$("f_a").value.trim(),d=$("f_d").value,i=$("f_i").value.replace(/\D/g,""),re=/^[A-Za-z\u00C0-\u00FF'. -]{2,}$/;
-  if(!re.test(n))return err("Escribí tu nombre completo.");if(!re.test(a))return err("Escribí tu apellido.");
-  if(!d||isNaN(new Date(d))||new Date(d).getFullYear()<1900)return err("Elegí tu fecha de nacimiento.");
-  if(age(d)<18)return err("Tenés que ser mayor de 18 años para pedir viajes.");
-  if(i.length<7||i.length>8)return err("El DNI debe tener 7 u 8 números.");
-  if(!$("f_k").checked)return err("Tenés que aceptar los términos para continuar.");
-  U={nombre:n,apellido:a,nac:d,dni:i};save();toast("¡Bienvenido/a, "+n+"!");go("home")
+// GESTIÓN DE USUARIO PASAJERO
+var U = null;
+try { U = JSON.parse(localStorage.getItem("uder_user") || "null"); } catch(e){}
+function save(){ try { localStorage.setItem("uder_user", JSON.stringify(U)); } catch(e){} }
+
+function logout(){
+  sb.auth.signOut().catch(function(){});
+  U = null;
+  try { localStorage.removeItem("uder_user"); } catch(e){}
+  toast("Sesión cerrada");
+  go("welcome");
+}
+
+function err(m){ var e = $("err"); if(e) e.textContent = m; }
+
+// ESCUCHAR SESIÓN DE GOOGLE / SUPABASE AUTOMÁTICA
+sb.auth.onAuthStateChange(function(event, session){
+  if(session && session.user){
+    sincronizarUsuario(session.user);
+  }
+});
+
+sb.auth.getSession().then(function(r){
+  if(r.data && r.data.session && r.data.session.user){
+    sincronizarUsuario(r.data.session.user);
+  }
+});
+
+function sincronizarUsuario(usr){
+  var meta = usr.user_metadata || {};
+  var nomComp = meta.full_name || meta.name || "";
+  var partes = nomComp.split(" ");
+  U = {
+    id: usr.id,
+    email: usr.email,
+    nombre: meta.first_name || partes[0] || U?.nombre || "Pasajero",
+    apellido: meta.last_name || partes.slice(1).join(" ") || U?.apellido || "",
+    dni: meta.dni || U?.dni || ""
+  };
+  save();
+  if(S.ph === "welcome" || S.ph === "login" || S.ph === "reg"){
+    go("home");
+  }
+}
+
+// INICIAR SESIÓN CON GOOGLE
+function loginGoogle(){
+  toast("Abriendo Google…");
+  sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin
+    }
+  }).catch(function(e){
+    err("Error al conectar con Google: " + (e.message || ""));
+  });
+}
+
+// INICIAR SESIÓN CON EMAIL Y CONTRASEÑA
+function doLogin(){
+  var e = $("l_e").value.trim(), w = $("l_w").value;
+  if(!e || !w) return err("Completá email y contraseña.");
+  err("Ingresando…");
+  sb.auth.signInWithPassword({ email: e, password: w }).then(function(r){
+    if(r.error) return err("Email o contraseña incorrectos.");
+    sincronizarUsuario(r.data.user);
+  });
+}
+
+// CREAR CUENTA NUEVA
+function doReg(){
+  var e = $("r_e").value.trim(), w = $("r_w").value;
+  var n = $("r_n").value.trim(), a = $("r_a").value.trim(), i = $("r_i").value.replace(/\D/g,"");
+  if(!/^\S+@\S+\.\S+$/.test(e)) return err("Escribí un email válido.");
+  if(w.length < 6) return err("La contraseña debe tener al menos 6 caracteres.");
+  if(!n) return err("Escribí tu nombre.");
+  if(!i || i.length < 7) return err("El DNI debe tener al menos 7 números.");
+  if(!$("r_k").checked) return err("Aceptá los términos para continuar.");
+
+  err("Creando tu cuenta…");
+  sb.auth.signUp({
+    email: e,
+    password: w,
+    options: {
+      data: { full_name: n + " " + a, first_name: n, last_name: a, dni: i }
+    }
+  }).then(function(r){
+    if(r.error) return err("No se pudo crear: " + r.error.message);
+    toast("¡Cuenta creada con éxito!");
+    if(r.data.user){
+      sincronizarUsuario(r.data.user);
+    } else {
+      go("login");
+    }
+  });
 }
 
 function esNocturno(){
@@ -154,6 +244,7 @@ function pedirViajeReal(){
   var monto = Math.round(price(S.ty));
   var cuadras = getCuadras();
   var payload = {
+    pasajero_id: U && U.id ? U.id : null,
     pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""),
     tipo: TY[S.ty][0],
     forma_pago: S.pg,
@@ -216,7 +307,7 @@ function pagarMP(viajeId, monto){
       descripcion: "Viaje Uder: "+S.on+" a "+S.dn,
       nombre: U.nombre,
       apellido: U.apellido,
-      dni: U.dni
+      dni: U.dni || "0"
     })
   })
   .then(function(r){ return r.json() })
@@ -583,7 +674,7 @@ function aplicarLoc(lat, lng, acc){
     setPt("o", { lat: lat, lng: lng }, "Mi ubicación actual");
     map.setView([lat, lng], 17);
   } else {
-    S.msg = "Aviso: En la compu internet te ubica en Salta Capital (las PCs no tienen GPS). Te dejamos en el centro para probar.";
+    S.msg = "Aviso: En la compu internet te ubica en Salta Capital. Te dejamos en el centro para probar.";
     setPt("o", { lat: CEN.lat, lng: CEN.lng }, "Centro (Punto de prueba)");
     map.setView([CEN.lat, CEN.lng], 16);
   }
@@ -632,7 +723,7 @@ function go(ph){
   clearInterval(tm);clearInterval(pollTm);
   S.ph=ph;
   var v=$("v");
-  var showMap=!(ph==="welcome"||ph==="reg");
+  var showMap=!(ph==="welcome"||ph==="reg"||ph==="login");
   $("map").style.display=showMap?"block":"none";
   if(showMap)map.invalidateSize();
 
@@ -641,13 +732,67 @@ function go(ph){
     S.mapFitDone = false;
   }
 
-  if(ph==="welcome"){v.innerHTML='<div class="card"><h2>Viajá seguro con Uder</h2><p>Rosario de la Frontera. Registrate para pedir tu auto en efectivo o con Mercado Pago.</p>'+(U?'<button class="btn" onclick="go(\'home\')">Continuar como '+esc(U.nombre)+'</button><button class="btn ghost" onclick="logout()">Cerrar sesión</button>':'<button class="btn" onclick="go(\'reg\')">Registrarme</button>')+'</div>'}
-  if(ph==="reg"){var mx=new Date().toISOString().slice(0,10);v.innerHTML='<div class="card"><h2>Creá tu cuenta</h2><label class="fl">Nombre</label><input id="f_n"><label class="fl">Apellido</label><input id="f_a"><label class="fl">Nacimiento</label><input id="f_d" type="date" max="'+mx+'"><label class="fl">DNI</label><input id="f_i" inputmode="numeric" maxlength="10"><label class="ck"><input type="checkbox" id="f_k">Acepto los términos de Uder.</label><p id="err" style="color:var(--bad);margin-top:10px"></p><button class="btn" onclick="saveReg()">Crear cuenta</button><button class="btn ghost" onclick="go(\'welcome\')">Volver</button></div>'}
+  // PANTALLA PRINCIPAL DE BIENVENIDA
+  if(ph==="welcome"){
+    v.innerHTML='<div class="card">' +
+      '<h2>Viajá seguro con Uder</h2>' +
+      '<p>Rosario de la Frontera. Ingresá o registrate para pedir tu viaje en efectivo o con Mercado Pago.</p>' +
+      (U ? 
+        '<button class="btn" onclick="go(\'home\')">Continuar como '+esc(U.nombre)+'</button>' +
+        '<button class="btn ghost" onclick="logout()">Cerrar sesión</button>' 
+      : 
+        '<button class="btn google" onclick="loginGoogle()">' +
+          '<svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.43 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.99 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.57 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>' +
+          'Continuar con Google' +
+        '</button>' +
+        '<div class="separator"><hr><span>o con tu correo</span><hr></div>' +
+        '<button class="btn" onclick="go(\'login\')">Iniciar sesión</button>' +
+        '<button class="btn ghost" onclick="go(\'reg\')">Crear cuenta nueva</button>'
+      ) +
+    '</div>';
+  }
+
+  // PANTALLA DE INICIAR SESIÓN (EMAIL Y CONTRASEÑA)
+  if(ph==="login"){
+    v.innerHTML='<div class="card">' +
+      '<h2>Iniciar sesión</h2>' +
+      '<p>Ingresá con tu cuenta registrada en Uder.</p>' +
+      '<label class="fl">Email</label>' +
+      '<input id="l_e" type="email" autocomplete="email" style="width:100%">' +
+      '<label class="fl">Contraseña</label>' +
+      '<input id="l_w" type="password" autocomplete="current-password" style="width:100%">' +
+      '<p id="err" style="color:var(--bad);margin-top:10px"></p>' +
+      '<button class="btn" onclick="doLogin()">Ingresar</button>' +
+      '<button class="btn ghost" onclick="go(\'welcome\')">Volver</button>' +
+    '</div>';
+  }
+
+  // PANTALLA DE CREAR CUENTA NUEVA
+  if(ph==="reg"){
+    v.innerHTML='<div class="card">' +
+      '<h2>Crear cuenta</h2>' +
+      '<p>Completá tus datos para registrarte.</p>' +
+      '<label class="fl">Email</label>' +
+      '<input id="r_e" type="email" autocomplete="email" style="width:100%">' +
+      '<label class="fl">Contraseña (mínimo 6 caracteres)</label>' +
+      '<input id="r_w" type="password" autocomplete="new-password" style="width:100%">' +
+      '<label class="fl">Nombre/s</label>' +
+      '<input id="r_n" style="width:100%">' +
+      '<label class="fl">Apellido</label>' +
+      '<input id="r_a" style="width:100%">' +
+      '<label class="fl">DNI</label>' +
+      '<input id="r_i" inputmode="numeric" maxlength="10" style="width:100%">' +
+      '<label class="ck"><input type="checkbox" id="r_k">Acepto los términos y condiciones de Uder.</label>' +
+      '<p id="err" style="color:var(--bad);margin-top:10px"></p>' +
+      '<button class="btn" onclick="doReg()">Crear cuenta</button>' +
+      '<button class="btn ghost" onclick="go(\'welcome\')">Volver</button>' +
+    '</div>';
+  }
 
   if(ph==="home"){
     var tagH = esNocturno() ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
     var placeholderTxt = S.mode === "o" ? "Escribí tu salida (ej: guemes 248)" : "Escribí tu destino (ej: peron 412)";
-    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="'+placeholderTxt+'"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 185, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
+    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="'+placeholderTxt+'"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 185, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button><button class="btn ghost" style="margin-top:8px;padding:10px" onclick="logout()">Cerrar sesión ('+esc(U.nombre)+')</button></div>';
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 

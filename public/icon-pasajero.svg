@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#14213D"/>
+  <rect x="76" y="76" width="360" height="360" rx="70" fill="#F5B700"/>
+  <text x="256" y="325" font-family="Arial, sans-serif" font-weight="900" font-size="250" fill="#14213D" text-anchor="middle">U</text>
+  <text x="256" y="475" font-family="Arial, sans-serif" font-weight="800" font-size="42" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">UDER</text>
+</svg>

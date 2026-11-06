@@ -1,5 +1,5 @@
 {
-  "id": "uder-app-conductor",
+  "id": "uder-conductor-app",
   "name": "Uder · Conductor",
   "short_name": "Uder Chofer",
   "description": "App para conductores de Rosario de la Frontera",
@@ -13,7 +13,7 @@
     {
       "src": "/icon-conductor.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

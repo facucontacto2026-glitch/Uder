@@ -10,9 +10,15 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-pasajero.svg",
+      "src": "/icon-pasajero.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-pasajero.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

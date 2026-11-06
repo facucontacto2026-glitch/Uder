@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Uder Conductor</title>
+<link rel="manifest" href="/manifest-conductor.json">
+<link rel="apple-touch-icon" href="/icon-conductor.svg">
+<meta name="theme-color" content="#F5B700">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
@@ -10,7 +15,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
 .app{max-width:440px;margin:0 auto;padding:0 16px 32px}
-header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0}
+header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0;display:flex;justify-content:space-between;align-items:center}
 .logo{font-weight:800;font-size:26px;letter-spacing:-1px}
 .logo i{font-style:normal;color:var(--accent);background:var(--ink);padding:0 6px;border-radius:6px;margin-right:6px}
 .logo small{font-weight:600;font-size:12px;color:var(--mute);margin-left:6px;letter-spacing:0}
@@ -48,13 +53,46 @@ select{width:100%;padding:13px;border-radius:14px;border:2px solid var(--line);b
 </style>
 </head>
 <body>
-<div class="app"><header><div class="logo"><i>U</i>der<small>Conductor</small></div></header><div id="map" style="display:none" role="application" aria-label="Mapa del viaje"></div><main id="v"></main></div>
+<div class="app">
+<header>
+  <div class="logo"><i>U</i>der<small>Conductor</small></div>
+  <button id="btn_instalar" class="chip" style="display:none;margin-left:auto;background:var(--accent);color:var(--on-accent);font-weight:800" onclick="instalarPwa()">📲 Instalar App</button>
+</header>
+<div id="map" style="display:none" role="application" aria-label="Mapa del viaje"></div>
+<main id="v"></main>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
+// PWA: Service Worker e Instalación
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(function(){});
+}
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredPrompt = e;
+  var b = $("btn_instalar");
+  if(b) b.style.display = "inline-flex";
+});
+function instalarPwa(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(choiceResult){
+      if(choiceResult.outcome === 'accepted'){
+        var b = $("btn_instalar");
+        if(b) b.style.display = "none";
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    alert("Para instalar en tu celular:\n\n1. Tocá los 3 puntitos ⋮ (o compartir 📤 en iPhone).\n2. Elegí 'Instalar aplicación' o 'Agregar a Inicio'.");
+  }
+}
+
 var sb=supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co","sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ"),D={u:null,p:null,c:null,on:false,sig:""},tm=null,wid=null,last=0;
 
-// MOTOR DE ALERTA SONORA Y VIBRACIÓN PARA EL CHOFER
+// MOTOR DE ALERTA SONORA Y VIBRACIÓN
 var audioCtx = null;
 function initAudio(){
   try{
@@ -69,7 +107,6 @@ function sonarAlerta(){
     if(!audioCtx) return;
     var now = audioCtx.currentTime;
 
-    // Tono 1 (880 Hz)
     var osc1 = audioCtx.createOscillator(), gain1 = audioCtx.createGain();
     osc1.type = "sine";
     osc1.frequency.setValueAtTime(880, now);
@@ -78,7 +115,6 @@ function sonarAlerta(){
     osc1.connect(gain1); gain1.connect(audioCtx.destination);
     osc1.start(now); osc1.stop(now + 0.3);
 
-    // Tono 2 (1174 Hz)
     var osc2 = audioCtx.createOscillator(), gain2 = audioCtx.createGain();
     osc2.type = "sine";
     osc2.frequency.setValueAtTime(1174, now + 0.2);
@@ -87,7 +123,6 @@ function sonarAlerta(){
     osc2.connect(gain2); gain2.connect(audioCtx.destination);
     osc2.start(now + 0.2); osc2.stop(now + 0.55);
 
-    // Tono 3 Agudo fuerte (1760 Hz)
     var osc3 = audioCtx.createOscillator(), gain3 = audioCtx.createGain();
     osc3.type = "triangle";
     osc3.frequency.setValueAtTime(1760, now + 0.45);
@@ -96,13 +131,10 @@ function sonarAlerta(){
     osc3.connect(gain3); gain3.connect(audioCtx.destination);
     osc3.start(now + 0.45); osc3.stop(now + 0.9);
 
-    // Vibración del celular (tres golpes fuertes)
     if(navigator.vibrate){
       navigator.vibrate([400, 200, 400, 200, 600]);
     }
-  }catch(e){
-    console.error("Error al reproducir alerta:", e);
-  }
+  }catch(e){}
 }
 
 function $(x){return document.getElementById(x)}
@@ -173,7 +205,6 @@ function refresh(){
     var act=(r[1].data||[])[0],off=r[2].data||[];
     if(!D.c)return;
 
-    // ALERTA SONORA: Si el chofer está conectado y entra un pedido nuevo
     if(D.on && off.length > 0 && !act){
       sonarAlerta();
     }
@@ -193,11 +224,11 @@ function draw(act,off){
     h+=docsCard();
   } else if(act){
     var tx={aceptado:["Voy en camino","en_camino"],en_camino:["Iniciar viaje","en_curso"],en_curso:["Finalizar viaje","finalizado"]}[act.estado];
-    h+='<div class="card"><h2>Viaje con '+esc(act.pasajero_nombre)+'</h2><div class="fare">'+M(act.ganancia_conductor)+'</div><p>Tu ganancia neta. '+(act.forma_pago==="Efectivo"?"Cobrá "+M(act.monto)+" en mano al pasajero.":"Pagado con Mercado Pago (se acredita en tu cuenta).")+'</p><div style="margin:12px 0;line-height:1.6"><div>📍 <b>Retiro:</b> '+esc(act.origen_nombre)+(act.origen_ref?" · "+esc(act.origen_ref):"")+'</div><div>🏁 <b>Destino:</b> '+esc(act.destino_nombre)+(act.destino_ref?" · "+esc(act.destino_ref):"")+'</div></div><a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+(act.estado==="en_curso"?act.destino_lat+","+act.destino_lng:act.origen_lat+","+act.origen_lng)+'">🗺️ Abrir en Google Maps ↗</a><button class="btn" onclick="avanzar(\''+act.id+'\',\''+tx[1]+'\')">'+tx[0]+'</button></div>';
+    h+='<div class="card"><h2>Viaje con '+esc(act.pasajero_nombre)+'</h2><div class="fare">'+M(act.ganancia_conductor)+'</div><p>Tu ganancia neta. '+(act.forma_pago==="Efectivo"?"Cobrá "+M(act.monto)+" en mano al pasajero.":"Pagado con Mercado Pago.")+'</p><div style="margin:12px 0;line-height:1.6"><div>📍 <b>Retiro:</b> '+esc(act.origen_nombre)+(act.origen_ref?" · "+esc(act.origen_ref):"")+'</div><div>🏁 <b>Destino:</b> '+esc(act.destino_nombre)+(act.destino_ref?" · "+esc(act.destino_ref):"")+'</div></div><a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+(act.estado==="en_curso"?act.destino_lat+","+act.destino_lng:act.origen_lat+","+act.origen_lng)+'">🗺️ Abrir en Google Maps ↗</a><button class="btn" onclick="avanzar(\''+act.id+'\',\''+tx[1]+'\')">'+tx[0]+'</button></div>';
   } else if(!D.on){
     h+='<div class="card"><h2>Estás desconectado</h2><p>Conectate para recibir pedidos de pasajeros en Rosario de la Frontera.</p><button class="btn" onclick="setOn(true)">Conectarme</button></div>';
   } else {
-    h+='<div class="card"><div class="row"><h2>Pedidos disponibles</h2><span class="tag" style="background:var(--ok);color:#fff">Conectado</span></div><div class="chips"><button class="chip" onclick="sonarAlerta()">🔊 Probar sonido de alerta</button></div>'+(off.length?off.map(function(o){
+    h+='<div class="card"><div class="row"><h2>Pedidos disponibles</h2><span class="tag" style="background:var(--ok);color:#fff">Conectado</span></div><div class="chips"><button class="chip" onclick="sonarAlerta()">🔊 Probar sonido</button></div>'+(off.length?off.map(function(o){
       return '<div class="card alerta-pedido" style="margin:12px 0 0"><div class="row"><span class="tag">'+esc(o.tipo)+'</span><span class="tag">'+esc(o.forma_pago)+'</span></div><div class="fare" style="font-size:32px;color:var(--ok)">'+M(o.ganancia_conductor)+'</div><p>Tu ganancia · '+o.km+' km · Pasajero: <b>'+esc(o.pasajero_nombre)+'</b>'+(o.forma_pago==="Efectivo"?"<br>💵 Cobrás "+M(o.monto)+" en mano":"<br>💳 Pagado por Mercado Pago")+'</p><div style="margin:10px 0;font-size:13px"><div>📍 Retiro: '+esc(o.origen_nombre)+'</div><div>🏁 Destino: '+esc(o.destino_nombre)+'</div></div><button class="btn" style="margin-top:0" onclick="aceptar(\''+o.id+'\')">Aceptar viaje</button></div>'
     }).join(""):'<p style="margin-top:10px">Esperando pedidos… Mantené la pantalla abierta.</p>')+'<button class="btn ghost" onclick="setOn(false)">Desconectarme</button></div>';
   }
@@ -283,7 +314,7 @@ function verGan(){
 }
 
 function setOn(b){
-  initAudio(); // Desbloquea el audio en el navegador
+  initAudio();
   sb.from("conductores").update({conectado:b}).eq("id",D.u.id).then(function(r){
     if(r.error)return toast("No se pudo cambiar el estado.");
     D.on=b;b?track():untrack();D.sig="";refresh();
@@ -296,10 +327,10 @@ function track(){
   wid=navigator.geolocation.watchPosition(function(p){
     D.pos=[p.coords.latitude,p.coords.longitude];
     if(me)me.setLatLng(D.pos);
-    if(Date.now()-last<8000)return;
+    if(Date.now()-last<3000)return;
     last=Date.now();
     sb.from("conductores").update({lat:p.coords.latitude,lng:p.coords.longitude,actualizado_en:new Date().toISOString()}).eq("id",D.u.id).then(function(){});
-  },function(){toast("Activá el GPS para que te vean los pasajeros.")},{enableHighAccuracy:true});
+  },function(){toast("Activá el GPS para que te vean los pasajeros.")},{enableHighAccuracy:true,maximumAge:0});
 }
 
 function untrack(){

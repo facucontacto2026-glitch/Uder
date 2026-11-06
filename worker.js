@@ -1,4 +1,4 @@
-// Uder · Backend en Cloudflare Workers (Mercado Pago + Supabase + Rutas limpias)
+// Uder · Backend en Cloudflare Workers
 const SB = "https://mmgvttmgchnbppcemrwg.supabase.co";
 
 const json = (s, o) => new Response(JSON.stringify(o), { 
@@ -10,7 +10,7 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// 1. Crear preferencia de cobro en Mercado Pago
+// 1. Crear cobro con Mercado Pago
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -61,7 +61,7 @@ async function crearPago(request, env) {
   }
 }
 
-// 2. Verificar cobro con Mercado Pago y actualizar Supabase
+// 2. Verificar cobro con Mercado Pago
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -92,7 +92,7 @@ async function verificarPago(request, env) {
           body: JSON.stringify({ pago_estado: "aprobado", estado: "buscando", mp_ref: ref || p.external_reference })
         });
       } catch (dbErr) {
-        console.error("Error al actualizar viaje:", dbErr);
+        console.error("Error en Supabase:", dbErr);
       }
     }
 
@@ -193,7 +193,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Rutas limpias sin .html
+    // Rutas amigables sin .html
     if (pathname === "/conductor" || pathname === "/conductor/") {
       url.pathname = "/conductor.html";
       return env.ASSETS.fetch(new Request(url, request));

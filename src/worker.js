@@ -10,27 +10,33 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// Iconos oficiales Uder en formato PNG 512x512 para Android
-function servirIconoPng(tipo) {
+// Iconos vectoriales puros de alto contraste (sin dependencias externas)
+function servirIcono(tipo) {
   const esChofer = (tipo === "conductor");
   
-  // Pasajero: Fondo azul marino con U dorada brillante
-  // Chofer: Fondo amarillo brillante con U azul marino
-  const bg = esChofer ? "F5B700" : "14213D";
-  const fg = esChofer ? "14213D" : "F5B700";
+  // Colores invertidos para diferenciar claramente Pasajero y Chofer
+  const fondoExterior = esChofer ? "#F5B700" : "#14213D";
+  const circuloCentro = esChofer ? "#14213D" : "#F5B700";
+  const letraColor    = esChofer ? "#F5B700" : "#14213D";
+  const textoColor    = esChofer ? "#14213D" : "#FFFFFF";
+  const etiqueta      = esChofer ? "CHOFER" : "UDER";
 
-  // Generador de imagen PNG 512x512 con la U oficial gigante (75% de tamaño)
-  const urlRenderer = `https://ui-avatars.com/api/?name=U&background=${bg}&color=${fg}&size=512&font-size=0.75&bold=true&rounded=false&format=png`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <!-- Fondo completo -->
+    <rect width="512" height="512" rx="100" fill="${fondoExterior}"/>
+    <!-- Círculo brillante central dentro de la zona segura de Android -->
+    <circle cx="256" cy="235" r="150" fill="${circuloCentro}"/>
+    <!-- Letra U gigante centrada -->
+    <text x="256" y="305" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="200" fill="${letraColor}" text-anchor="middle">U</text>
+    <!-- Texto inferior -->
+    <text x="256" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="46" fill="${textoColor}" text-anchor="middle" letter-spacing="4">${etiqueta}</text>
+  </svg>`;
 
-  return fetch(urlRenderer).then(res => {
-    return new Response(res.body, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=604800"
-      }
-    });
-  }).catch(() => {
-    return new Response("Not found", { status: 404 });
+  return new Response(svg, {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=604800"
+    }
   });
 }
 
@@ -252,9 +258,9 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Servir imágenes PNG 512x512 oficiales
-    if (pathname === "/icon-pasajero.png" || pathname === "/icon-pasajero.svg") return servirIconoPng("pasajero");
-    if (pathname === "/icon-conductor.png" || pathname === "/icon-conductor.svg") return servirIconoPng("conductor");
+    // Servir iconos nativos de alta resolución (SVG y PNG)
+    if (pathname === "/icon-pasajero.svg" || pathname === "/icon-pasajero.png") return servirIcono("pasajero");
+    if (pathname === "/icon-conductor.svg" || pathname === "/icon-conductor.png") return servirIcono("conductor");
 
     // Rutas de API
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);

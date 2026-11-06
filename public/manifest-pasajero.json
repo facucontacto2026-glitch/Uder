@@ -1,5 +1,5 @@
 {
-  "id": "uder-app-pasajero",
+  "id": "uder-pasajero-app",
   "name": "Uder · Pasajero",
   "short_name": "Uder",
   "description": "Pedí tu viaje en Rosario de la Frontera",
@@ -13,7 +13,7 @@
     {
       "src": "/icon-pasajero.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

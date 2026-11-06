@@ -1,0 +1,19 @@
+{
+  "name": "Uder · Conductor",
+  "short_name": "Uder Chofer",
+  "description": "App para conductores de Rosario de la Frontera",
+  "start_url": "/conductor",
+  "scope": "/conductor",
+  "display": "standalone",
+  "background_color": "#F5B700",
+  "theme_color": "#F5B700",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-conductor.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

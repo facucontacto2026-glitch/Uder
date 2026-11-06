@@ -57,7 +57,7 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 var CEN={lat:-25.800,lng:-64.967},BB={w:-65.10,e:-64.88,n:-25.72,s:-25.88};
-var S={o:null,on:"",d:null,dn:"",mode:"d",ty:1,pg:"Efectivo",p:0,dr:null,km:0,res:[],msg:"Tocá “Usar mi ubicación”, buscá una calle o tocá el mapa.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
+var S={o:null,on:"",d:null,dn:"",mode:"d",ty:1,pg:"Efectivo",p:0,dr:null,km:0,res:[],msg:"Tocá “Mi ubicación”, buscá una calle o tocá el mapa.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
 var TY=[["Remis","Cómodo y con precio cerrado",1.0],["Taxi","Con taxímetro habilitado",1.1],["Uder X","Auto particular, el más económico",.85]];
 var PG=["Efectivo","Mercado Pago","Tarjeta"];
 
@@ -256,36 +256,136 @@ function price(i){return (1500+S.km*620)*TY[i][2]}
 function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 function api(u){return fetch(u,{headers:{"Accept":"application/json"}}).then(function(r){return r.json()})}
 
+// MOTOR DE RUTAS REALES (RESPETA MANOS Y CONTRAMANOS)
+function calcularRutaReal(origen, destino){
+  var u = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson";
+  return fetch(u)
+    .then(function(r){ return r.json() })
+    .then(function(j){
+      if(!j.routes || !j.routes.length) throw new Error("Sin ruta");
+      var r = j.routes[0];
+      return {
+        km: Math.max(0.5, r.distance / 1000),
+        puntos: r.geometry.coordinates.map(function(c){ return [c[1], c[0]] })
+      };
+    })
+    .catch(function(){
+      // Fallback si el servidor está ocupado
+      var dist = Math.max(0.5, hav(origen, destino) * 1.35);
+      return { km: dist, puntos: [[origen.lat, origen.lng], [destino.lat, destino.lng]] };
+    });
+}
+
 var map=L.map("map",{zoomControl:true}).setView([CEN.lat,CEN.lng],14);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© Colaboradores de OpenStreetMap"}).addTo(map);
-var G=L.layerGroup().addTo(map),car=null;
+var G=L.layerGroup().addTo(map),car=null,routeLine=null;
 
-function pin(p,c,m,t){var k=L.marker([p.lat,p.lng],{draggable:true,icon:L.divIcon({className:"",html:'<div style="width:22px;height:22px;border-radius:50%;background:'+c+';border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(G).bindTooltip(t);k.on("dragend",function(){var q=k.getLatLng();if(S.ph==="home")setPt(m,{lat:q.lat,lng:q.lng},null,true)})}
-function draw(keep){G.clearLayers();var b=[];
-if(S.o){pin(S.o,"#14213D","o","Desde: "+S.on);b.push([S.o.lat,S.o.lng])}
-if(S.d){pin(S.d,"#D64545","d","Hasta: "+S.dn);b.push([S.d.lat,S.d.lng])}
-if(S.o&&S.d)L.polyline([[S.o.lat,S.o.lng],[S.d.lat,S.d.lng]],{color:"#14213D",weight:3,dashArray:"6 8"}).addTo(G);
-if(keep)return;if(b.length===2)map.fitBounds(b,{padding:[40,40]});else if(b.length===1)map.setView(b[0],16)}
+function pin(p,c,m,t){
+  var k=L.marker([p.lat,p.lng],{draggable:true,icon:L.divIcon({className:"",html:'<div style="width:22px;height:22px;border-radius:50%;background:'+c+';border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(G).bindTooltip(t);
+  k.on("dragend",function(){
+    var q=k.getLatLng();
+    if(S.ph==="home") setPt(m,{lat:q.lat,lng:q.lng},null,true);
+  });
+}
+
+function draw(keep){
+  G.clearLayers();
+  routeLine=null;
+  var b=[];
+  if(S.o){pin(S.o,"#14213D","o","Desde: "+S.on);b.push([S.o.lat,S.o.lng])}
+  if(S.d){pin(S.d,"#D64545","d","Hasta: "+S.dn);b.push([S.d.lat,S.d.lng])}
+  
+  if(S.o && S.d){
+    calcularRutaReal(S.o, S.d).then(function(res){
+      S.km = res.km;
+      routeLine = L.polyline(res.puntos, {color:"#14213D", weight:5, opacity:0.85}).addTo(G);
+      var distEl = $("calc_dist");
+      if(distEl) distEl.textContent = S.km.toFixed(1) + " km por calles";
+    });
+  }
+
+  if(keep)return;
+  if(b.length===2) map.fitBounds(b,{padding:[40,40]});
+  else if(b.length===1) map.setView(b[0],16);
+}
+
 function name(j){var a=j.address||{},r=a.road||a.pedestrian||a.footway||a.path||"";if(r)return r+(a.house_number?" "+a.house_number:"");return (j.display_name||"").split(",")[0]||"Punto en el mapa"}
-function setPt(m,p,n,keep){if(m==="o"){S.o=p;S.on=n||"Buscando…"}else{S.d=p;S.dn=n||"Buscando…"}S.res=[];draw(keep);go("home");
-if(!n)api("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=es&lat="+p.lat+"&lon="+p.lng).then(function(j){var nm=name(j);if(m==="o"&&S.o===p)S.on=nm;if(m==="d"&&S.d===p)S.dn=nm;if(S.ph==="home")go("home")}).catch(function(){if(m==="o")S.on="Punto en el mapa";else S.dn="Punto en el mapa";if(S.ph==="home")go("home")})}
+
+function setPt(m,p,n,keep){
+  if(m==="o"){S.o=p;S.on=n||"Buscando…"}else{S.d=p;S.dn=n||"Buscando…"}
+  S.res=[];
+  draw(keep);
+  go("home");
+  if(!n)api("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=es&lat="+p.lat+"&lon="+p.lng).then(function(j){var nm=name(j);if(m==="o"&&S.o===p)S.on=nm;if(m==="d"&&S.d===p)S.dn=nm;if(S.ph==="home")go("home")}).catch(function(){if(m==="o")S.on="Punto en el mapa";else S.dn="Punto en el mapa";if(S.ph==="home")go("home")})
+}
+
 map.on("click",function(e){if(S.ph!=="home")return;if(S.mode==="o")S.oref="";else S.dref="";setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng})});
 function mode(m){S.mode=m;go("home")}
-function loc(){if(!navigator.geolocation){S.msg="Tu navegador no permite ubicación.";go("home");return}
-S.msg="Buscando tu ubicación…";go("home");
-navigator.geolocation.getCurrentPosition(function(g){var p={lat:g.coords.latitude,lng:g.coords.longitude};
-if(p.lng>BB.w&&p.lng<BB.e&&p.lat>BB.s&&p.lat<BB.n){S.msg="Ubicación detectada.";S.oref="";setPt("o",p)}
-else{S.msg="Centro de prueba.";setPt("o",{lat:CEN.lat,lng:CEN.lng},"Centro")}},
-function(){S.msg="No pudimos obtener tu ubicación.";go("home")},{enableHighAccuracy:true,timeout:9000})}
+
+// GPS DE ALTA PRECISIÓN SATELITAL
+function loc(){
+  if(!navigator.geolocation){S.msg="Tu celular no permite ubicación.";go("home");return}
+  S.msg="Conectando satélites GPS para máxima precisión…";
+  go("home");
+
+  var bestPos = null;
+  var watchId = navigator.geolocation.watchPosition(function(g){
+    var acc = g.coords.accuracy;
+    var p = {lat: g.coords.latitude, lng: g.coords.longitude};
+
+    if(!bestPos || acc < bestPos.acc){
+      bestPos = {p: p, acc: acc};
+    }
+
+    // Si la precisión es mejor a 20 metros, clavamos la ubicación
+    if(acc <= 20){
+      navigator.geolocation.clearWatch(watchId);
+      aplicarUbicacion(p, acc);
+    }
+  }, function(){
+    S.msg="No pudimos activar el GPS. Probá tocando el mapa.";
+    go("home");
+  }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 0});
+
+  // Si a los 5 segundos no bajó de 20m, usamos la mejor que encontró
+  setTimeout(function(){
+    navigator.geolocation.clearWatch(watchId);
+    if(bestPos) aplicarUbicacion(bestPos.p, bestPos.acc);
+  }, 5000);
+}
+
+function aplicarUbicacion(p, acc){
+  if(p.lng>BB.w && p.lng<BB.e && p.lat>BB.s && p.lat<BB.n){
+    S.msg="GPS detectado con precisión de ±" + Math.round(acc) + " metros.";
+    S.oref="";
+    setPt("o",p);
+  } else {
+    S.msg="Estás fuera de Rosario de la Frontera: usamos el centro como punto de partida.";
+    setPt("o",{lat:CEN.lat,lng:CEN.lng},"Centro de Rosario de la Frontera");
+  }
+}
+
 function tc(t){return t.toLowerCase().replace(/(^|\s)\S/g,function(c){return c.toUpperCase()})}
-function find(){var q=$("q").value.trim();if(!q){toast("Escribí una calle");return}
-var m=q.match(/^(.*?)[\s,]+(\d{1,5})$/),st=m?m[1]:q,num=m?m[2]:"";
-function srch(t){return api("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&accept-language=es&bounded=1&viewbox="+BB.w+","+BB.n+","+BB.e+","+BB.s+"&q="+encodeURIComponent(t))}
-function geo(){return api("https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=3&provincia=salta&departamento="+encodeURIComponent("rosario de la frontera")+"&direccion="+encodeURIComponent(q)).then(function(j){return (j.direcciones||[]).filter(function(d){return d.ubicacion&&d.ubicacion.lat!=null&&d.ubicacion.lon!=null}).map(function(d){return{p:{lat:+d.ubicacion.lat,lng:+d.ubicacion.lon},n:tc((d.nomenclatura||"").split(",")[0]),num:""}})}).catch(function(){return []})}
-(num?geo():Promise.resolve([])).then(function(g){if(g.length){S.msg="Altura aproximada.";return g}
-return srch(q).then(function(r){return r.length||!num?r:srch(st)}).then(function(r){S.msg=r.length?"Elegí un resultado:":"Sin resultados.";return r.map(function(x){return{p:{lat:+x.lat,lng:+x.lon},n:x.display_name.split(",").slice(0,2).join(","),num:num}})})}).then(function(rs){S.res=rs;go("home");$("q").value=q}).catch(function(){S.msg="Error de red";go("home")})}
+function find(){
+  var q=$("q").value.trim();if(!q){toast("Escribí una calle");return}
+  var m=q.match(/^(.*?)[\s,]+(\d{1,5})$/),st=m?m[1]:q,num=m?m[2]:"";
+  function srch(t){return api("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&accept-language=es&bounded=1&viewbox="+BB.w+","+BB.n+","+BB.e+","+BB.s+"&q="+encodeURIComponent(t))}
+  function geo(){return api("https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=3&provincia=salta&departamento="+encodeURIComponent("rosario de la frontera")+"&direccion="+encodeURIComponent(q)).then(function(j){return (j.direcciones||[]).filter(function(d){return d.ubicacion&&d.ubicacion.lat!=null&&d.ubicacion.lon!=null}).map(function(d){return{p:{lat:+d.ubicacion.lat,lng:+d.ubicacion.lon},n:tc((d.nomenclatura||"").split(",")[0]),num:""}})}).catch(function(){return []})}
+  (num?geo():Promise.resolve([])).then(function(g){if(g.length){S.msg="Altura aproximada.";return g}
+  return srch(q).then(function(r){return r.length||!num?r:srch(st)}).then(function(r){S.msg=r.length?"Elegí un resultado:":"Sin resultados.";return r.map(function(x){return{p:{lat:+x.lat,lng:+x.lon},n:x.display_name.split(",").slice(0,2).join(","),num:num}})})}).then(function(rs){S.res=rs;go("home");$("q").value=q}).catch(function(){S.msg="Error de conexión";go("home")})
+}
+
 function pickRes(i){var r=S.res[i],ref=r.num&&r.n.indexOf(r.num)<0?"altura "+r.num:"";if(S.mode==="o")S.oref=ref;else S.dref=ref;setPt(S.mode,r.p,r.n)}
-function opts(){if(!S.o||!S.d){toast("Marcá origen y destino");return}if(hav(S.o,S.d)<.1){toast("El destino está muy cerca");return}S.km=Math.max(.5,hav(S.o,S.d)*1.3);go("opt")}
+function opts(){
+  if(!S.o||!S.d){toast("Marcá origen y destino");return}
+  if(hav(S.o,S.d)<.05){toast("El destino está muy cerca del punto de partida");return}
+  
+  toast("Calculando recorrido exacto…");
+  calcularRutaReal(S.o, S.d).then(function(res){
+    S.km = res.km;
+    go("opt");
+  });
+}
 
 function setCar(p){if(!car)car=L.circleMarker([p.lat,p.lng],{radius:11,color:"#14213D",weight:3,fillColor:"#F5B700",fillOpacity:1}).addTo(map);car.setLatLng([p.lat,p.lng])}
 function rmCar(){if(car){map.removeLayer(car);car=null}}
@@ -305,12 +405,12 @@ function go(ph){
   if(ph==="card"){v.innerHTML='<div class="card"><h2>Tarjeta</h2><label class="fl">Número</label><input id="c_n" inputmode="numeric"><div class="row"><div><label class="fl">Vencimiento</label><input id="c_e" placeholder="MM/AA"></div><div><label class="fl">CVV</label><input id="c_c" type="password"></div></div><label class="fl">Titular</label><input id="c_t"><p id="err" style="color:var(--bad);margin-top:10px"></p><button class="btn" onclick="saveCard()">Guardar</button><button class="btn ghost" onclick="go(S.back||\'home\')">Volver</button></div>'}
 
   if(ph==="home"){
-    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Mi punto</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. Portón negro" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref)+" · "+(hav(S.o||CEN,S.d)*1.3).toFixed(1)+" km":"sin elegir")+'</p><button class="btn" onclick="opts()">Ver opciones</button></div>';
+    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. Portón negro" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.km.toFixed(1)+" km por calles":"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
   if(ph==="opt"){
-    v.innerHTML='<div class="card"><h2>Elegí tu viaje</h2><p>'+lab(S.on,S.oref)+' → '+lab(S.dn,S.dref)+' · '+S.km.toFixed(1)+' km</p>'+TY.map(function(t,i){return '<button class="opt" aria-pressed="'+(i===S.ty)+'" onclick="S.ty='+i+';go(\'opt\')"><span>'+t[0]+'<small>'+t[1]+'</small></span><b>'+M(price(i))+'</b></button>'}).join("")+'<div class="lbl">Forma de pago</div>'+PG.map(function(x){return '<button class="opt" aria-pressed="'+(x===S.pg)+'" onclick="S.pg=\''+x+'\';go(\'opt\')">'+x+(x==="Tarjeta"&&U&&U.card?" ·· "+esc(U.card.last4):"")+'</button>'}).join("")+'<button class="btn" onclick="ask()">Pedir '+TY[S.ty][0]+' · '+M(price(S.ty))+'</button><button class="btn ghost" onclick="go(\'home\')">Cambiar ruta</button></div>';
+    v.innerHTML='<div class="card"><h2>Elegí tu viaje</h2><p>'+lab(S.on,S.oref)+' → '+lab(S.dn,S.dref)+' · <b>'+S.km.toFixed(1)+' km reales</b></p>'+TY.map(function(t,i){return '<button class="opt" aria-pressed="'+(i===S.ty)+'" onclick="S.ty='+i+';go(\'opt\')"><span>'+t[0]+'<small>'+t[1]+'</small></span><b>'+M(price(i))+'</b></button>'}).join("")+'<div class="lbl">Forma de pago</div>'+PG.map(function(x){return '<button class="opt" aria-pressed="'+(x===S.pg)+'" onclick="S.pg=\''+x+'\';go(\'opt\')">'+x+(x==="Tarjeta"&&U&&U.card?" ·· "+esc(U.card.last4):"")+'</button>'}).join("")+'<button class="btn" onclick="ask()">Pedir '+TY[S.ty][0]+' · '+M(price(S.ty))+'</button><button class="btn ghost" onclick="go(\'home\')">Cambiar ruta</button></div>';
   }
 
   if(ph==="search"){

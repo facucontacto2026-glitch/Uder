@@ -57,7 +57,7 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 var CEN={lat:-25.800,lng:-64.967},BB={w:-65.10,e:-64.88,n:-25.72,s:-25.88};
-var S={o:null,on:"",d:null,dn:"",mode:"d",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"Tocá “Mi ubicación”, buscá una calle o tocá el mapa.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
+var S={o:null,on:"",d:null,dn:"",mode:"d",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"Buscá una calle, barrio o tocá el mapa.",ph:"home",oref:"",dref:"",viajeId:null},tm=null,pollTm=null;
 var TY=[["Remis","Servicio estándar",1.0],["Taxi","Con habilitación",1.05],["Uder X","Auto particular",0.95]];
 var PG=["Efectivo","Mercado Pago","Tarjeta"];
 
@@ -95,22 +95,18 @@ function saveCard(){
 // SISTEMA DE TARIFAS: DÍA vs NOCHE + CUADRAS
 function esNocturno(){
   var h = new Date().getHours();
-  return (h >= 22 || h < 6); // 22:00 a 06:00
+  return (h >= 22 || h < 6);
 }
 
 function getCuadras(){
-  // 1 km = 10 cuadras
   return Math.max(1, Math.ceil(S.km * 10));
 }
 
 function price(i){
   var cuadras = getCuadras();
-  var noche = esNocturno();
-  // Base hasta 10 cuadras: $2600 día / $3600 noche
-  var base = noche ? 3600 : 2600;
+  var base = esNocturno() ? 3600 : 2600;
   var total = base;
   if(cuadras > 10){
-    // A partir de la cuadra 11: $320 por cada cuadra extra
     total += (cuadras - 10) * 320;
   }
   var mult = (TY[i] && TY[i][2]) ? TY[i][2] : 1.0;
@@ -149,10 +145,7 @@ function pedirViajeReal(){
   })
   .then(function(r){ return r.json() })
   .then(function(j){
-    if(!j.viaje) {
-      console.error("Error devuelto:", j);
-      throw new Error("Error al crear viaje");
-    }
+    if(!j.viaje) throw new Error("Error al crear viaje");
     S.viajeId = j.viaje.id;
     try {
       sessionStorage.setItem("uder_trip", JSON.stringify({
@@ -280,9 +273,8 @@ function cancelarViajeActual(){
 function M(n){return "$"+Math.round(n).toLocaleString("es-AR")}
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
 function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
-function api(u){return fetch(u,{headers:{"Accept":"application/json"}}).then(function(r){return r.json()})}
 
-// MOTOR DE RUTAS REALES (RESPETA MANOS Y CONTRAMANOS)
+// RUTAS REALES CON SENTIDO DE CALLES
 function calcularRutaReal(origen, destino){
   var u = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson";
   return fetch(u)
@@ -298,6 +290,74 @@ function calcularRutaReal(origen, destino){
     .catch(function(){
       var dist = Math.max(0.5, hav(origen, destino) * 1.35);
       return { km: dist, puntos: [[origen.lat, origen.lng], [destino.lat, destino.lng]] };
+    });
+}
+
+// BUSCADOR INTELIGENTE DE CALLES Y BARRIOS (ROBUSTO Y SIN CAÍDAS)
+function buscarDireccion(q){
+  var numMatch = q.match(/\b\d{1,5}\b/);
+  var num = numMatch ? numMatch[0] : "";
+  
+  // Limpiar palabras accesorias
+  var limpia = q.replace(/\b(que es en el|que es en|en el|en|barrio|b°|bº)\b/gi, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+  var soloCalle = limpia.replace(/\b\d{1,5}\b/g, "").replace(/\s+/g, " ").trim();
+
+  function queryPhoton(term){
+    var url = "https://photon.komoot.io/api/?q=" + encodeURIComponent(term) +
+              "&lat=" + CEN.lat + "&lon=" + CEN.lng + "&limit=6&lang=es";
+    return fetch(url)
+      .then(function(r){ return r.json() })
+      .then(function(j){
+        if(!j.features) return [];
+        return j.features.map(function(f){
+          var p = f.properties || {};
+          var coords = f.geometry.coordinates;
+          var calle = p.name || p.street || "";
+          var barrio = p.district || p.suburb || "";
+          var ciudad = p.city || "Rosario de la Frontera";
+          var texto = calle + (barrio ? " · B° " + barrio : "") + " (" + ciudad + ")";
+          return {
+            p: { lat: coords[1], lng: coords[0] },
+            n: texto,
+            num: num,
+            refSugerida: num ? "altura " + num + (barrio ? " (B° " + barrio + ")" : "") : (barrio ? "B° " + barrio : "")
+          };
+        }).filter(function(x){
+          return (x.p.lng > BB.w - 0.2 && x.p.lng < BB.e + 0.2 && x.p.lat > BB.s - 0.2 && x.p.lat < BB.n + 0.2);
+        });
+      })
+      .catch(function(){ return [] });
+  }
+
+  return queryPhoton(limpia + " Rosario de la Frontera")
+    .then(function(res){
+      if(res.length) return res;
+      return queryPhoton(soloCalle + " Rosario de la Frontera");
+    })
+    .then(function(res){
+      if(res.length) return res;
+      return queryPhoton(soloCalle || limpia);
+    });
+}
+
+// OBTENER NOMBRE AL TOCAR EL MAPA
+function obtenerNombreUbicacion(lat, lng){
+  var url = "https://photon.komoot.io/reverse?lat=" + lat + "&lon=" + lng;
+  return fetch(url)
+    .then(function(r){ return r.json() })
+    .then(function(j){
+      if(!j.features || !j.features.length) throw 0;
+      var prop = j.features[0].properties || {};
+      var calle = prop.name || prop.street || "";
+      var barrio = prop.district || prop.suburb || "";
+      if(calle && barrio) return calle + " (B° " + barrio + ")";
+      if(calle) return calle;
+      return "Punto en Rosario de la Frontera";
+    })
+    .catch(function(){
+      return "Punto en el mapa";
     });
 }
 
@@ -336,17 +396,26 @@ function draw(keep){
   else if(b.length===1) map.setView(b[0],16);
 }
 
-function name(j){var a=j.address||{},r=a.road||a.pedestrian||a.footway||a.path||"";if(r)return r+(a.house_number?" "+a.house_number:"");return (j.display_name||"").split(",")[0]||"Punto en el mapa"}
-
 function setPt(m,p,n,keep){
   if(m==="o"){S.o=p;S.on=n||"Buscando…"}else{S.d=p;S.dn=n||"Buscando…"}
   S.res=[];
   draw(keep);
   go("home");
-  if(!n)api("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=es&lat="+p.lat+"&lon="+p.lng).then(function(j){var nm=name(j);if(m==="o"&&S.o===p)S.on=nm;if(m==="d"&&S.d===p)S.dn=nm;if(S.ph==="home")go("home")}).catch(function(){if(m==="o")S.on="Punto en el mapa";else S.dn="Punto en el mapa";if(S.ph==="home")go("home")})
+  if(!n){
+    obtenerNombreUbicacion(p.lat, p.lng).then(function(nm){
+      if(m==="o" && S.o===p) S.on = nm;
+      if(m==="d" && S.d===p) S.dn = nm;
+      if(S.ph==="home") go("home");
+    });
+  }
 }
 
-map.on("click",function(e){if(S.ph!=="home")return;if(S.mode==="o")S.oref="";else S.dref="";setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng})});
+map.on("click",function(e){
+  if(S.ph!=="home")return;
+  if(S.mode==="o")S.oref="";else S.dref="";
+  setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng});
+});
+
 function mode(m){S.mode=m;go("home")}
 
 // GPS DE ALTA PRECISIÓN SATELITAL
@@ -390,17 +459,33 @@ function aplicarUbicacion(p, acc){
   }
 }
 
-function tc(t){return t.toLowerCase().replace(/(^|\s)\S/g,function(c){return c.toUpperCase()})}
 function find(){
-  var q=$("q").value.trim();if(!q){toast("Escribí una calle");return}
-  var m=q.match(/^(.*?)[\s,]+(\d{1,5})$/),st=m?m[1]:q,num=m?m[2]:"";
-  function srch(t){return api("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&accept-language=es&bounded=1&viewbox="+BB.w+","+BB.n+","+BB.e+","+BB.s+"&q="+encodeURIComponent(t))}
-  function geo(){return api("https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=3&provincia=salta&departamento="+encodeURIComponent("rosario de la frontera")+"&direccion="+encodeURIComponent(q)).then(function(j){return (j.direcciones||[]).filter(function(d){return d.ubicacion&&d.ubicacion.lat!=null&&d.ubicacion.lon!=null}).map(function(d){return{p:{lat:+d.ubicacion.lat,lng:+d.ubicacion.lon},n:tc((d.nomenclatura||"").split(",")[0]),num:""}})}).catch(function(){return []})}
-  (num?geo():Promise.resolve([])).then(function(g){if(g.length){S.msg="Altura aproximada.";return g}
-  return srch(q).then(function(r){return r.length||!num?r:srch(st)}).then(function(r){S.msg=r.length?"Elegí un resultado:":"Sin resultados.";return r.map(function(x){return{p:{lat:+x.lat,lng:+x.lon},n:x.display_name.split(",").slice(0,2).join(","),num:num}})})}).then(function(rs){S.res=rs;go("home");$("q").value=q}).catch(function(){S.msg="Error de conexión";go("home")})
+  var q = $("q").value.trim();
+  if(!q){ toast("Escribí una calle o barrio"); return; }
+  S.msg = "Buscando en Rosario de la Frontera…";
+  go("home");
+  $("q").value = q;
+
+  buscarDireccion(q).then(function(rs){
+    S.res = rs;
+    S.msg = rs.length ? "Elegí el lugar correcto:" : "No encontramos esa calle exacta. Probá con otra o tocala directo en el mapa.";
+    go("home");
+    $("q").value = q;
+  }).catch(function(){
+    S.msg = "No se pudo buscar. Tocá el mapa para marcar el punto.";
+    go("home");
+  });
 }
 
-function pickRes(i){var r=S.res[i],ref=r.num&&r.n.indexOf(r.num)<0?"altura "+r.num:"";if(S.mode==="o")S.oref=ref;else S.dref=ref;setPt(S.mode,r.p,r.n)}
+function pickRes(i){
+  var r = S.res[i];
+  if(!r) return;
+  var ref = r.refSugerida || (r.num ? "altura " + r.num : "");
+  if(S.mode === "o") S.oref = ref; else S.dref = ref;
+  setPt(S.mode, r.p, r.n);
+  if(ref) toast("Marcamos la calle. Se guardó la referencia: " + ref);
+}
+
 function opts(){
   if(!S.o||!S.d){toast("Marcá origen y destino");return}
   if(hav(S.o,S.d)<.05){toast("El destino está muy cerca");return}
@@ -432,7 +517,7 @@ function go(ph){
 
   if(ph==="home"){
     var tagH = esNocturno() ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
-    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Referencia</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. Portón negro" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
+    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle o barrio (Ej. Ex Combatientes, B° Perón)"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia exacta</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 412, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
@@ -440,7 +525,7 @@ function go(ph){
     var cuadras = getCuadras();
     var noche = esNocturno();
     var horarioTexto = noche ? "🌙 Tarifa Nocturna (Base $3.600)" : "☀️ Tarifa Diurna (Base $2.600)";
-    var detalleCuadras = cuadras <= 10 ? cuadras + " cuadras (cubre la base)" : cuadras + " cuadras (" + (cuadras - 10) + " extras × $320)";
+    var detalleCuadras = cuadras <= 10 ? cuadras + " cuadras (cubre la base de 10 cuadras)" : cuadras + " cuadras (" + (cuadras - 10) + " extras × $320)";
 
     v.innerHTML='<div class="card"><h2>Elegí tu viaje</h2><p>'+lab(S.on,S.oref)+' → '+lab(S.dn,S.dref)+'<br><b>'+detalleCuadras+'</b><br><small style="color:var(--mute)">'+horarioTexto+'</small></p>'+TY.map(function(t,i){return '<button class="opt" aria-pressed="'+(i===S.ty)+'" onclick="S.ty='+i+';go(\'opt\')"><span>'+t[0]+'<small>'+t[1]+'</small></span><b>'+M(price(i))+'</b></button>'}).join("")+'<div class="lbl">Forma de pago</div>'+PG.map(function(x){return '<button class="opt" aria-pressed="'+(x===S.pg)+'" onclick="S.pg=\''+x+'\';go(\'opt\')">'+x+(x==="Tarjeta"&&U&&U.card?" ·· "+esc(U.card.last4):"")+'</button>'}).join("")+'<button class="btn" onclick="ask()">Pedir '+TY[S.ty][0]+' · '+M(price(S.ty))+'</button><button class="btn ghost" onclick="go(\'home\')">Cambiar ruta</button></div>';
   }

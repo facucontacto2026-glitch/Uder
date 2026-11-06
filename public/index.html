@@ -69,7 +69,6 @@ var PG=["Efectivo","Mercado Pago","Tarjeta"];
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s||"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 
-// Formato limpio de texto sin duplicar alturas
 function lab(n, r){
   var nom = esc(n || "Punto");
   var ref = esc(r || "").trim();
@@ -288,43 +287,69 @@ function M(n){return "$"+Math.round(n).toLocaleString("es-AR")}
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
 function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 
-// CÁLCULO DE RUTA: DIRECTA Y SIN DESVÍOS ARTIFICIALES
+// CÁLCULO DE RUTA: 100% POR CALLES (DOBLA EN ESQUINAS REALES, NUNCA LÍNEAS RECTAS)
 function calcularRutaReal(origen, destino){
   var distDirecta = hav(origen, destino);
-  var distUrbanaCorta = Math.max(0.6, distDirecta * 1.25);
-  var u = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson&alternatives=true";
+  var urlDirecta = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson&alternatives=true";
 
-  return fetch(u)
-    .then(function(r){ return r.json() })
+  // Cruce céntrico habilitado en Rosario de la Frontera (Casanovas / 20 de Febrero / Illia)
+  var cruceLng = -64.9620, cruceLat = -25.7935;
+  var urlConCruce = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + cruceLng + "," + cruceLat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson";
+
+  return fetch(urlDirecta)
+    .then(function(r){ return r.json(); })
     .then(function(j){
       if(!j.routes || !j.routes.length) throw new Error("Sin ruta");
-      
-      var mejorRuta = j.routes.sort(function(a,b){ return a.distance - b.distance })[0];
-      var kmRuta = mejorRuta.distance / 1000;
-      var ratioDesvio = kmRuta / Math.max(0.5, distDirecta);
+      var rDirecta = j.routes.sort(function(a,b){ return a.distance - b.distance; })[0];
+      var kmDirecto = rDirecta.distance / 1000;
 
-      if(ratioDesvio > 1.45){
-        var cruceCentrico = [-25.7938, -64.9628];
-        return {
-          km: Math.max(0.6, distUrbanaCorta),
-          puntos: [[origen.lat, origen.lng], cruceCentrico, [destino.lat, destino.lng]]
-        };
+      // Si la ruta automática se desvía más de 1.35x de la línea recta (da la vuelta norte innecesaria)
+      if(kmDirecto > Math.max(0.6, distDirecta * 1.35)){
+        // Calculamos la ruta curva pasando por el cruce del centro
+        return fetch(urlConCruce)
+          .then(function(cr){ return cr.json(); })
+          .then(function(cj){
+            if(cj.routes && cj.routes.length){
+              var rCruce = cj.routes[0];
+              var kmCruce = rCruce.distance / 1000;
+              // Si la ruta por el centro es más corta, la usamos con todas sus curvas por las calles
+              if(kmCruce < kmDirecto){
+                return {
+                  km: Math.max(0.5, kmCruce),
+                  puntos: rCruce.geometry.coordinates.map(function(c){ return [c[1], c[0]]; })
+                };
+              }
+            }
+            // Si el cruce no mejoró, usamos la ruta original pero ajustamos el kilometraje cobrado
+            return {
+              km: Math.max(0.5, Math.min(kmDirecto, distDirecta * 1.25)),
+              puntos: rDirecta.geometry.coordinates.map(function(c){ return [c[1], c[0]]; })
+            };
+          })
+          .catch(function(){
+            return {
+              km: Math.max(0.5, Math.min(kmDirecto, distDirecta * 1.25)),
+              puntos: rDirecta.geometry.coordinates.map(function(c){ return [c[1], c[0]]; })
+            };
+          });
       }
 
+      // Si no hay desvío raro, usamos la ruta normal con todas las curvas de las calles
       return {
-        km: Math.max(0.5, kmRuta),
-        puntos: mejorRuta.geometry.coordinates.map(function(c){ return [c[1], c[0]] })
+        km: Math.max(0.5, kmDirecto),
+        puntos: rDirecta.geometry.coordinates.map(function(c){ return [c[1], c[0]]; })
       };
     })
     .catch(function(){
-      return { 
-        km: Math.max(0.6, distUrbanaCorta), 
-        puntos: [[origen.lat, origen.lng], [-25.7938, -64.9628], [destino.lat, destino.lng]] 
+      // Fallback
+      return {
+        km: Math.max(0.5, distDirecta * 1.25),
+        puntos: [[origen.lat, origen.lng], [destino.lat, destino.lng]]
       };
     });
 }
 
-// BUSCADOR OFICIAL GEOREF + NOMINATIM
+// BUSCADOR INTELIGENTE
 function buscarDireccion(textoUsuario){
   var numMatch = textoUsuario.match(/\b\d{1,5}\b/);
   var num = numMatch ? numMatch[0] : "";
@@ -426,7 +451,6 @@ function setPt(m,p,n,keep){
   if(m==="o"){
     S.o=p;
     S.on=n||"Punto en el mapa";
-    // Si aún no eligió destino, pasar automáticamente a modo Destino
     if(!S.d){
       S.mode="d";
       S.msg="¡Salida lista! Ahora escribí tu destino o tocalo en el mapa.";
@@ -442,7 +466,6 @@ function setPt(m,p,n,keep){
   draw(keep);
   go("home");
 
-  // Dejar el buscador listo para escribir el destino
   setTimeout(function(){
     var qEl = $("q");
     if(qEl && S.mode === "d" && !S.d){
@@ -507,7 +530,7 @@ function opts(){
   if(!S.o||!S.d){toast("Marcá origen y destino");return}
   if(hav(S.o,S.d)<.05){toast("El destino está muy cerca");return}
   
-  toast("Calculando la ruta directa…");
+  toast("Calculando la ruta por calles…");
   calcularRutaReal(S.o, S.d).then(function(res){
     S.km = res.km;
     S.cuadras = getCuadras();

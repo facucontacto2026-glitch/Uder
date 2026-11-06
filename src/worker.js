@@ -10,18 +10,17 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// Icono binario PNG 192x192 oficial para Android WebAPK (Azul marino / Amarillo)
-// Generador de imagen PNG válido para evitar rechazo en servidores de Google
+// Iconos oficiales Uder en formato PNG 512x512 para Android
 function servirIconoPng(tipo) {
-  // Redirigir o servir icono optimizado para PWA Android
-  const colorFondo = tipo === "conductor" ? "%23F5B700" : "%2314213D";
-  const colorBadge = tipo === "conductor" ? "%2314213D" : "%23F5B700";
-  const colorU = tipo === "conductor" ? "%23F5B700" : "%2314213D";
-  const colorTxt = tipo === "conductor" ? "%2314213D" : "%23FFFFFF";
-  const label = tipo === "conductor" ? "CHOFER" : "UDER";
+  const esChofer = (tipo === "conductor");
+  
+  // Pasajero: Fondo azul marino con U dorada brillante
+  // Chofer: Fondo amarillo brillante con U azul marino
+  const bg = esChofer ? "F5B700" : "14213D";
+  const fg = esChofer ? "14213D" : "F5B700";
 
-  // URL dinámica con renderizador de alta resolución para WebAPK
-  const urlRenderer = `https://ui-avatars.com/api/?name=${label}&background=${tipo === "conductor" ? "F5B700" : "14213D"}&color=${tipo === "conductor" ? "14213D" : "FFFFFF"}&size=512&font-size=0.33&bold=true&rounded=false&format=png`;
+  // Generador de imagen PNG 512x512 con la U oficial gigante (75% de tamaño)
+  const urlRenderer = `https://ui-avatars.com/api/?name=U&background=${bg}&color=${fg}&size=512&font-size=0.75&bold=true&rounded=false&format=png`;
 
   return fetch(urlRenderer).then(res => {
     return new Response(res.body, {
@@ -253,9 +252,9 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Servir imágenes PNG 100% reales para Google WebAPK
-    if (pathname === "/icon-pasajero.png") return servirIconoPng("pasajero");
-    if (pathname === "/icon-conductor.png") return servirIconoPng("conductor");
+    // Servir imágenes PNG 512x512 oficiales
+    if (pathname === "/icon-pasajero.png" || pathname === "/icon-pasajero.svg") return servirIconoPng("pasajero");
+    if (pathname === "/icon-conductor.png" || pathname === "/icon-conductor.svg") return servirIconoPng("conductor");
 
     // Rutas de API
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);

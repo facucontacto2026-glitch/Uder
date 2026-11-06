@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Uder · Rosario de la Frontera</title>
+<link rel="manifest" href="/manifest-pasajero.json">
+<link rel="apple-touch-icon" href="/icon-pasajero.svg">
+<meta name="theme-color" content="#14213D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
@@ -14,7 +19,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
 .app{max-width:440px;margin:0 auto;padding:0 16px 32px}
-header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0}
+header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0;display:flex;justify-content:space-between;align-items:center}
 .logo{font-weight:800;font-size:26px;letter-spacing:-1px}
 .logo i{font-style:normal;color:var(--accent);background:var(--ink);padding:0 6px;border-radius:6px;margin-right:6px}
 .logo small{font-weight:600;font-size:12px;color:var(--mute);margin-left:6px;letter-spacing:0}
@@ -51,12 +56,41 @@ input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--
 </head>
 <body>
 <div class="app">
-<header><div class="logo"><i>U</i>der<small>Rosario de la Frontera</small></div></header>
+<header>
+  <div class="logo"><i>U</i>der<small>Rosario de la Frontera</small></div>
+  <button id="btn_instalar" class="chip" style="display:none;margin-left:auto;background:var(--accent);color:var(--on-accent);font-weight:800" onclick="instalarPwa()">📲 Instalar App</button>
+</header>
 <div id="map" role="application" aria-label="Mapa de Rosario de la Frontera"></div>
 <main id="v"></main>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
+// PWA: Service Worker e Instalación
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(function(){});
+}
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredPrompt = e;
+  var b = $("btn_instalar");
+  if(b) b.style.display = "inline-flex";
+});
+function instalarPwa(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(choiceResult){
+      if(choiceResult.outcome === 'accepted'){
+        var b = $("btn_instalar");
+        if(b) b.style.display = "none";
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    alert("Para instalar en tu celular:\n\n1. Tocá los 3 puntitos ⋮ (o el botón compartir 📤 en iPhone).\n2. Elegí 'Instalar aplicación' o 'Agregar a Inicio'.");
+  }
+}
+
 var CEN={lat:-25.798,lng:-64.968},BB={w:-65.05,e:-64.90,n:-25.74,s:-25.86};
 var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿Dónde te buscamos? Escribí tu calle o tocá '🎯 Mi ubicación'.",ph:"home",oref:"",dref:"",viajeId:null,mapFitDone:false},tm=null,pollTm=null;
 
@@ -230,9 +264,8 @@ function actualizarPosicionChofer(pos){
   if(!pos || pos.lat == null || pos.lng == null) return;
   var p = [pos.lat, pos.lng];
 
-  // Crear el marcador del auto si aún no existe
   if(!carMarker){
-    var carHtml = '<div style="background:#14213D;color:#F5B700;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.5);transform:scale(1);animation:pulseCar 1.5s infinite">🚗</div>';
+    var carHtml = '<div style="background:#14213D;color:#F5B700;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.5)">🚗</div>';
     carMarker = L.marker(p, {
       icon: L.divIcon({ className: '', html: carHtml, iconSize: [38, 38], iconAnchor: [19, 19] }),
       zIndexOffset: 2000
@@ -242,7 +275,6 @@ function actualizarPosicionChofer(pos){
     carMarker.setLatLng(p);
   }
 
-  // Si el chofer va a buscar al pasajero
   if(S.ph === "pick" && S.o){
     var distKm = hav({lat: pos.lat, lng: pos.lng}, S.o);
     var cuadras = Math.max(1, Math.round(distKm * 10));
@@ -257,14 +289,12 @@ function actualizarPosicionChofer(pos){
       }
     }
 
-    // Centrar el mapa para ver al chofer y el punto de salida
     if(!S.mapFitDone){
       map.fitBounds([p, [S.o.lat, S.o.lng]], { padding: [60, 60], maxZoom: 17 });
       S.mapFitDone = true;
     }
   }
 
-  // Si el viaje ya está en curso hacia el destino
   if(S.ph === "trip" && S.d){
     var distDest = hav({lat: pos.lat, lng: pos.lng}, S.d);
     var elDest = $("eta_destino");
@@ -295,7 +325,6 @@ function consultarViaje(){
       go("pick");
     }
 
-    // Actualizar la posición del auto en el mapa en vivo
     if(res.conductor_pos){
       actualizarPosicionChofer(res.conductor_pos);
     }
@@ -518,10 +547,9 @@ map.on("click",function(e){
 
 function mode(m){S.mode=m;go("home")}
 
-// GEOLOCALIZACIÓN SATELITAL CON DETECTOR DE PC / CELULAR
 function loc(){
   if(!navigator.geolocation){S.msg="Tu navegador no permite ubicación.";go("home");return}
-  S.msg="Buscando tu ubicación satelital precisa…";
+  S.msg="Conectando satélites GPS precisos…";
   go("home");
 
   var mejorFix = null;

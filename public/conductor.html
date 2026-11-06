@@ -154,4 +154,4 @@ function avanzar(id,est){sb.from("viajes").update({estado:est}).eq("id",id).then
 sb.auth.getSession().then(function(r){if(!r.data.session)return login();D.u=r.data.session.user;load();});
 </script>
 </body>
-</html>
+</html> 

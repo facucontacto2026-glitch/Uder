@@ -47,7 +47,6 @@ body{
   background:#fff
 }
 
-/* TOP BAR ESTILO UBER */
 .top-bar{
   display:flex;
   justify-content:space-between;
@@ -86,7 +85,6 @@ body{
   margin-right:4px
 }
 
-/* MAPA */
 #map{
   width:100%;
   height:290px;
@@ -94,14 +92,12 @@ body{
   z-index:1
 }
 
-/* CONTENEDOR PRINCIPAL */
 .main-view{
   flex:1;
   padding:16px 20px 85px;
   background:#fff
 }
 
-/* BUSCADOR FLOTANTE TIPO PÍLDORA */
 .search-pill{
   display:flex;
   align-items:center;
@@ -133,7 +129,6 @@ body{
   cursor:pointer
 }
 
-/* CHIPS */
 .chips-row{
   display:flex;
   gap:8px;
@@ -160,7 +155,6 @@ body{
   color:#fff
 }
 
-/* TARJETAS DE SERVICIO */
 .ride-card{
   display:flex;
   align-items:center;
@@ -219,7 +213,6 @@ body{
   color:#000
 }
 
-/* BARRA DE FORMA DE PAGO */
 .payment-bar{
   display:flex;
   align-items:center;
@@ -238,7 +231,6 @@ body{
   gap:10px
 }
 
-/* BOTONES PRINCIPALES */
 .btn-uber{
   width:100%;
   height:54px;
@@ -265,7 +257,6 @@ body{
   margin-top:6px
 }
 
-/* INPUTS PARA FORMULARIOS */
 .field-input{
   width:100%;
   padding:14px;
@@ -282,7 +273,6 @@ body{
   background:#fff
 }
 
-/* BARRA DE NAVEGACIÓN INFERIOR */
 .bottom-nav{
   position:fixed;
   bottom:0;
@@ -314,7 +304,6 @@ body{
 .nav-item.active{color:#000}
 .nav-item svg{width:22px;height:22px}
 
-/* TOAST */
 .toast{
   position:fixed;
   left:50%;
@@ -394,7 +383,7 @@ body{
   <!-- VISTA PRINCIPAL -->
   <main id="v" class="main-view"></main>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR (SOLO CUANDO ESTÁ LOGUEADO) -->
+  <!-- BARRA DE NAVEGACIÓN INFERIOR -->
   <nav class="bottom-nav" id="bottom_nav" style="display:none">
     <button id="nav_inicio" class="nav-item active" onclick="cambiarSeccion('home')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -414,8 +403,14 @@ body{
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!-- SDK OFICIAL MERCADO PAGO V2 PARA COBROS TRANSPARENTES -->
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+
 <script>
 var sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ");
+
+// INICIALIZAR MERCADO PAGO CON TU PUBLIC KEY DE PRODUCCIÓN
+var mp = new MercadoPago("APP_USR-619e8167-a16b-472a-9e9b-71eef85dbb38");
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(function(){});
@@ -448,7 +443,6 @@ var U = null;
 try { U = JSON.parse(localStorage.getItem("uder_user") || "null"); } catch(e){}
 function save(){ try { localStorage.setItem("uder_user", JSON.stringify(U)); } catch(e){} }
 
-// VALIDACIÓN DE TARJETA
 function luhn(n){var s=0,d=false;for(var i=n.length-1;i>=0;i--){var x=+n[i];if(d){x*=2;if(x>9)x-=9}s+=x;d=!d}return s%10===0}
 function brand(n){if(/^4/.test(n))return"Visa";if(/^(5[1-5]|2[2-7])/.test(n))return"Mastercard";if(/^3[47]/.test(n))return"Amex";return"Tarjeta"}
 
@@ -464,7 +458,6 @@ async function logout(){
   go("welcome");
 }
 
-// SINCRONIZAR DATOS REALES DE USUARIO
 function sincronizarUsuario(usr){
   var meta = usr.user_metadata || {};
   var nomComp = meta.full_name || meta.name || "";
@@ -483,7 +476,6 @@ function sincronizarUsuario(usr){
   };
   save();
 
-  // Buscar en la tabla perfiles si existe
   sb.from("perfiles").select("*").eq("id", usr.id).single().then(function(r){
     if(r.data && r.data.nombre){
       U.nombre = r.data.nombre;
@@ -514,8 +506,8 @@ function loginGoogle(){
   sb.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin }
-  }).catch(function(err){
-    alert("Para usar Google, activalo primero en tu panel de Supabase (Authentication -> Providers -> Google). Mientras tanto, ingresá con tu Email y Contraseña.");
+  }).catch(function(){
+    toast("Error al conectar con Google.");
   });
 }
 
@@ -542,17 +534,14 @@ function doRegistroEmail(){
   }).then(function(r){
     if(r.error) { toast("Error: " + r.error.message); return; }
     toast("¡Cuenta creada!");
-    if(r.data.user) {
-      sincronizarUsuario(r.data.user);
-    } else {
-      go("welcome");
-    }
+    if(r.data.user) sincronizarUsuario(r.data.user);
+    else go("welcome");
   });
 }
 
 function editarNombrePerfil(){
-  var actual = (U && U.nombre && U.nombre !== "Pasajero") ? U.nombre : "";
-  var nuevo = prompt("Escribí tu nombre real:", actual);
+  var actual = (U && U.nombre) ? U.nombre : "Facundo";
+  var nuevo = prompt("Escribí tu nombre:", actual);
   if(nuevo && nuevo.trim()){
     if(!U) U = {};
     U.nombre = nuevo.trim();
@@ -562,28 +551,51 @@ function editarNombrePerfil(){
   }
 }
 
-// GUARDAR TARJETA
-function guardarTarjeta(){
-  var n = $("c_n").value.replace(/\D/g,"");
-  var e = $("c_e").value.trim();
-  var c = $("c_c").value.replace(/\D/g,"");
-  var t = $("c_t").value.trim();
+// TOKENIZACIÓN Y REGISTRO DE TARJETA CON SDK MERCADO PAGO
+function guardarTarjetaNativa(){
+  var num = $("c_n").value.replace(/\D/g,"");
+  var exp = $("c_e").value.trim();
+  var cvv = $("c_c").value.replace(/\D/g,"");
+  var nom = $("c_t").value.trim();
+  var dni = $("c_dni").value.replace(/\D/g,"");
 
-  if(n.length < 13 || n.length > 19 || !luhn(n)) return toast("Número de tarjeta inválido");
-  if(!/^\d{2}\/\d{2}$/.test(e)) return toast("Vencimiento inválido (MM/AA)");
-  if(c.length < 3 || c.length > 4) return toast("Código de seguridad inválido");
-  if(t.length < 3) return toast("Nombre del titular requerido");
+  if(num.length < 13 || num.length > 19 || !luhn(num)) return toast("Número de tarjeta inválido");
+  if(!/^\d{2}\/\d{2}$/.test(exp)) return toast("Vencimiento inválido (MM/AA)");
+  if(cvv.length < 3 || cvv.length > 4) return toast("Código de seguridad inválido");
+  if(nom.length < 3) return toast("Nombre del titular requerido");
+  if(dni.length < 7 || dni.length > 8) return toast("DNI del titular requerido");
 
-  if(!U) U = { nombre: "Facundo" };
-  U.card = {
-    brand: brand(n),
-    last4: n.slice(-4),
-    titular: t
-  };
-  save();
-  toast("Tarjeta " + U.card.brand + " ···· " + U.card.last4 + " guardada ✓");
-  S.pg = "Tarjeta";
-  cambiarSeccion("cuenta");
+  var m = exp.split("/");
+  toast("Verificando tarjeta con el banco…");
+
+  mp.createCardToken({
+    cardNumber: num,
+    cardholderName: nom,
+    cardExpirationMonth: m[0],
+    cardExpirationYear: "20" + m[1],
+    securityCode: cvv,
+    identificationType: "DNI",
+    identificationNumber: dni
+  }).then(function(token){
+    if(!token || !token.id) throw new Error("No se pudo tokenizar");
+
+    if(!U) U = { nombre: "Facundo" };
+    U.card = {
+      brand: brand(num),
+      last4: num.slice(-4),
+      titular: nom,
+      dni: dni,
+      num: num, // Guardamos temporal para pago inmediato
+      exp: exp
+    };
+    save();
+    toast("Tarjeta " + U.card.brand + " ···· " + U.card.last4 + " vinculada ✓");
+    S.pg = "Tarjeta";
+    cambiarSeccion("cuenta");
+  }).catch(function(e){
+    console.error(e);
+    toast("El banco rechazó la tarjeta. Revisá los datos.");
+  });
 }
 
 function eliminarTarjeta(){
@@ -636,20 +648,25 @@ function price(i){
 
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
+// PEDIR VIAJE (CON PROCESAMIENTO TRANSPARENTE EN SEGUNDO PLANO)
 function pedirViajeReal(){
   if(!U || !U.nombre){
     toast("Iniciá sesión para pedir un viaje");
     go("welcome");
     return;
   }
+
+  var monto = Math.round(price(S.ty));
+  var cuadras = getCuadras();
+
+  // Si eligió Tarjeta pero no tiene una cargada
   if(S.pg === "Tarjeta" && !(U && U.card)){
-    toast("Agregá una tarjeta primero o elegí Efectivo");
+    toast("Cargá tu tarjeta para continuar");
     go("tarjeta_form");
     return;
   }
 
-  var monto = Math.round(price(S.ty));
-  var cuadras = getCuadras();
+  // 1. Crear el viaje en Supabase
   var payload = {
     pasajero_id: U.id || null,
     pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""),
@@ -670,7 +687,7 @@ function pedirViajeReal(){
     pasajero_lat: S.o.lat,
     pasajero_lng: S.o.lng,
     estado: "buscando",
-    pago_estado: (S.pg === "Tarjeta" || S.pg === "Mercado Pago") ? "pendiente" : "pendiente"
+    pago_estado: "pendiente"
   };
 
   fetch("/api/pedir-viaje", {
@@ -682,20 +699,90 @@ function pedirViajeReal(){
   .then(function(j){
     if(!j.viaje) throw new Error("Error al crear viaje");
     S.viajeId = j.viaje.id;
+
     try {
       sessionStorage.setItem("uder_trip", JSON.stringify({
         viajeId: S.viajeId, o:S.o, on:S.on, oref:S.oref, d:S.d, dn:S.dn, dref:S.dref, km:S.km, cuadras:cuadras, ty:S.ty, pg:S.pg
       }));
     } catch(e){}
 
-    if(S.pg === "Mercado Pago"){
+    // COBRO TRANSPARENTE CON TARJETA
+    if(S.pg === "Tarjeta"){
+      procesarTarjetaSilenciosa(j.viaje.id, monto);
+    } 
+    // COBRO CHECKOUT PRO
+    else if(S.pg === "Mercado Pago"){
       pagarMP(j.viaje.id, monto);
-    } else {
+    } 
+    // EFECTIVO
+    else {
       go("search");
     }
   })
   .catch(function(){
     toast("No se pudo pedir el viaje. Probá de nuevo.");
+  });
+}
+
+// PROCESAR TARJETA EN SEGUNDO PLANO SIN SALIR DE UDER
+function procesarTarjetaSilenciosa(viajeId, monto){
+  toast("Debitando de tu tarjeta…");
+
+  // Solicitar CVV rápido si es necesario o tokenizar directo
+  var cvv = prompt("Ingresá el código de seguridad (CVV de 3 dígitos) de tu tarjeta " + U.card.brand + " ···· " + U.card.last4 + ":");
+  if(!cvv || cvv.length < 3){
+    toast("Operación cancelada. El viaje queda en Efectivo.");
+    S.pg = "Efectivo";
+    go("search");
+    return;
+  }
+
+  var m = (U.card.exp || "12/28").split("/");
+
+  mp.createCardToken({
+    cardNumber: U.card.num,
+    cardholderName: U.card.titular,
+    cardExpirationMonth: m[0],
+    cardExpirationYear: "20" + m[1],
+    securityCode: cvv,
+    identificationType: "DNI",
+    identificationNumber: U.card.dni || "0"
+  }).then(function(t){
+    if(!t || !t.id) throw new Error("Token error");
+
+    fetch("/api/procesar-pago-tarjeta", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        viaje_id: viajeId,
+        token: t.id,
+        monto: monto,
+        descripcion: "Viaje Uder: " + S.on + " a " + S.dn,
+        email: U.email || "pasajero@uder.app",
+        dni: U.card.dni || "0",
+        nombre: U.nombre
+      })
+    })
+    .then(function(r){ return r.json() })
+    .then(function(res){
+      if(res.aprobado){
+        toast("¡Pago debitado con éxito! 💳 ✓");
+        go("search");
+      } else {
+        alert("El banco rechazó el débito: " + (res.detalle || "Fondos insuficientes o tarjeta bloqueada") + ".\n\nTu viaje se mantiene en Efectivo.");
+        S.pg = "Efectivo";
+        go("search");
+      }
+    }).catch(function(){
+      toast("Error al debitar. El viaje se mantiene en Efectivo.");
+      S.pg = "Efectivo";
+      go("search");
+    });
+
+  }).catch(function(){
+    toast("Código de seguridad incorrecto. El viaje se mantiene en Efectivo.");
+    S.pg = "Efectivo";
+    go("search");
   });
 }
 
@@ -1083,7 +1170,6 @@ function opts(){
   });
 }
 
-// CAMBIAR FORMA DE PAGO (EFECTIVO, TARJETA, MERCADO PAGO)
 function cambiarPago(){
   var opciones = ["Efectivo"];
   if(U && U.card) opciones.push("Tarjeta");
@@ -1094,11 +1180,9 @@ function cambiarPago(){
   go("opt");
 }
 
-// CONTROL DE PANTALLAS
 function go(ph){
   clearInterval(tm);clearInterval(pollTm);
 
-  // Bloqueo estricto si no hay sesión
   if((!U || !U.nombre) && ph !== "welcome" && ph !== "reg" && ph !== "login"){
     ph = "welcome";
   }
@@ -1118,7 +1202,7 @@ function go(ph){
     S.mapFitDone = false;
   }
 
-  // 1. INICIO
+  // 1. INICIO (MAPA)
   if(ph==="home"){
     var placeholderTxt = S.mode === "o" ? "¿Dónde te retiramos? (ej: guemes 248)" : "¿A dónde vas? (ej: peron 412)";
     var saludo = "¿A dónde vamos, " + esc(U.nombre) + "?";
@@ -1155,7 +1239,7 @@ function go(ph){
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
-  // 2. ACTIVIDAD
+  // 2. ACTIVIDAD (HISTORIAL DE VIAJES)
   if(ph==="actividad"){
     v.innerHTML = '<div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Cargando tus viajes…</p></div>';
     
@@ -1208,7 +1292,7 @@ function go(ph){
     });
   }
 
-  // 3. CUENTA (PERFIL DEL USUARIO)
+  // 3. CUENTA (PERFIL, TARJETA Y CIERRE)
   if(ph==="cuenta"){
     var nomUser = (U && U.nombre) ? U.nombre : "Facundo";
     var apeUser = (U && U.apellido) ? U.apellido : "";
@@ -1241,11 +1325,11 @@ function go(ph){
             '<div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px">MÉTODOS DE PAGO</div>' +
             (!U || !U.card ? '<button class="chip-uber" style="padding:4px 10px;font-size:12px" onclick="go(\'tarjeta_form\')">+ Agregar tarjeta</button>' : '') +
           '</div>' +
-          '<div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano)</div>' +
+          '<div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano al chofer)</div>' +
           '<div style="font-size:14px;padding:6px 0">🔵 <b>Mercado Pago</b> (Checkout online)</div>' +
           (U && U.card ? 
-            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #E8E8E8;margin-top:6px">' +
-              '<span>💳 <b>'+esc(U.card.brand)+' ···· '+esc(U.card.last4)+'</b></span>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #E8E8E8;margin-top:6px">' +
+              '<span>💳 <b>'+esc(U.card.brand)+' ···· '+esc(U.card.last4)+'</b> <small style="color:var(--ok)">(Débito directo)</small></span>' +
               '<button style="border:0;background:none;color:var(--bad);font-weight:700;font-size:12px;cursor:pointer" onclick="eliminarTarjeta()">Quitar</button>' +
             '</div>' : '') +
         '</div>' +
@@ -1256,12 +1340,12 @@ function go(ph){
       '</div>';
   }
 
-  // 4. FORMULARIO PARA AGREGAR TARJETA
+  // 4. FORMULARIO TARJETA NATIVA
   if(ph==="tarjeta_form"){
     v.innerHTML = 
       '<div style="padding:10px 0">' +
         '<h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Agregar tarjeta</h2>' +
-        '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Débito o crédito para tus viajes.</p>' +
+        '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Débito o crédito para cobrarte automáticamente los viajes sin salir de Uder.</p>' +
         '<label style="font-size:12px;font-weight:700">NÚMERO DE TARJETA</label>' +
         '<input id="c_n" inputmode="numeric" placeholder="4500 0000 0000 0000" maxlength="19" class="field-input" oninput="this.value=this.value.replace(/\\D/g,\'\').slice(0,19).replace(/(.{4})/g,\'$1 \').trim()">' +
         '<div style="display:flex;gap:12px">' +
@@ -1276,7 +1360,9 @@ function go(ph){
         '</div>' +
         '<label style="font-size:12px;font-weight:700">TITULAR DE LA TARJETA</label>' +
         '<input id="c_t" placeholder="Como figura en el plástico" class="field-input">' +
-        '<button class="btn-uber" onclick="guardarTarjeta()">Guardar tarjeta</button>' +
+        '<label style="font-size:12px;font-weight:700">DNI DEL TITULAR</label>' +
+        '<input id="c_dni" inputmode="numeric" placeholder="Número de documento" maxlength="8" class="field-input">' +
+        '<button class="btn-uber" onclick="guardarTarjetaNativa()">Vincular tarjeta</button>' +
         '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'cuenta\')">Cancelar</button>' +
       '</div>';
   }
@@ -1320,15 +1406,15 @@ function go(ph){
       '</div>';
   }
 
-  // 7. ELEGIR VIAJE (SELECCIONAR SERVICIO Y PAGO)
+  // 7. ELEGIR VIAJE
   if(ph==="opt"){
     var cuadras = getCuadras();
     var noche = esNocturno();
     var tagTarifa = noche ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
 
     var txtPago = S.pg === "Tarjeta" && U && U.card ? 
-                  "💳 " + U.card.brand + " ···· " + U.card.last4 : 
-                  (S.pg === "Mercado Pago" ? "🔵 Mercado Pago" : "💵 Efectivo");
+                  "💳 " + U.card.brand + " ···· " + U.card.last4 + " (Débito directo)" : 
+                  (S.pg === "Mercado Pago" ? "🔵 Mercado Pago" : "💵 Efectivo (Pago en mano)");
 
     v.innerHTML = 
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
@@ -1354,7 +1440,7 @@ function go(ph){
         '<div>' +
           '<span>'+txtPago+'</span>' +
         '</div>' +
-        '<span style="color:var(--ink-secondary)">Cambiar forma de pago ❯</span>' +
+        '<span style="color:var(--ink-secondary)">Cambiar ❯</span>' +
       '</div>' +
       '<button class="btn-uber" onclick="pedirViajeReal()">' +
         'Elegir viaje '+TY[S.ty][0]+' · '+M(price(S.ty)) +
@@ -1362,7 +1448,7 @@ function go(ph){
       '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'home\')">Modificar ruta</button>';
   }
 
-  // 8. EN CURSO Y SEGUIMIENTO
+  // 8. RADAR Y EN CURSO
   if(ph==="search"){
     v.innerHTML = 
       '<div style="text-align:center;padding:15px 0">' +
@@ -1424,7 +1510,7 @@ function go(ph){
   }
 }
 
-// ARRANQUE DE LA APP
+// ARRANQUE
 if(!volverMP()) {
   if(U && U.nombre && U.nombre !== "Pasajero"){
     cambiarSeccion("home");

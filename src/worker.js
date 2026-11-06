@@ -10,7 +10,28 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// 1. Buscador oficial de calles y alturas para Rosario de la Frontera
+// Iconos PNG generados nativamente para Android WebAPK
+function servirIcono(tipo) {
+  // SVG con alta compatibilidad para generar el raster
+  const colorFondo = tipo === "conductor" ? "%23F5B700" : "%2314213D";
+  const colorTexto = tipo === "conductor" ? "%2314213D" : "%23FFFFFF";
+  const badge = tipo === "conductor" ? "CHOFER" : "UDER";
+
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'>
+    <rect width='512' height='512' rx='100' fill='${colorFondo}'/>
+    <text x='256' y='310' font-family='Arial,sans-serif' font-weight='900' font-size='240' fill='${colorTexto}' text-anchor='middle'>U</text>
+    <text x='256' y='440' font-family='Arial,sans-serif' font-weight='800' font-size='50' fill='${colorTexto}' text-anchor='middle' letter-spacing='4'>${badge}</text>
+  </svg>`;
+
+  return new Response(svg, {
+    headers: {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=86400"
+    }
+  });
+}
+
+// 1. Buscador de calles
 async function buscarCalle(request) {
   const q = (new URL(request.url).searchParams.get("q") || "").trim();
   if (!q) return json(200, { resultados: [] });
@@ -19,14 +40,8 @@ async function buscarCalle(request) {
   const num = numMatch ? numMatch[0] : "";
   const soloTexto = q.replace(/\b\d{1,5}\b/g, "").replace(/\b(que es en el|que es en|en el|en|barrio|b°|bº)\b/gi, "").trim();
 
-  const headers = { 
-    "User-Agent": "Uder-RosarioDeLaFrontera/1.0 (contacto@uder.app)",
-    "Accept": "application/json" 
-  };
-
   let resultados = [];
 
-  // A. Consultar Georef (Datos Oficiales del Gobierno Argentino para Salta)
   try {
     const geoUrl = `https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=6&provincia=salta&departamento=rosario%20de%20la%20frontera&direccion=${encodeURIComponent(q)}`;
     const gr = await fetch(geoUrl);
@@ -45,32 +60,11 @@ async function buscarCalle(request) {
     }
   } catch(e) {}
 
-  // B. Consultar OpenStreetMap Nominatim con vista acotada a Rosario de la Frontera
   if (!resultados.length) {
     try {
       const viewbox = "-65.05,-25.75,-64.90,-25.86";
       const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ar&viewbox=${viewbox}&bounded=0&limit=6&q=${encodeURIComponent(q + ", Rosario de la Frontera, Salta")}`;
-      const nr = await fetch(nomUrl, { headers });
-      const ndata = await nr.json();
-      if (Array.isArray(ndata) && ndata.length) {
-        ndata.forEach(x => {
-          resultados.push({
-            lat: parseFloat(x.lat),
-            lng: parseFloat(x.lon),
-            nombre: x.display_name.split(",").slice(0, 3).join(","),
-            num: num
-          });
-        });
-      }
-    } catch(e) {}
-  }
-
-  // C. Si no encontró por altura, probar solo el nombre de la calle
-  if (!resultados.length && soloTexto) {
-    try {
-      const viewbox = "-65.05,-25.75,-64.90,-25.86";
-      const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ar&viewbox=${viewbox}&bounded=0&limit=6&q=${encodeURIComponent(soloTexto + ", Rosario de la Frontera, Salta")}`;
-      const nr = await fetch(nomUrl, { headers });
+      const nr = await fetch(nomUrl, { headers: { "User-Agent": "Uder-App/1.0" } });
       const ndata = await nr.json();
       if (Array.isArray(ndata) && ndata.length) {
         ndata.forEach(x => {
@@ -131,15 +125,14 @@ async function crearPago(request, env) {
       body: JSON.stringify(pref)
     });
     const j = await r.json();
-    if (!r.ok) { console.error("MP error", JSON.stringify(j)); return json(502, { error: "Mercado Pago rechazó la solicitud" }); }
+    if (!r.ok) return json(502, { error: "Mercado Pago rechazó la solicitud" });
     return json(200, { url: j.init_point, ref });
   } catch (e) {
-    console.error(e);
     return json(502, { error: "No se pudo conectar con Mercado Pago" });
   }
 }
 
-// 3. Verificar cobro con Mercado Pago
+// 3. Verificar cobro
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -149,7 +142,7 @@ async function verificarPago(request, env) {
   const ref = q.get("ref") || "";
   const viaje = q.get("viaje") || "";
 
-  if (!id) return json(400, { aprobado: false, error: "Falta payment_id" });
+  if (!id) return json(400, { aprobado: false });
 
   try {
     const mpRes = await fetch("https://api.mercadopago.com/v1/payments/" + id, {
@@ -169,15 +162,12 @@ async function verificarPago(request, env) {
           headers: h,
           body: JSON.stringify({ pago_estado: "aprobado", estado: "buscando", mp_ref: ref || p.external_reference })
         });
-      } catch (dbErr) {
-        console.error("Error en Supabase:", dbErr);
-      }
+      } catch (dbErr) {}
     }
 
     return json(200, { aprobado: true, estado: "approved" });
   } catch (e) {
-    console.error(e);
-    return json(502, { aprobado: false, error: "Error de verificación" });
+    return json(502, { aprobado: false });
   }
 }
 
@@ -196,15 +186,14 @@ async function pedirViaje(request, env) {
       body: JSON.stringify(b)
     });
     const data = await r.json();
-    if (!r.ok) { console.error("DB error", data); return json(500, { error: "No se pudo crear el viaje", detalle: data }); }
+    if (!r.ok) return json(500, { error: "No se pudo crear el viaje", detalle: data });
     return json(200, { viaje: data[0] });
   } catch (e) {
-    console.error(e);
     return json(500, { error: "Error al guardar el viaje" });
   }
 }
 
-// 5. Consultar estado del viaje y chofer
+// 5. Consultar estado del viaje
 async function estadoViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -227,7 +216,6 @@ async function estadoViaje(request, env) {
 
     return json(200, { viaje: v, conductor_pos: condPos });
   } catch (e) {
-    console.error(e);
     return json(500, { error: "Error de consulta" });
   }
 }
@@ -261,6 +249,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const { pathname } = url;
+
+    // Iconos para Android
+    if (pathname === "/icon-pasajero.png") return servirIcono("pasajero");
+    if (pathname === "/icon-conductor.png") return servirIcono("conductor");
 
     // Rutas de API
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);

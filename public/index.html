@@ -93,9 +93,9 @@ function saveCard(){
 }
 
 function pedirViajeReal(){
-  var monto=Math.round(price(S.ty));
-  var payload={
-    pasajero_nombre: U.nombre + " " + (U.apellido ? U.apellido.charAt(0) + "." : ""),
+  var monto = Math.round(price(S.ty));
+  var payload = {
+    pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""),
     tipo: TY[S.ty][0],
     forma_pago: S.pg,
     monto: monto,
@@ -111,8 +111,8 @@ function pedirViajeReal(){
     destino_lng: S.d.lng,
     pasajero_lat: S.o.lat,
     pasajero_lng: S.o.lng,
-    estado: S.pg === "Mercado Pago" ? "pendiente_pago" : "buscando",
-    pago_estado: S.pg === "Mercado Pago" ? "pendiente" : "pendiente"
+    estado: "buscando",
+    pago_estado: "pendiente"
   };
 
   fetch("/api/pedir-viaje", {
@@ -122,7 +122,10 @@ function pedirViajeReal(){
   })
   .then(function(r){ return r.json() })
   .then(function(j){
-    if(!j.viaje) throw new Error("Error al crear viaje");
+    if(!j.viaje) {
+      console.error("Error devuelto por servidor:", j);
+      throw new Error("Error al crear viaje");
+    }
     S.viajeId = j.viaje.id;
     try {
       sessionStorage.setItem("uder_trip", JSON.stringify({

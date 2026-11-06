@@ -10,9 +10,15 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-conductor.svg",
+      "src": "/icon-conductor.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-conductor.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

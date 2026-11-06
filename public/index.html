@@ -92,7 +92,6 @@ function saveCard(){
   U.card={brand:brand(n),last4:n.slice(-4)};save();toast("Tarjeta guardada: "+U.card.brand+" ··"+U.card.last4);var b=S.back||"home";S.back="";go(b)
 }
 
-// SISTEMA DE TARIFAS: DÍA vs NOCHE + CUADRAS
 function esNocturno(){
   var h = new Date().getHours();
   return (h >= 22 || h < 6);
@@ -293,72 +292,21 @@ function calcularRutaReal(origen, destino){
     });
 }
 
-// BUSCADOR INTELIGENTE DE CALLES Y BARRIOS (ROBUSTO Y SIN CAÍDAS)
+// BUSCADOR CONECTADO AL SERVIDOR PROPIO (SIN BLOQUEOS)
 function buscarDireccion(q){
-  var numMatch = q.match(/\b\d{1,5}\b/);
-  var num = numMatch ? numMatch[0] : "";
-  
-  // Limpiar palabras accesorias
-  var limpia = q.replace(/\b(que es en el|que es en|en el|en|barrio|b°|bº)\b/gi, " ")
-                .replace(/\s+/g, " ")
-                .trim();
-  var soloCalle = limpia.replace(/\b\d{1,5}\b/g, "").replace(/\s+/g, " ").trim();
-
-  function queryPhoton(term){
-    var url = "https://photon.komoot.io/api/?q=" + encodeURIComponent(term) +
-              "&lat=" + CEN.lat + "&lon=" + CEN.lng + "&limit=6&lang=es";
-    return fetch(url)
-      .then(function(r){ return r.json() })
-      .then(function(j){
-        if(!j.features) return [];
-        return j.features.map(function(f){
-          var p = f.properties || {};
-          var coords = f.geometry.coordinates;
-          var calle = p.name || p.street || "";
-          var barrio = p.district || p.suburb || "";
-          var ciudad = p.city || "Rosario de la Frontera";
-          var texto = calle + (barrio ? " · B° " + barrio : "") + " (" + ciudad + ")";
-          return {
-            p: { lat: coords[1], lng: coords[0] },
-            n: texto,
-            num: num,
-            refSugerida: num ? "altura " + num + (barrio ? " (B° " + barrio + ")" : "") : (barrio ? "B° " + barrio : "")
-          };
-        }).filter(function(x){
-          return (x.p.lng > BB.w - 0.2 && x.p.lng < BB.e + 0.2 && x.p.lat > BB.s - 0.2 && x.p.lat < BB.n + 0.2);
-        });
-      })
-      .catch(function(){ return [] });
-  }
-
-  return queryPhoton(limpia + " Rosario de la Frontera")
-    .then(function(res){
-      if(res.length) return res;
-      return queryPhoton(soloCalle + " Rosario de la Frontera");
-    })
-    .then(function(res){
-      if(res.length) return res;
-      return queryPhoton(soloCalle || limpia);
-    });
-}
-
-// OBTENER NOMBRE AL TOCAR EL MAPA
-function obtenerNombreUbicacion(lat, lng){
-  var url = "https://photon.komoot.io/reverse?lat=" + lat + "&lon=" + lng;
-  return fetch(url)
+  return fetch("/api/buscar-calle?q=" + encodeURIComponent(q))
     .then(function(r){ return r.json() })
     .then(function(j){
-      if(!j.features || !j.features.length) throw 0;
-      var prop = j.features[0].properties || {};
-      var calle = prop.name || prop.street || "";
-      var barrio = prop.district || prop.suburb || "";
-      if(calle && barrio) return calle + " (B° " + barrio + ")";
-      if(calle) return calle;
-      return "Punto en Rosario de la Frontera";
+      return (j.resultados || []).map(function(x){
+        return {
+          p: { lat: x.lat, lng: x.lng },
+          n: x.nombre,
+          num: x.num,
+          refSugerida: x.num ? "altura " + x.num : ""
+        };
+      });
     })
-    .catch(function(){
-      return "Punto en el mapa";
-    });
+    .catch(function(){ return [] });
 }
 
 var map=L.map("map",{zoomControl:true}).setView([CEN.lat,CEN.lng],14);
@@ -397,23 +345,16 @@ function draw(keep){
 }
 
 function setPt(m,p,n,keep){
-  if(m==="o"){S.o=p;S.on=n||"Buscando…"}else{S.d=p;S.dn=n||"Buscando…"}
+  if(m==="o"){S.o=p;S.on=n||"Punto en el mapa"}else{S.d=p;S.dn=n||"Punto en el mapa"}
   S.res=[];
   draw(keep);
   go("home");
-  if(!n){
-    obtenerNombreUbicacion(p.lat, p.lng).then(function(nm){
-      if(m==="o" && S.o===p) S.on = nm;
-      if(m==="d" && S.d===p) S.dn = nm;
-      if(S.ph==="home") go("home");
-    });
-  }
 }
 
 map.on("click",function(e){
   if(S.ph!=="home")return;
   if(S.mode==="o")S.oref="";else S.dref="";
-  setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng});
+  setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng},"Punto marcado en el mapa");
 });
 
 function mode(m){S.mode=m;go("home")}
@@ -452,7 +393,7 @@ function aplicarUbicacion(p, acc){
   if(p.lng>BB.w && p.lng<BB.e && p.lat>BB.s && p.lat<BB.n){
     S.msg="GPS detectado con precisión de ±" + Math.round(acc) + " metros.";
     S.oref="";
-    setPt("o",p);
+    setPt("o",p,"Mi ubicación actual");
   } else {
     S.msg="Estás fuera de Rosario de la Frontera: usamos el centro como punto de partida.";
     setPt("o",{lat:CEN.lat,lng:CEN.lng},"Centro de Rosario de la Frontera");
@@ -483,7 +424,7 @@ function pickRes(i){
   var ref = r.refSugerida || (r.num ? "altura " + r.num : "");
   if(S.mode === "o") S.oref = ref; else S.dref = ref;
   setPt(S.mode, r.p, r.n);
-  if(ref) toast("Marcamos la calle. Se guardó la referencia: " + ref);
+  if(ref) toast("Marcamos la calle con " + ref);
 }
 
 function opts(){
@@ -517,7 +458,7 @@ function go(ph){
 
   if(ph==="home"){
     var tagH = esNocturno() ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna";
-    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle o barrio (Ej. Ex Combatientes, B° Perón)"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia exacta</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 412, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
+    v.innerHTML='<div class="card"><h2>¿A dónde vamos, '+esc(U.nombre)+'?</h2><p>'+esc(S.msg)+'</p><div class="chips"><button class="chip" onclick="loc()">🎯 Mi ubicación</button><button class="chip" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search"><input id="q" placeholder="Buscar calle (Ej. Mitre 185, Malvinas)"><button class="go" onclick="find()">Buscar</button></div>'+S.res.map(function(r,i){return '<button class="res" onclick="pickRes('+i+')">'+esc(r.n)+'</button>'}).join("")+'<div class="lbl">Altura o referencia exacta</div><input id="rf" style="width:100%;margin-top:8px" placeholder="Ej. 185, portón negro, Mza B casa 4" value="'+esc(S.mode==="o"?S.oref:S.dref)+'" oninput="setRef(this.value)"><p style="margin-top:14px"><b>Desde:</b> '+(S.o?lab(S.on,S.oref):"sin elegir")+'<br><b>Hasta:</b> '+(S.d?lab(S.dn,S.dref):"sin elegir")+'<br><small id="calc_dist" style="color:var(--mute)">'+(S.o&&S.d?S.cuadras+" cuadras ("+S.km.toFixed(1)+" km) · "+tagH:"")+'</small></p><button class="btn" onclick="opts()">Ver opciones</button></div>';
     $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 

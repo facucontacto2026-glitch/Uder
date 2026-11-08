@@ -1,4 +1,4 @@
-// Uder · Backend en Cloudflare Workers
+// Uder · Backend en Cloudflare Workers (Mercado Pago + Supabase + IA Gemini)
 const SB = "https://mmgvttmgchnbppcemrwg.supabase.co";
 
 const json = (s, o) => new Response(JSON.stringify(o), { 
@@ -10,8 +10,30 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
+// Convertir ArrayBuffer a Base64 sin desbordar memoria
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i += 8192) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
+  }
+  return btoa(binary);
+}
+
 // Iconos vectoriales
 function servirIcono(tipo) {
+  if (tipo === "admin") {
+    const svgAdmin = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+      <rect width="512" height="512" rx="100" fill="#000000"/>
+      <circle cx="256" cy="235" r="150" fill="#F5B700"/>
+      <path d="M256 140 L340 180 L340 260 C340 310 256 345 256 345 C256 345 172 310 172 260 L172 180 Z" fill="#000000"/>
+      <text x="256" y="270" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="90" fill="#F5B700" text-anchor="middle">U</text>
+      <text x="256" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="44" fill="#F5B700" text-anchor="middle" letter-spacing="4">ADMIN</text>
+    </svg>`;
+    return new Response(svgAdmin, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
+  }
+
   const esChofer = (tipo === "conductor");
   const fondoExterior = esChofer ? "#F5B700" : "#14213D";
   const circuloCentro = esChofer ? "#14213D" : "#F5B700";
@@ -26,16 +48,141 @@ function servirIcono(tipo) {
     <text x="256" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="46" fill="${textoColor}" text-anchor="middle" letter-spacing="4">${etiqueta}</text>
   </svg>`;
 
-  return new Response(svg, {
-    headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=604800" }
-  });
+  return new Response(svg, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
 }
 
-// 1. Buscador oficial de calles
+// 1. VERIFICADOR INTELIGENTE CON IA (GOOGLE GEMINI 1.5 FLASH VISION)
+async function verificarDocumentosAI(request, env) {
+  const geminiKey = env.GEMINI_API_KEY;
+  const sbKey = env.SUPABASE_SECRET_KEY;
+  if (!geminiKey || !sbKey) return json(500, { error: "Faltan claves de configuración (GEMINI o SUPABASE)" });
+
+  let b;
+  try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
+
+  const cid = b.conductor_id;
+  const nombreChofer = `${b.nombre || ''} ${b.apellido || ''}`.trim();
+  const vehiculo = b.vehiculo || '';
+  const patente = b.patente || '';
+  const docs = b.docs || []; // [{ tipo: "licencia", path: "..." }, ...]
+
+  if (!cid || !docs.length) return json(400, { error: "Faltan documentos para analizar" });
+
+  const h = sbHeaders(sbKey);
+  const inlineImages = [];
+
+  // Descargar las imágenes de los documentos desde Supabase Storage
+  for (const doc of docs) {
+    try {
+      const resImg = await fetch(`${SB}/storage/v1/object/documentos/${doc.path}`, { headers: h });
+      if (resImg.ok) {
+        const buf = await resImg.arrayBuffer();
+        const base64Data = arrayBufferToBase64(buf);
+        inlineImages.push({
+          inline_data: {
+            mime_type: resImg.headers.get("content-type") || "image/jpeg",
+            data: base64Data
+          }
+        });
+      }
+    } catch(errImg) {
+      console.error("Error descargando doc:", doc.path, errImg);
+    }
+  }
+
+  if (!inlineImages.length) {
+    return json(400, { error: "No se pudieron descargar las imágenes para la IA" });
+  }
+
+  // Prompt oficial con análisis de normativas argentinas
+  const prompt = `Eres el perito auditor de Inteligencia Artificial de la aplicación de transporte UDER en Rosario de la Frontera, Salta, Argentina.
+Tu tarea es verificar rigurosamente la documentación presentada por un chofer para decidir si se le autoriza a trabajar de inmediato.
+
+Datos declarados por el chofer:
+- Nombre y Apellido: ${nombreChofer}
+- Vehículo declarado: ${vehiculo}
+- Patente declarada: ${patente}
+
+Se te adjuntan las fotografías de los 4 documentos (Licencia de conducir, Cédula de identificación del automotor, Póliza de Seguro y Revisión Técnica Obligatoria VTV/RTO).
+
+Debes inspeccionar y responder ÚNICAMENTE un objeto JSON válido con la siguiente estructura exacta:
+{
+  "aprobado": true o false,
+  "motivo": "Explicación breve y cordial si es rechazado (ej. 'La póliza de seguro está vencida' o 'La foto de la licencia no se lee bien'), o 'Documentación aprobada y en regla' si cumple todo",
+  "confianza": 0 a 100,
+  "detalles": {
+    "licencia_legible": true/false,
+    "licencia_vigente": true/false,
+    "identidad_coincide": true/false,
+    "patente_coincide": true/false,
+    "seguro_vigente": true/false,
+    "vtv_vigente": true/false
+  }
+}
+
+Reglas estrictas:
+1. Si un documento crucial está visiblemente vencido, "aprobado" debe ser false.
+2. Si las fotos son de objetos no relacionados o completamente borrosas, "aprobado" debe ser false.
+3. Si los documentos son legibles, vigentes y coinciden con la identidad y el vehículo, "aprobado" debe ser true.`;
+
+  try {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    const geminiPayload = {
+      contents: [{
+        parts: [
+          { text: prompt },
+          ...inlineImages
+        ]
+      }],
+      generationConfig: {
+        response_mime_type: "application/json",
+        temperature: 0.1
+      }
+    };
+
+    const rGemini = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiPayload)
+    });
+
+    const jGemini = await rGemini.json();
+    if (!rGemini.ok) {
+      console.error("Gemini Error:", jGemini);
+      return json(502, { error: "La IA no pudo procesar las fotos en este momento" });
+    }
+
+    const aiRawText = jGemini.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const veredicto = JSON.parse(aiRawText);
+
+    // Actualizar Supabase con el resultado de la IA
+    const esAprobado = (veredicto.aprobado === true);
+    await fetch(`${SB}/rest/v1/conductores?id=eq.${cid}`, {
+      method: "PATCH",
+      headers: { ...h, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({
+        verificado: esAprobado,
+        estado_revision: esAprobado ? "aprobado" : "rechazado",
+        motivo_rechazo: esAprobado ? null : (veredicto.motivo || "Documentación no aprobada")
+      })
+    });
+
+    return json(200, {
+      aprobado: esAprobado,
+      motivo: veredicto.motivo,
+      detalles: veredicto.detalles
+    });
+
+  } catch(e) {
+    console.error("Error general IA:", e);
+    return json(500, { error: "Error en el análisis de IA" });
+  }
+}
+
+// 2. Buscador de calles
 async function buscarCalle(request) {
   const q = (new URL(request.url).searchParams.get("q") || "").trim();
   if (!q) return json(200, { resultados: [] });
-
   const numMatch = q.match(/\b\d{1,5}\b/);
   const num = numMatch ? numMatch[0] : "";
   let resultados = [];
@@ -80,7 +227,7 @@ async function buscarCalle(request) {
   return json(200, { resultados });
 }
 
-// 2. Débito transparente con tarjeta
+// 3. Débito transparente con tarjeta
 async function procesarPagoTarjeta(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -134,7 +281,6 @@ async function procesarPagoTarjeta(request, env) {
       }
       return json(200, { aprobado: true, id: j.id, estado: "approved" });
     } else {
-      console.error("MP Rechazo:", j);
       const motivo = j.status_detail || j.message || "Pago rechazado por el banco";
       return json(200, { aprobado: false, estado: j.status, detalle: motivo });
     }
@@ -143,7 +289,7 @@ async function procesarPagoTarjeta(request, env) {
   }
 }
 
-// 3. Checkout Pro
+// 4. Checkout Pro
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -193,7 +339,7 @@ async function crearPago(request, env) {
   }
 }
 
-// 4. Verificar pago
+// 5. Verificar cobro
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -232,7 +378,7 @@ async function verificarPago(request, env) {
   }
 }
 
-// 5. Crear viaje en Supabase (protegido contra fallos de perfiles)
+// 6. Crear viaje en Supabase
 async function pedirViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -241,13 +387,11 @@ async function pedirViaje(request, env) {
 
   const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=representation" };
 
-  // Si viene pasajero_id, aseguramos que exista en la tabla perfiles para no violar la foreign key
   if (b.pasajero_id) {
     try {
       const cp = await fetch(`${SB}/rest/v1/perfiles?id=eq.${b.pasajero_id}&select=id`, { headers: h });
       const pData = await cp.json();
       if (!pData || !pData.length) {
-        // Crear el perfil básico
         await fetch(`${SB}/rest/v1/perfiles`, {
           method: "POST",
           headers: h,
@@ -276,7 +420,7 @@ async function pedirViaje(request, env) {
   }
 }
 
-// 6. Consultar estado del viaje (Bypasea RLS con clave maestra para que el pasajero nunca se trabe)
+// 7. Consultar estado del viaje
 async function estadoViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -303,7 +447,7 @@ async function estadoViaje(request, env) {
   }
 }
 
-// 7. Cancelar viaje
+// 8. Cancelar viaje
 async function cancelarViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -333,11 +477,13 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Iconos
+    // Iconos de las 3 apps
     if (pathname === "/icon-pasajero.svg" || pathname === "/icon-pasajero.png") return servirIcono("pasajero");
     if (pathname === "/icon-conductor.svg" || pathname === "/icon-conductor.png") return servirIcono("conductor");
+    if (pathname === "/icon-admin.svg" || pathname === "/icon-admin.png") return servirIcono("admin");
 
     // Rutas de API
+    if (pathname === "/api/verificar-documentos-ai" && request.method === "POST") return verificarDocumentosAI(request, env);
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);
     if (pathname === "/api/procesar-pago-tarjeta" && request.method === "POST") return procesarPagoTarjeta(request, env);
     if (pathname === "/api/crear-pago" && request.method === "POST") return crearPago(request, env);

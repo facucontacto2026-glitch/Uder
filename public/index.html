@@ -53,7 +53,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 .payment-bar:active{background:#ececec}
 .payment-bar div{display:flex;align-items:center;gap:10px}
 
-/* MODAL DE PAGOS DESLIZABLE */
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);z-index:4000;display:flex;flex-direction:column;justify-content:flex-end;animation:fadeIn 0.2s ease}
 .bottom-sheet-content{background:#fff;border-radius:24px 24px 0 0;padding:14px 20px 32px;max-height:80vh;overflow-y:auto;box-shadow:0 -4px 25px rgba(0,0,0,0.2);animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1)}
 .sheet-drag{width:44px;height:4px;background:#E0E0E0;border-radius:2px;margin:0 auto 16px}
@@ -219,8 +218,8 @@ function sonarAvisoAceptado(){
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
     var now = ctx.currentTime;
     var osc = ctx.createOscillator(), g = ctx.createGain();
-    osc.type = "sine"; osc.frequency.setValueAtTime(587.33, now); // Re5
-    osc.frequency.setValueAtTime(880, now + 0.15); // La5
+    osc.type = "sine"; osc.frequency.setValueAtTime(587.33, now);
+    osc.frequency.setValueAtTime(880, now + 0.15);
     g.gain.setValueAtTime(0.5, now);
     g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
     osc.connect(g); g.connect(ctx.destination);
@@ -287,15 +286,14 @@ function sincronizarUsuario(usr){
   };
   save();
 
-  sb.from("perfiles").select("*").eq("id", usr.id).single().then(function(r){
-    if(r.data && r.data.nombre){
-      U.nombre = r.data.nombre;
-      if(r.data.apellido) U.apellido = r.data.apellido;
-      save();
-    }
-  });
+  // Asegurar que el usuario exista en perfiles
+  sb.from("perfiles").upsert({
+    id: usr.id,
+    rol: "pasajero",
+    nombre: U.nombre,
+    apellido: U.apellido
+  }).then(function(){});
 
-  // Comprobar si tiene viaje activo antes de ir al inicio
   verificarViajeActivo();
 }
 
@@ -480,12 +478,10 @@ function cambiarSeccion(sec){
     go("welcome");
     return;
   }
-  // Si tiene un viaje activo, volver siempre a la pantalla de seguimiento
+  // Si tiene un viaje activo, bloquear volver a pedir otro
   if(S.viajeId && (sec === "home" || sec === "opt")){
-    if(S.ph === "pick" || S.ph === "trip" || S.ph === "search"){
-      go(S.ph);
-      return;
-    }
+    go(S.ph || "search");
+    return;
   }
 
   document.querySelectorAll(".nav-item").forEach(function(btn){ btn.classList.remove("active"); });
@@ -523,53 +519,70 @@ function price(i){
 
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
-// COMPROBACIÓN DE VIAJE ACTIVO AL INICIAR LA APP (BLOQUEO DE VIAJES DUPLICADOS)
+// VERIFICAR VIAJE ACTIVO AL INICIAR
 function verificarViajeActivo(){
   var viajeIdGuardado = localStorage.getItem("uder_active_viaje");
   
-  var query = sb.from("viajes").select("*");
-  if(viajeIdGuardado){
-    query = query.eq("id", viajeIdGuardado);
-  } else if(U && U.id){
-    query = query.eq("pasajero_id", U.id).in("estado", ["buscando", "aceptado", "en_camino", "en_curso"]).order("creado_en", { ascending: false }).limit(1);
-  } else {
-    cambiarSeccion("home");
+  if(!viajeIdGuardado && U && U.id){
+    sb.from("viajes")
+      .select("*")
+      .eq("pasajero_id", U.id)
+      .in("estado", ["buscando", "aceptado", "en_camino", "en_curso"])
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .then(function(r){
+        if(r.data && r.data[0]){
+          restaurarViaje(r.data[0]);
+        } else {
+          cambiarSeccion("home");
+        }
+      });
     return;
   }
 
-  query.single().then(function(r){
-    if(r.data && ["buscando", "aceptado", "en_camino", "en_curso"].indexOf(r.data.estado) >= 0){
-      var v = r.data;
-      S.viajeId = v.id;
-      localStorage.setItem("uder_active_viaje", v.id);
-      S.o = { lat: v.origen_lat, lng: v.origen_lng };
-      S.on = v.origen_nombre;
-      S.oref = v.origen_ref || "";
-      S.d = { lat: v.destino_lat, lng: v.destino_lng };
-      S.dn = v.destino_nombre;
-      S.dref = v.destino_ref || "";
-      S.km = v.km;
-      S.cuadras = v.cuadras || Math.round(v.km * 10);
-      S.pg = v.forma_pago;
-      draw();
-
-      if(v.estado === "buscando"){
-        go("search");
-      } else if(v.estado === "aceptado" || v.estado === "en_camino"){
-        S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
-        go("pick");
-      } else if(v.estado === "en_curso"){
-        S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
-        go("trip");
-      }
-    } else {
-      localStorage.removeItem("uder_active_viaje");
-      S.viajeId = null;
-      cambiarSeccion("home");
-    }
-  }).catch(function(){
+  if(viajeIdGuardado){
+    fetch("/api/estado-viaje?id=" + encodeURIComponent(viajeIdGuardado))
+      .then(function(r){ return r.json() })
+      .then(function(res){
+        var v = res.viaje;
+        if(v && ["buscando", "aceptado", "en_camino", "en_curso"].indexOf(v.estado) >= 0){
+          restaurarViaje(v);
+        } else {
+          localStorage.removeItem("uder_active_viaje");
+          S.viajeId = null;
+          cambiarSeccion("home");
+        }
+      }).catch(function(){
+        cambiarSeccion("home");
+      });
+  } else {
     cambiarSeccion("home");
-  });
+  }
+}
+
+function restaurarViaje(v){
+  S.viajeId = v.id;
+  localStorage.setItem("uder_active_viaje", v.id);
+  S.o = { lat: v.origen_lat, lng: v.origen_lng };
+  S.on = v.origen_nombre;
+  S.oref = v.origen_ref || "";
+  S.d = { lat: v.destino_lat, lng: v.destino_lng };
+  S.dn = v.destino_nombre;
+  S.dref = v.destino_ref || "";
+  S.km = v.km;
+  S.cuadras = v.cuadras || Math.round(v.km * 10);
+  S.pg = v.forma_pago;
+  draw();
+
+  if(v.estado === "buscando"){
+    go("search");
+  } else if(v.estado === "aceptado" || v.estado === "en_camino"){
+    S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
+    go("pick");
+  } else if(v.estado === "en_curso"){
+    S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
+    go("trip");
+  }
 }
 
 // PEDIR VIAJE REAL
@@ -580,9 +593,8 @@ function pedirViajeReal(){
     return;
   }
 
-  // Si ya tiene un viaje activo, bloquear
   if(S.viajeId){
-    toast("Ya tenés un viaje solicitado en curso");
+    toast("Ya tenés un viaje en curso");
     go(S.ph || "search");
     return;
   }
@@ -807,58 +819,62 @@ function actualizarPosicionChofer(pos){
   }
 }
 
-// CONSULTA CONTINUA DIRECTA A SUPABASE (SIN RETRASOS)
+// CONSULTA DIRECTA AL SERVIDOR CON CLAVE MAESTRA (SIN BLOQUEOS DE SUPABASE)
 function consultarViaje(){
   if(!S.viajeId) return;
 
-  sb.from("viajes").select("*").eq("id", S.viajeId).single().then(function(r){
-    var v = r.data;
-    if(!v) return;
+  fetch("/api/estado-viaje?id=" + encodeURIComponent(S.viajeId))
+    .then(function(r){ return r.json() })
+    .then(function(res){
+      var v = res.viaje;
+      if(!v) return;
 
-    // 1. Cancelado
-    if(v.estado === "cancelado"){
-      clearInterval(pollTm);
-      localStorage.removeItem("uder_active_viaje");
-      S.viajeId = null;
-      toast("El viaje fue cancelado.");
-      cambiarSeccion("home");
-      return;
-    }
+      // 1. Cancelado
+      if(v.estado === "cancelado"){
+        clearInterval(pollTm);
+        localStorage.removeItem("uder_active_viaje");
+        S.viajeId = null;
+        toast("El viaje fue cancelado.");
+        cambiarSeccion("home");
+        return;
+      }
 
-    // 2. ACEPTADO POR EL CONDUCTOR
-    if((v.estado === "aceptado" || v.estado === "en_camino") && S.ph !== "pick" && S.ph !== "trip"){
-      S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
-      sonarAvisoAceptado();
-      toast("¡Conductor asignado! Viene en camino 🚗");
-      go("pick");
-    }
+      // 2. ACEPTADO POR EL CHOFER
+      if((v.estado === "aceptado" || v.estado === "en_camino") && S.ph !== "pick" && S.ph !== "trip"){
+        S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
+        sonarAvisoAceptado();
+        toast("¡Conductor asignado! Viene en camino 🚗");
+        go("pick");
+      }
 
-    // 3. Buscar ubicación en vivo del auto
-    if(v.conductor_id){
-      sb.from("conductores").select("lat,lng").eq("id", v.conductor_id).single().then(function(cr){
-        if(cr.data && cr.data.lat){
-          actualizarPosicionChofer(cr.data);
-        }
-      });
-    }
+      // 3. Posición en vivo
+      if(res.conductor_pos){
+        actualizarPosicionChofer(res.conductor_pos);
+      }
 
-    // 4. En viaje
-    if(v.estado === "en_curso" && S.ph !== "trip"){
-      go("trip");
-    }
+      // 4. En viaje
+      if(v.estado === "en_curso" && S.ph !== "trip"){
+        go("trip");
+      }
 
-    // 5. Finalizado
-    if(v.estado === "finalizado" && S.ph !== "done"){
-      clearInterval(pollTm);
-      localStorage.removeItem("uder_active_viaje");
-      go("done");
-    }
-  }).catch(function(){});
+      // 5. Finalizado
+      if(v.estado === "finalizado" && S.ph !== "done"){
+        clearInterval(pollTm);
+        localStorage.removeItem("uder_active_viaje");
+        S.viajeId = null;
+        go("done");
+      }
+    })
+    .catch(function(){});
 }
 
 function cancelarViajeActual(){
   if(S.viajeId){
-    sb.from("viajes").update({ estado: "cancelado" }).eq("id", S.viajeId).then(function(){});
+    fetch("/api/cancelar-viaje", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ id: S.viajeId })
+    }).catch(function(){});
   }
   clearInterval(pollTm);
   localStorage.removeItem("uder_active_viaje");
@@ -868,7 +884,7 @@ function cancelarViajeActual(){
 }
 
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
-function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 
 function calcularRutaReal(origen, destino){
   var distDirecta = hav(origen, destino);
@@ -1125,7 +1141,6 @@ function go(ph){
 
   // 1. INICIO
   if(ph==="home"){
-    // Si ya tiene un viaje activo en curso, mostrar el estado activo
     if(S.viajeId){
       v.innerHTML = 
         '<div style="text-align:center;padding:30px 10px">' +

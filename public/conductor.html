@@ -85,7 +85,6 @@ function instalarPwa(){
 
 var D = { u: null, p: null, c: null, on: false, sig: "", pos: null }, tm = null, wid = null, last = 0;
 
-// MOTOR DE AUDIO
 var audioCtx = null;
 function initAudio(){
   try{
@@ -125,7 +124,7 @@ function sonarAlerta(){
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
-function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 function err(m){var e=$("err");if(e)e.textContent=m}
 
 function view(h){
@@ -134,7 +133,6 @@ function view(h){
   $("v").innerHTML = h;
 }
 
-// PANTALLA INGRESO
 function login(){
   view(
     '<div class="card">' +
@@ -151,9 +149,7 @@ function login(){
   );
 }
 
-// PANTALLA REGISTRO
 function reg(){
-  var mx = new Date().toISOString().slice(0,10);
   view(
     '<div class="card">' +
       '<h2 style="margin:0 0 8px;font-size:22px;font-weight:800">Registro de conductor</h2>' +
@@ -202,7 +198,7 @@ function doReg(){
     D.u = r.data.user;
 
     sb.from("perfiles").upsert({ id: id, rol: "conductor", nombre: n, apellido: a }).then(function(){
-      sb.from("conductores").upsert({ id: id, vehiculo: ve, patente: pa, tipo: ti, verificado: true, conectado: false }).then(function(){
+      sb.from("conductores").upsert({ id: id, vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false }).then(function(){
         load();
       });
     });
@@ -213,7 +209,6 @@ function load(){
   if(!D.u) return login();
   
   sb.from("perfiles").select("*").eq("id", D.u.id).single().then(function(p){
-    // Si la cuenta logueada es de pasajero (ej: se logueó con Google)
     if(p.error || !p.data || p.data.rol !== "conductor"){
       view(
         '<div class="card" style="text-align:center;padding:30px 16px">' +
@@ -265,9 +260,8 @@ function refresh(){
   ]).then(function(r){
     D.c = r[0].data;
     
-    // Si todavía no tiene fila en conductores, crearla
     if(!D.c){
-      sb.from("conductores").upsert({ id: uid, vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: true, conectado: false }).then(function(res){
+      sb.from("conductores").upsert({ id: uid, vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false }).then(function(res){
         D.c = res.data;
       });
       return;
@@ -286,7 +280,7 @@ function refresh(){
       sonarAlerta();
     }
 
-    var sg = JSON.stringify([D.c.verificado, D.on, act, off.map(function(o){return o.id})]);
+    var sg = JSON.stringify([D.c.verificado, D.c.estado_revision, D.on, act, off.map(function(o){return o.id})]);
     if(sg === D.sig) return;
     D.sig = sg;
     draw(act, off);
@@ -309,7 +303,9 @@ function draw(act, off){
       '</div>' +
     '</div>';
 
-  if(act){
+  if(!D.c.verificado){
+    h += docsCard();
+  } else if(act){
     var tx = {
       aceptado: ["Voy en camino", "en_camino"],
       en_camino: ["Iniciar viaje", "en_curso"],
@@ -320,7 +316,7 @@ function draw(act, off){
       '<div class="card">' +
         '<h3 style="margin:0 0 6px;font-size:19px;font-weight:800">Viaje con '+esc(act.pasajero_nombre)+'</h3>' +
         '<div class="fare" style="color:var(--ok)">'+M(act.ganancia_conductor)+'</div>' +
-        '<p style="color:var(--ink-secondary);font-size:13px;margin:4px 0 14px">'+(act.forma_pago==="Efectivo"?"💵 Cobrá "+M(act.monto)+" en mano al pasajero.":"💳 Pagado con Mercado Pago.")+'</p>' +
+        '<p style="color:var(--ink-secondary);font-size:13px;margin:4px 0 14px">'+(act.forma_pago==="Efectivo"?"💵 Cobrá "+M(act.monto)+" en mano al pasajero.":"💳 Pagado con tarjeta / Mercado Pago.")+'</p>' +
         '<div style="background:var(--surface);padding:12px;border-radius:12px;font-size:14px;line-height:1.6">' +
           '<div>📍 <b>Retiro:</b> '+esc(act.origen_nombre)+'</div>' +
           '<div>🏁 <b>Destino:</b> '+esc(act.destino_nombre)+'</div>' +
@@ -365,11 +361,85 @@ function draw(act, off){
       '</div>';
   }
 
-  h += '<button class="btn ghost" onclick="verGan()">Mis ganancias</button>';
+  if(D.c.verificado) h += '<button class="btn ghost" onclick="verGan()">Mis ganancias</button>';
   h += '<button class="btn ghost" style="color:var(--bad);border-color:#FFCDD2" onclick="out()">Cerrar sesión</button>';
   
   $("v").innerHTML = h;
   mapaViaje(act);
+}
+
+// FORMULARIO DE DOCUMENTACIÓN CON VERIFICACIÓN POR INTELIGENCIA ARTIFICIAL
+function docsCard(){
+  var c = D.c;
+  var esRechazado = (c.estado_revision === "rechazado");
+
+  return '<div class="card">' +
+    '<h3 style="margin:0 0 6px;font-size:20px;font-weight:800">' + (esRechazado ? 'Documentación no aprobada' : 'Verificación obligatoria') + '</h3>' +
+    (esRechazado && c.motivo_rechazo ? '<p style="color:var(--bad);font-weight:700;margin-bottom:12px">Motivo: ' + esc(c.motivo_rechazo) + '</p>' : '') +
+    '<p style="color:var(--ink-secondary);font-size:14px;margin-bottom:16px">Subí fotos claras de tus 4 documentos. <b>Nuestra Inteligencia Artificial los analiza en 3 segundos</b> para habilitarte automáticamente.</p>' +
+    docInput("d_l", "1. Licencia de conducir (frente)") +
+    docInput("d_s", "2. Póliza de seguro vigente") +
+    docInput("d_v", "3. Cédula del vehículo (frente)") +
+    docInput("d_t", "4. Revisión Técnica (VTV / RTO)") +
+    '<p id="err" style="color:var(--bad);font-size:13px;margin:8px 0"></p>' +
+    '<button class="btn accent" id="btn_subir_docs" onclick="subirYAnalizarDocs()">🤖 Enviar y verificar con IA</button>' +
+  '</div>';
+}
+
+function docInput(id, title){
+  return '<label style="font-size:12px;font-weight:700;display:block;margin-top:10px">' + title + '</label>' +
+         '<input id="' + id + '" type="file" accept="image/jpeg,image/png,image/webp" class="field-input" style="padding:10px">';
+}
+
+// SUBIR Y ANALIZAR CON IA EN 3 SEGUNDOS
+function subirYAnalizarDocs(){
+  var fs = ["d_l", "d_s", "d_v", "d_t"].map(function(i){ return $(i).files[0]; });
+  if(fs.some(function(f){ return !f; })) return err("Por favor seleccioná las 4 fotos.");
+  if(fs.some(function(f){ return f.size > 5242880; })) return err("Cada foto debe pesar menos de 5 MB.");
+
+  var btn = $("btn_subir_docs");
+  btn.disabled = true;
+  btn.textContent = "🤖 Analizando con Inteligencia Artificial… (3 seg)";
+  err("Subiendo documentos y validando vigencia con IA…");
+
+  var t = Date.now();
+  var tipos = ["licencia", "seguro", "cedula", "vtv"];
+
+  // 1. Subir archivos a Supabase Storage
+  Promise.all(fs.map(function(f, i){
+    var ext = (f.name.split(".").pop() || "jpg").toLowerCase();
+    var p = D.u.id + "/" + tipos[i] + "-" + t + "." + ext;
+    return sb.storage.from("documentos").upload(p, f, { contentType: f.type, upsert: true }).then(function(r){
+      if(r.error) throw r.error;
+      return { tipo: tipos[i], path: p };
+    });
+  })).then(function(uploadedDocs){
+    // 2. Llamar a la IA en Cloudflare Worker
+    return fetch("/api/verificar-documentos-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conductor_id: D.u.id,
+        nombre: D.p.nombre,
+        apellido: D.p.apellido,
+        vehiculo: D.c.vehiculo,
+        patente: D.c.patente,
+        docs: uploadedDocs
+      })
+    });
+  }).then(function(r){ return r.json(); }).then(function(res){
+    if(res.aprobado){
+      alert("¡Felicitaciones! 🎉\n\nNuestra Inteligencia Artificial analizó tus documentos y comprobó que todo está en regla.\n\nYa estás habilitado para conectarte y empezar a trabajar con Uder.");
+    } else {
+      alert("Aviso de verificación de IA:\n\n" + (res.motivo || "No se pudieron validar todos los documentos. Revisá las fotos e intentá de nuevo."));
+    }
+    D.sig = "";
+    refresh();
+  }).catch(function(e){
+    err("Error: " + (e.message || "No se pudo completar el análisis"));
+    btn.disabled = false;
+    btn.textContent = "🤖 Reintentar verificación";
+  });
 }
 
 // MAPA

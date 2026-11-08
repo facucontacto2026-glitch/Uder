@@ -1,4 +1,4 @@
-// Uder · Backend en Cloudflare Workers (Mercado Pago API + Supabase)
+// Uder · Backend en Cloudflare Workers
 const SB = "https://mmgvttmgchnbppcemrwg.supabase.co";
 
 const json = (s, o) => new Response(JSON.stringify(o), { 
@@ -80,7 +80,7 @@ async function buscarCalle(request) {
   return json(200, { resultados });
 }
 
-// 2. DÉBITO DIRECTO CON TARJETA (CHECKOUT TRANSPARENTE / INVISIBLE)
+// 2. Débito transparente con tarjeta
 async function procesarPagoTarjeta(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -121,7 +121,6 @@ async function procesarPagoTarjeta(request, env) {
     const j = await r.json();
 
     if (r.ok && j.status === "approved") {
-      // Si el pago se aprobó, actualizar Supabase
       const key = env.SUPABASE_SECRET_KEY;
       if (b.viaje_id && key && /^[0-9a-f-]{36}$/i.test(b.viaje_id)) {
         try {
@@ -136,16 +135,15 @@ async function procesarPagoTarjeta(request, env) {
       return json(200, { aprobado: true, id: j.id, estado: "approved" });
     } else {
       console.error("MP Rechazo:", j);
-      const motivo = j.status_detail || j.message || "Pago rechazado por el banco emisor";
+      const motivo = j.status_detail || j.message || "Pago rechazado por el banco";
       return json(200, { aprobado: false, estado: j.status, detalle: motivo });
     }
   } catch (e) {
-    console.error(e);
-    return json(502, { error: "Error al procesar cobro bancario" });
+    return json(502, { error: "Error de conexión con Mercado Pago" });
   }
 }
 
-// 3. Crear cobro con Checkout Pro (opción alternativa)
+// 3. Checkout Pro
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -195,7 +193,7 @@ async function crearPago(request, env) {
   }
 }
 
-// 4. Verificar cobro
+// 4. Verificar pago
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -234,29 +232,51 @@ async function verificarPago(request, env) {
   }
 }
 
-// 5. Crear viaje en Supabase
+// 5. Crear viaje en Supabase (protegido contra fallos de perfiles)
 async function pedirViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
   let b;
   try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
 
+  const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=representation" };
+
+  // Si viene pasajero_id, aseguramos que exista en la tabla perfiles para no violar la foreign key
+  if (b.pasajero_id) {
+    try {
+      const cp = await fetch(`${SB}/rest/v1/perfiles?id=eq.${b.pasajero_id}&select=id`, { headers: h });
+      const pData = await cp.json();
+      if (!pData || !pData.length) {
+        // Crear el perfil básico
+        await fetch(`${SB}/rest/v1/perfiles`, {
+          method: "POST",
+          headers: h,
+          body: JSON.stringify({ id: b.pasajero_id, rol: "pasajero", nombre: b.pasajero_nombre || "Pasajero" })
+        });
+      }
+    } catch(errPerfil) {
+      delete b.pasajero_id;
+    }
+  }
+
   try {
-    const h = { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "return=representation" };
     const r = await fetch(`${SB}/rest/v1/viajes`, {
       method: "POST",
       headers: h,
       body: JSON.stringify(b)
     });
     const data = await r.json();
-    if (!r.ok) return json(500, { error: "No se pudo crear el viaje", detalle: data });
+    if (!r.ok) {
+      console.error("DB error:", data);
+      return json(500, { error: "No se pudo crear el viaje", detalle: data });
+    }
     return json(200, { viaje: data[0] });
   } catch (e) {
     return json(500, { error: "Error al guardar el viaje" });
   }
 }
 
-// 6. Consultar estado del viaje
+// 6. Consultar estado del viaje (Bypasea RLS con clave maestra para que el pasajero nunca se trabe)
 async function estadoViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -328,7 +348,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Rutas amigables
+    // Rutas limpias
     if (pathname === "/conductor" || pathname === "/conductor/") {
       url.pathname = "/conductor.html";
       return env.ASSETS.fetch(new Request(url, request));

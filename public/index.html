@@ -76,7 +76,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 .btn-uber:active{background:#333}
 .btn-ghost-uber{width:100%;height:48px;background:transparent;color:var(--ink-secondary);border:0;font:700 14px 'Plus Jakarta Sans',sans-serif;cursor:pointer;margin-top:6px}
 .btn-whatsapp{width:100%;height:50px;background:var(--wa);color:#fff;border:0;border-radius:12px;font:700 15px 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;box-shadow:0 3px 10px rgba(37,211,102,0.25)}
-.btn-whatsapp:active{opacity:0.9}
 
 .field-input{width:100%;padding:14px;border-radius:10px;border:1px solid #D5DBE5;background:#F9F9F9;font:600 15px 'Plus Jakarta Sans',sans-serif;margin-top:6px;margin-bottom:14px;outline:none}
 .field-input:focus{border-color:#000;background:#fff}
@@ -214,7 +213,21 @@ function lab(n, r){
 
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
 
-// COMPARTIR VIAJE EN WHATSAPP POR SEGURIDAD
+// SONIDO DE AVISO CUANDO EL CHOFER ACEPTA EL VIAJE
+function sonarAvisoAceptado(){
+  try{
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = "sine"; osc.frequency.setValueAtTime(587.33, now); // Re5
+    osc.frequency.setValueAtTime(880, now + 0.15); // La5
+    g.gain.setValueAtTime(0.5, now);
+    g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.5);
+  }catch(e){}
+}
+
 function compartirPorWhatsApp(){
   var d = S.dr || ["Conductor asignado", "Auto en camino", "---"];
   var chofer = d[0];
@@ -246,8 +259,10 @@ async function logout(){
   toast("Cerrando sesión…");
   try { await sb.auth.signOut(); } catch(e){}
   U = null;
+  S.viajeId = null;
   try {
     localStorage.removeItem("uder_user");
+    localStorage.removeItem("uder_active_viaje");
     sessionStorage.clear();
   } catch(e){}
   toast("Sesión cerrada");
@@ -280,7 +295,8 @@ function sincronizarUsuario(usr){
     }
   });
 
-  cambiarSeccion("home");
+  // Comprobar si tiene viaje activo antes de ir al inicio
+  verificarViajeActivo();
 }
 
 sb.auth.onAuthStateChange(function(event, session){
@@ -294,6 +310,8 @@ sb.auth.getSession().then(function(r){
     sincronizarUsuario(r.data.session.user);
   } else if(!U || !U.nombre){
     go("welcome");
+  } else {
+    verificarViajeActivo();
   }
 });
 
@@ -462,6 +480,14 @@ function cambiarSeccion(sec){
     go("welcome");
     return;
   }
+  // Si tiene un viaje activo, volver siempre a la pantalla de seguimiento
+  if(S.viajeId && (sec === "home" || sec === "opt")){
+    if(S.ph === "pick" || S.ph === "trip" || S.ph === "search"){
+      go(S.ph);
+      return;
+    }
+  }
+
   document.querySelectorAll(".nav-item").forEach(function(btn){ btn.classList.remove("active"); });
   if(sec === "home"){
     $("nav_inicio").classList.add("active");
@@ -497,10 +523,67 @@ function price(i){
 
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
+// COMPROBACIÓN DE VIAJE ACTIVO AL INICIAR LA APP (BLOQUEO DE VIAJES DUPLICADOS)
+function verificarViajeActivo(){
+  var viajeIdGuardado = localStorage.getItem("uder_active_viaje");
+  
+  var query = sb.from("viajes").select("*");
+  if(viajeIdGuardado){
+    query = query.eq("id", viajeIdGuardado);
+  } else if(U && U.id){
+    query = query.eq("pasajero_id", U.id).in("estado", ["buscando", "aceptado", "en_camino", "en_curso"]).order("creado_en", { ascending: false }).limit(1);
+  } else {
+    cambiarSeccion("home");
+    return;
+  }
+
+  query.single().then(function(r){
+    if(r.data && ["buscando", "aceptado", "en_camino", "en_curso"].indexOf(r.data.estado) >= 0){
+      var v = r.data;
+      S.viajeId = v.id;
+      localStorage.setItem("uder_active_viaje", v.id);
+      S.o = { lat: v.origen_lat, lng: v.origen_lng };
+      S.on = v.origen_nombre;
+      S.oref = v.origen_ref || "";
+      S.d = { lat: v.destino_lat, lng: v.destino_lng };
+      S.dn = v.destino_nombre;
+      S.dref = v.destino_ref || "";
+      S.km = v.km;
+      S.cuadras = v.cuadras || Math.round(v.km * 10);
+      S.pg = v.forma_pago;
+      draw();
+
+      if(v.estado === "buscando"){
+        go("search");
+      } else if(v.estado === "aceptado" || v.estado === "en_camino"){
+        S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
+        go("pick");
+      } else if(v.estado === "en_curso"){
+        S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
+        go("trip");
+      }
+    } else {
+      localStorage.removeItem("uder_active_viaje");
+      S.viajeId = null;
+      cambiarSeccion("home");
+    }
+  }).catch(function(){
+    cambiarSeccion("home");
+  });
+}
+
+// PEDIR VIAJE REAL
 function pedirViajeReal(){
   if(!U || !U.nombre){
     toast("Iniciá sesión para pedir un viaje");
     go("welcome");
+    return;
+  }
+
+  // Si ya tiene un viaje activo, bloquear
+  if(S.viajeId){
+    toast("Ya tenés un viaje solicitado en curso");
+    go(S.ph || "search");
     return;
   }
 
@@ -545,6 +628,7 @@ function pedirViajeReal(){
   .then(function(j){
     if(!j.viaje) throw new Error("Error al crear viaje");
     S.viajeId = j.viaje.id;
+    localStorage.setItem("uder_active_viaje", S.viajeId);
 
     try {
       sessionStorage.setItem("uder_trip", JSON.stringify({
@@ -665,6 +749,7 @@ function volverMP(){
     .then(function(j){
       if(j.aprobado){
         toast("Pago acreditado ✓");
+        localStorage.setItem("uder_active_viaje", S.viajeId);
         go("search");
       }else{
         toast("No pudimos confirmar el pago.");
@@ -676,6 +761,7 @@ function volverMP(){
   toast("El pago no se completó.");go("opt");return true;
 }
 
+// SEGUIMIENTO EN VIVO DEL CHOFER
 var carMarker = null;
 function actualizarPosicionChofer(pos){
   if(!pos || pos.lat == null || pos.lng == null) return;
@@ -721,51 +807,62 @@ function actualizarPosicionChofer(pos){
   }
 }
 
+// CONSULTA CONTINUA DIRECTA A SUPABASE (SIN RETRASOS)
 function consultarViaje(){
   if(!S.viajeId) return;
-  fetch("/api/estado-viaje?id="+encodeURIComponent(S.viajeId))
-  .then(function(r){return r.json()})
-  .then(function(res){
-    var v = res.viaje;
+
+  sb.from("viajes").select("*").eq("id", S.viajeId).single().then(function(r){
+    var v = r.data;
     if(!v) return;
 
+    // 1. Cancelado
     if(v.estado === "cancelado"){
       clearInterval(pollTm);
+      localStorage.removeItem("uder_active_viaje");
+      S.viajeId = null;
       toast("El viaje fue cancelado.");
       cambiarSeccion("home");
       return;
     }
 
-    if((v.estado === "aceptado" || v.estado === "en_camino") && S.ph === "search"){
-      S.dr = [v.conductor_nombre, v.vehiculo, v.patente];
+    // 2. ACEPTADO POR EL CONDUCTOR
+    if((v.estado === "aceptado" || v.estado === "en_camino") && S.ph !== "pick" && S.ph !== "trip"){
+      S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
+      sonarAvisoAceptado();
+      toast("¡Conductor asignado! Viene en camino 🚗");
       go("pick");
     }
 
-    if(res.conductor_pos){
-      actualizarPosicionChofer(res.conductor_pos);
+    // 3. Buscar ubicación en vivo del auto
+    if(v.conductor_id){
+      sb.from("conductores").select("lat,lng").eq("id", v.conductor_id).single().then(function(cr){
+        if(cr.data && cr.data.lat){
+          actualizarPosicionChofer(cr.data);
+        }
+      });
     }
 
-    if(v.estado === "en_curso" && S.ph === "pick"){
+    // 4. En viaje
+    if(v.estado === "en_curso" && S.ph !== "trip"){
       go("trip");
     }
 
-    if(v.estado === "finalizado" && (S.ph === "trip" || S.ph === "pick")){
+    // 5. Finalizado
+    if(v.estado === "finalizado" && S.ph !== "done"){
       clearInterval(pollTm);
+      localStorage.removeItem("uder_active_viaje");
       go("done");
     }
-  })
-  .catch(function(){});
+  }).catch(function(){});
 }
 
 function cancelarViajeActual(){
   if(S.viajeId){
-    fetch("/api/cancelar-viaje", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({id: S.viajeId})
-    });
+    sb.from("viajes").update({ estado: "cancelado" }).eq("id", S.viajeId).then(function(){});
   }
   clearInterval(pollTm);
+  localStorage.removeItem("uder_active_viaje");
+  S.viajeId = null;
   toast("Viaje cancelado");
   cambiarSeccion("home");
 }
@@ -1028,6 +1125,18 @@ function go(ph){
 
   // 1. INICIO
   if(ph==="home"){
+    // Si ya tiene un viaje activo en curso, mostrar el estado activo
+    if(S.viajeId){
+      v.innerHTML = 
+        '<div style="text-align:center;padding:30px 10px">' +
+          '<div style="font-size:40px;margin-bottom:10px">🚗</div>' +
+          '<h3 style="margin:0 0 8px;font-size:20px;font-weight:800">Tenés un viaje en curso</h3>' +
+          '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Hacia: '+lab(S.dn, S.dref)+'</p>' +
+          '<button class="btn-uber" onclick="go(S.ph || \'search\')">Ver estado de mi viaje</button>' +
+        '</div>';
+      return;
+    }
+
     var placeholderTxt = S.mode === "o" ? "¿Dónde te retiramos? (ej: guemes 248)" : "¿A dónde vas? (ej: peron 412)";
     var saludo = "¿A dónde vamos, " + esc(U.nombre) + "?";
     v.innerHTML = 
@@ -1272,7 +1381,7 @@ function go(ph){
       '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'home\')">Modificar ruta</button>';
   }
 
-  // 8. RADAR Y EN CURSO (CON BOTÓN DE WHATSAPP)
+  // 8. RADAR Y EN CURSO
   if(ph==="search"){
     v.innerHTML = 
       '<div style="text-align:center;padding:15px 0">' +
@@ -1281,7 +1390,7 @@ function go(ph){
         '<div class="bar" style="height:6px;border-radius:10px;background:#EEEEEE;overflow:hidden;margin-bottom:20px"><i style="width:65%;display:block;height:100%;background:#000"></i></div>' +
         '<button class="btn-uber" style="background:var(--surface);color:#000" onclick="cancelarViajeActual()">Cancelar pedido</button>' +
       '</div>';
-    pollTm = setInterval(consultarViaje, 2500);
+    pollTm = setInterval(consultarViaje, 2000);
   }
 
   if(ph==="pick"){
@@ -1307,7 +1416,7 @@ function go(ph){
         '</button>' +
         '<button class="btn-ghost-uber" style="color:var(--bad)" onclick="cancelarViajeActual()">Cancelar viaje</button>' +
       '</div>';
-    pollTm = setInterval(consultarViaje, 2500);
+    pollTm = setInterval(consultarViaje, 2000);
   }
 
   if(ph==="trip"){
@@ -1326,7 +1435,7 @@ function go(ph){
           '📲 Compartir viaje por WhatsApp' +
         '</button>' +
       '</div>';
-    pollTm = setInterval(consultarViaje, 2500);
+    pollTm = setInterval(consultarViaje, 2000);
   }
 
   if(ph==="done"){
@@ -1335,17 +1444,8 @@ function go(ph){
         '<h2 style="font-size:26px;font-weight:800;margin:0">¡Llegaste a destino!</h2>' +
         '<div style="font-size:42px;font-weight:900;margin:16px 0;letter-spacing:-1px">'+M(price(S.ty))+'</div>' +
         '<p style="color:var(--ink-secondary);margin-bottom:24px">'+(S.pg==="Efectivo"?"Pagale en efectivo a tu chofer.":"El cobro fue procesado automáticamente.")+'</p>' +
-        '<button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;draw();cambiarSeccion(\'home\')">Listo</button>' +
+        '<button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;localStorage.removeItem(\'uder_active_viaje\');draw();cambiarSeccion(\'home\')">Listo</button>' +
       '</div>';
-  }
-}
-
-// ARRANQUE
-if(!volverMP()) {
-  if(U && U.nombre && U.nombre !== "Pasajero"){
-    cambiarSeccion("home");
-  } else {
-    go("welcome");
   }
 }
 </script>

@@ -1,102 +1,237 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><title>Uder Admin</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uder · Administrador</title>
+<link rel="manifest" href="/manifest-admin.json">
+<link rel="apple-touch-icon" href="/icon-admin.svg">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
-:root{--bg:#EEF1F5;--card:#fff;--ink:#14213D;--mute:#5B6678;--line:#D5DBE5;--accent:#F5B700;--on-accent:#14213D;--ok:#1F9D63;--bad:#D64545;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1626;--card:#17233A;--ink:#EEF1F5;--mute:#9AA6BA;--line:#2A3956;--ok:#3CC884;--bad:#F07575}}
-:root[data-theme="dark"]{--bg:#0E1626;--card:#17233A;--ink:#EEF1F5;--mute:#9AA6BA;--line:#2A3956;--ok:#3CC884;--bad:#F07575}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
-.app{max-width:440px;margin:0 auto;padding:0 16px 32px}
-header{position:sticky;top:0;z-index:1000;background:var(--bg);padding:14px 0}
-.logo{font-weight:800;font-size:26px;letter-spacing:-1px}
-.logo i{font-style:normal;color:var(--accent);background:var(--ink);padding:0 6px;border-radius:6px;margin-right:6px}
-.logo small{font-weight:600;font-size:12px;color:var(--mute);margin-left:6px;letter-spacing:0}
-#map{height:300px;border-radius:20px;border:1px solid var(--line);margin-bottom:14px;z-index:1}
-.card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;border:1px solid var(--line)}
-h2{margin:0 0 6px;font-size:22px;letter-spacing:-.5px}
-p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
-.btn{width:100%;border:0;border-radius:16px;padding:16px;font:800 16px "Sora",sans-serif;cursor:pointer;background:var(--accent);color:var(--on-accent);margin-top:14px}
-.btn.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);font-weight:600}
-.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.st:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:9px 13px;font:600 13px "Sora",sans-serif;cursor:pointer}
-.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
-.search{display:flex;gap:8px}
-input{flex:1;min-width:0;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}
-.go{border:0;border-radius:14px;padding:0 16px;background:var(--ink);color:var(--bg);font:700 14px "Sora",sans-serif;cursor:pointer}
-.res{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:11px;margin-top:8px;font:600 13px "Sora",sans-serif;cursor:pointer}
-.opt{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:14px;margin-top:10px;font:600 15px "Sora",sans-serif;cursor:pointer}
-.opt small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:2px}
-.opt b{font-size:18px}
-.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--bg)}
-.lbl{font-size:13px;font-weight:600;color:var(--mute);margin:18px 0 0}
-.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:var(--ok);width:0}
-.tag{display:inline-block;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;background:var(--line);color:var(--ink)}
-.plate{font-weight:800;letter-spacing:2px;border:2px solid var(--ink);border-radius:8px;padding:3px 10px;font-size:14px}
-.st{border:0;background:none;font-size:34px;color:var(--line);cursor:pointer;padding:2px}.st.on{color:var(--accent)}
-.fare{font-size:40px;font-weight:800;letter-spacing:-1.5px}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;max-width:90%;z-index:2000}
-.fl{display:block;font-size:13px;font-weight:600;color:var(--mute);margin:14px 0 6px}
-.ck{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--mute);line-height:1.4}
-select{width:100%;padding:13px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px "Sora",sans-serif}.nav{display:inline-block;margin-top:10px;color:var(--ink);font-weight:700;font-size:14px}</style></head><body>
-<div class="app"><header><div class="logo"><i>U</i>der<small>Administrador</small></div></header><main id="v"></main></div>
+:root{
+  --bg:#FFFFFF;--surface:#F6F6F6;--card:#FFFFFF;--ink:#000000;--ink-secondary:#5E5E5E;--line:#EEEEEE;--accent:#F5B700;--ok:#0E8345;--bad:#DE1135;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#F9F9F9;color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+.app{max-width:480px;width:100%;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;background:#fff}
+
+header{position:sticky;top:0;z-index:1000;background:#000;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:800;font-size:22px;letter-spacing:-1px}
+.logo span{background:#F5B700;color:#000;padding:2px 8px;border-radius:6px;margin-right:6px}
+
+.main-view{flex:1;padding:16px 20px 40px;background:#fff}
+.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+
+.btn{width:100%;height:50px;border:0;border-radius:12px;font:700 15px 'Plus Jakarta Sans',sans-serif;cursor:pointer;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
+.btn.accent{background:var(--accent);color:#000}
+.btn.ghost{background:transparent;color:var(--ink-secondary);border:1px solid #ddd}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{border:1px solid #ddd;background:var(--surface);color:#000;border-radius:20px;padding:8px 14px;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.chip[aria-pressed="true"]{background:#000;color:#fff;border-color:#000}
+
+.field-input{width:100%;padding:14px;border-radius:10px;border:1px solid #D5DBE5;background:#F9F9F9;font:600 15px 'Plus Jakarta Sans',sans-serif;margin-top:6px;margin-bottom:14px;outline:none}
+.field-input:focus{border-color:#000;background:#fff}
+
+.tag{display:inline-block;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;background:var(--surface);color:#000}
+.fare{font-size:32px;font-weight:900}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#000;color:#fff;padding:12px 20px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 4px 15px rgba(0,0,0,0.2);z-index:5000;max-width:85%;text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><span>U</span>der<small style="color:var(--accent);margin-left:6px;font-weight:700">ADMIN</small></div>
+    <!-- BOTÓN SIEMPRE VISIBLE -->
+    <button id="btn_instalar_admin" class="chip" style="background:var(--accent);color:#000;border:0;font-weight:800;display:inline-flex" onclick="instalarAdminApp()">📲 Instalar App</button>
+  </header>
+  <main id="v" class="main-view">
+    <div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Iniciando panel de control…</p></div>
+  </main>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script>var LF=L</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-var sb=supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co","sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ"),L=[],tab="pendiente";
+var sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ");
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(function(){});
+}
+
+var deferredAdminPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredAdminPrompt = e;
+});
+
+function instalarAdminApp(){
+  if(deferredAdminPrompt){
+    deferredAdminPrompt.prompt();
+    deferredAdminPrompt = null;
+  } else {
+    alert("Para instalar en tu celular:\n\n1. Tocá los 3 puntitos (⋮) arriba a la derecha en Chrome.\n2. Elegí 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
+  }
+}
+
+var L_LIST = [], tab = "pendiente", SD = [];
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
-function view(h){$("v").innerHTML=h}
-function edad(s){var d=new Date(s),t=new Date(),a=t.getFullYear()-d.getFullYear(),m=t.getMonth()-d.getMonth();if(m<0||(m===0&&t.getDate()<d.getDate()))a--;return a}
-function login(m){view('<div class="card"><h2>Panel de administrador</h2><label class="fl" for="e">Email</label><input id="e" type="email" autocomplete="email" style="width:100%"><label class="fl" for="w">Contraseña</label><input id="w" type="password" autocomplete="current-password" style="width:100%"><p id="err" role="alert" style="color:var(--bad);margin-top:12px">'+esc(m||"")+'</p><button class="btn" onclick="doLogin()">Ingresar</button></div>')}
-function doLogin(){var e=$("e").value.trim(),w=$("w").value;if(!e||!w){$("err").textContent="Completá email y contraseña.";return}$("err").textContent="Ingresando…";sb.auth.signInWithPassword({email:e,password:w}).then(function(r){if(r.error){$("err").textContent="Email o contraseña incorrectos.";return}check()})}
-function check(){sb.rpc("es_admin").then(function(r){if(r.data!==true){sb.auth.signOut();login("Esta cuenta no es de administrador.");return}load()})}
-function load(){sb.rpc("admin_lista_conductores").then(function(r){if(r.error){login("No se pudo cargar: "+r.error.message);return}L=r.data||[];draw()})}
-function setTab(t){tab=t;draw()}
-function cnt(t){return L.filter(function(x){return x.estado_revision===t}).length}
-function draw(){var rows=L.filter(function(x){return x.estado_revision===tab});
-var h='<div class="chips">'+[["pendiente","Pendientes"],["aprobado","Aprobados"],["rechazado","Rechazados"]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+' ('+cnt(t[0])+')</button>'}).join("")+'</div>';
-h+=rows.length?rows.map(card).join(""):'<div class="card"><p>No hay conductores en esta lista.</p></div>';
-h+='<button class="btn ghost" onclick="load()">Actualizar</button><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h)}
-function card(x){var docs=[["Licencia",x.doc_licencia],["Seguro",x.doc_seguro],["Cédula",x.doc_vehiculo],["VTV",x.doc_vtv]];
-return '<div class="card"><div class="row"><b>'+esc(x.nombre)+' '+esc(x.apellido)+'</b><span class="tag">'+esc(x.tipo)+'</span></div><p>'+esc(x.email)+'<br>DNI '+esc(x.dni)+' · '+edad(x.fecha_nac)+' años<br>'+esc(x.vehiculo)+' · '+esc(x.patente)+'<br>Registrado: '+new Date(x.creado_en).toLocaleDateString("es-AR")+'</p>'+(x.motivo_rechazo?'<p style="color:var(--bad);margin-top:8px">Motivo: '+esc(x.motivo_rechazo)+'</p>':'')+'<div class="chips">'+docs.map(function(d){return d[1]?'<button class="chip" onclick="verDoc(\''+esc(d[1])+'\')">'+d[0]+'</button>':'<span class="tag">'+d[0]+': falta</span>'}).join("")+'</div>'+(tab!=="aprobado"?'<button class="btn" onclick="revisar(\''+x.id+'\',true)">Aprobar</button>':'')+(tab!=="rechazado"?'<button class="btn ghost" onclick="revisar(\''+x.id+'\',false)">'+(tab==="aprobado"?"Suspender":"Rechazar")+'</button>':'')+'</div>'}
-function verDoc(p){var w=window.open("","_blank");sb.storage.from("documentos").createSignedUrl(p,120).then(function(r){if(r.error||!r.data){if(w)w.close();toast("No se pudo abrir el documento.");return}if(w)w.location=r.data.signedUrl;else window.open(r.data.signedUrl)})}
-function revisar(id,ap){var x=L.filter(function(y){return y.id===id})[0],m=null;
-if(ap&&!x.doc_licencia&&!confirm("Este conductor no subió documentos. ¿Aprobar igual?"))return;
-if(!ap){m=prompt("Motivo (lo va a ver el conductor):");if(m===null)return}
-sb.rpc("admin_revisar",{cid:id,aprobar:ap,motivo:m}).then(function(r){toast(r.error?"Error: "+r.error.message:ap?"Conductor aprobado":"Conductor rechazado");load()})}
-var SD=[];
-function M(n){return (n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString("es-AR")}
-function load(){Promise.all([sb.rpc("admin_lista_conductores"),sb.rpc("admin_saldos")]).then(function(r){if(r[0].error){login("No se pudo cargar: "+r[0].error.message);return}L=r[0].data||[];SD=r[1].data||[];if(r[1].error)toast("Saldos: "+r[1].error.message);draw()})}
-function chips(){return '<div class="chips">'+[["pendiente","Pendientes",cnt("pendiente")],["aprobado","Aprobados",cnt("aprobado")],["rechazado","Rechazados",cnt("rechazado")],["saldos","Saldos",null],["envivo","En vivo",null]].map(function(t){return '<button class="chip" aria-pressed="'+(tab===t[0])+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+(t[2]===null?"":" ("+t[2]+")")+'</button>'}).join("")+'</div>'}
-function saldos(){var n=0,f=0,c=0;SD.forEach(function(s){n+=Number(s.viajes);f+=Number(s.facturado);c+=Number(s.comision_total)});
-var h='<div class="card"><h2>Resumen</h2><div class="row" style="align-items:flex-start;margin-top:10px"><div style="flex:1"><b style="font-size:20px;display:block">'+n+'</b><span style="font-size:12px;color:var(--mute)">Viajes</span></div><div style="flex:1"><b style="font-size:20px;display:block">'+M(f)+'</b><span style="font-size:12px;color:var(--mute)">Facturado</span></div><div style="flex:1"><b style="font-size:20px;display:block">'+M(c)+'</b><span style="font-size:12px;color:var(--mute)">Tu comisión</span></div></div><p style="margin-top:10px;font-size:12px">Solo viajes finalizados, en efectivo o con pago confirmado.</p></div>';
-var rows=SD.filter(function(s){return Number(s.viajes)>0||Number(s.pendiente)!==0});
-h+=rows.length?rows.map(function(s){var p=Number(s.pendiente),txt=p>0?'<span style="color:var(--ok)">Pagale '+M(p)+'</span>':p<0?'<span style="color:var(--bad)">Te debe '+M(-p)+'</span>':'Al día';
-return '<div class="card"><div class="row"><b>'+esc(s.nombre)+'</b><span class="tag">'+s.viajes+' viajes</span></div><p style="margin-top:8px">Mercado Pago, le corresponde: '+M(s.a_favor_mp)+'<br>Efectivo, te debe tu comisión: '+M(s.comision_efectivo)+'<br>Ya liquidado: '+M(s.liquidado)+'</p><div class="fare" style="font-size:28px;margin-top:8px">'+txt+'</div>'+(p!==0?'<button class="btn" onclick="liquidar(\''+s.conductor_id+'\')">'+(p>0?"Registrar que le pagué":"Registrar que me pagó")+'</button>':'')+'</div>'}).join(""):'<div class="card"><p>Todavía no hay viajes finalizados.</p></div>';
-return h}
-function liquidar(id){var s=SD.filter(function(x){return x.conductor_id===id})[0],p=Number(s.pendiente),pago=p>0;
-var t=prompt(pago?"¿Cuánto le pagaste a "+s.nombre+"? (en pesos)":"¿Cuánto te pagó "+s.nombre+"? (en pesos)",String(Math.abs(p)));if(t===null)return;
-var n=Math.round(Number(String(t).replace(/[^0-9.]/g,"")));if(!n||n<=0){toast("Monto inválido.");return}
-if(n>Math.abs(p)&&!confirm("El monto es mayor al saldo pendiente. ¿Registrarlo igual?"))return;
-sb.rpc("admin_liquidar",{p_cid:id,p_monto:pago?n:-n,p_nota:"Registrado desde el panel"}).then(function(r){toast(r.error?"Error: "+r.error.message:"Pago registrado");load()})}
-var VM=null,VG=null,VT=0,VI=null;
-function ago(t){if(!t)return"sin datos";var s=Math.round((Date.now()-new Date(t))/1000);return s<60?"hace "+s+" s":"hace "+Math.round(s/60)+" min"}
-function cargarVivo(){sb.rpc("admin_viajes_activos").then(function(r){if(tab!=="envivo"||!$("mapa"))return;var a=r.data||[];
-if(!VM){VM=LF.map("mapa").setView([-25.8,-64.967],14);LF.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© Colaboradores de OpenStreetMap"}).addTo(VM);VG=LF.layerGroup().addTo(VM)}
-VG.clearLayers();var b=[];
-function pt(la,lo,c,t,rad){if(la==null)return;b.push([la,lo]);LF.circleMarker([la,lo],{radius:rad||9,color:"#fff",weight:3,fillColor:c,fillOpacity:1}).bindTooltip(t).addTo(VG)}
-a.forEach(function(v){pt(v.origen_lat,v.origen_lng,"#14213D","Retiro: "+v.origen_nombre);pt(v.destino_lat,v.destino_lng,"#D64545","Destino: "+v.destino_nombre);pt(v.pas_lat,v.pas_lng,"#1F9D63","Pasajero: "+v.pasajero_nombre);pt(v.cond_lat,v.cond_lng,"#F5B700","Conductor: "+v.conductor_nombre+" · "+v.patente,12);LF.polyline([[v.origen_lat,v.origen_lng],[v.destino_lat,v.destino_lng]],{color:"#14213D",weight:2,dashArray:"6 8"}).addTo(VG)});
-if(b.length&&!VT){VM.fitBounds(b,{padding:[40,40],maxZoom:16});VT=1}
-$("lista").innerHTML=a.length?a.map(function(v){return '<div class="card"><div class="row"><b>'+esc(v.conductor_nombre)+' · '+esc(v.patente)+'</b><span class="tag">'+esc({aceptado:"Aceptado",en_camino:"En camino",en_curso:"En viaje"}[v.estado]||v.estado)+'</span></div><p>Pasajero: '+esc(v.pasajero_nombre)+'<br>'+esc(v.origen_nombre)+' → '+esc(v.destino_nombre)+'<br>Ubicación del conductor: '+ago(v.cond_actualizado)+'</p></div>'}).join(""):'<div class="card"><p>No hay viajes en curso en este momento.</p></div>'})}
-function draw(){clearInterval(VI);var h=chips();if(tab==="envivo"){VM=null;VT=0;h+='<div id="mapa" style="height:320px;border-radius:20px;border:1px solid var(--line);margin-bottom:14px"></div><div id="lista"></div><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h);cargarVivo();VI=setInterval(cargarVivo,5000);return}
-if(tab==="saldos"){h+=saldos()}else{var rows=L.filter(function(x){return x.estado_revision===tab});h+=rows.length?rows.map(card).join(""):'<div class="card"><p>No hay conductores en esta lista.</p></div>'}
-h+='<button class="btn ghost" onclick="load()">Actualizar</button><button class="btn ghost" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';view(h)}
-sb.auth.getSession().then(function(r){if(!r.data.session)login();else check()});
-</script></body></html>
+function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
+function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function view(h){$("v").innerHTML = h}
+
+function login(m){
+  view(
+    '<div class="card">' +
+      '<h2 style="font-size:22px;font-weight:800;margin:0 0 8px">Panel Administrador Uder</h2>' +
+      '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 16px">Acceso exclusivo de administración y comisiones.</p>' +
+      '<label style="font-size:12px;font-weight:700">EMAIL</label><input id="e" type="email" class="field-input">' +
+      '<label style="font-size:12px;font-weight:700">CONTRASEÑA</label><input id="w" type="password" class="field-input">' +
+      (m ? '<p style="color:var(--bad);font-size:13px;margin:0 0 10px">'+esc(m)+'</p>' : '') +
+      '<button class="btn accent" onclick="doLogin()">Ingresar</button>' +
+    '</div>'
+  );
+}
+
+function doLogin(){
+  var e = $("e").value.trim(), w = $("w").value;
+  if(!e || !w) return toast("Completá email y contraseña");
+  sb.auth.signInWithPassword({ email: e, password: w }).then(function(r){
+    if(r.error) return login("Credenciales incorrectas");
+    check();
+  });
+}
+
+function check(){
+  sb.rpc("es_admin").then(function(r){
+    if(r.data !== true){
+      sb.auth.signOut();
+      login("Esta cuenta no tiene permisos de administrador.");
+      return;
+    }
+    load();
+  });
+}
+
+function load(){
+  Promise.all([sb.rpc("admin_lista_conductores"), sb.rpc("admin_saldos")]).then(function(r){
+    if(r[0].error) return login(r[0].error.message);
+    L_LIST = r[0].data || [];
+    SD = r[1].data || [];
+    draw();
+  }).catch(function(e){ login(e.message); });
+}
+
+function setTab(t){ tab = t; draw(); }
+function cnt(t){ return L_LIST.filter(function(x){ return x.estado_revision === t; }).length; }
+
+function draw(){
+  var h = 
+    '<div class="chips">' +
+      '<button class="chip" aria-pressed="'+(tab==="pendiente")+'" onclick="setTab(\'pendiente\')">Pendientes ('+cnt("pendiente")+')</button>' +
+      '<button class="chip" aria-pressed="'+(tab==="aprobado")+'" onclick="setTab(\'aprobado\')">Aprobados ('+cnt("aprobado")+')</button>' +
+      '<button class="chip" aria-pressed="'+(tab==="rechazado")+'" onclick="setTab(\'rechazado\')">Rechazados ('+cnt("rechazado")+')</button>' +
+      '<button class="chip" aria-pressed="'+(tab==="saldos")+'" onclick="setTab(\'saldos\')">Saldos y Comisiones</button>' +
+    '</div>';
+
+  if(tab === "saldos"){
+    h += saldosView();
+  } else {
+    var rows = L_LIST.filter(function(x){ return x.estado_revision === tab; });
+    h += rows.length ? rows.map(cardConductor).join("") : '<div class="card"><p style="color:var(--ink-secondary)">No hay choferes en esta categoría.</p></div>';
+  }
+
+  h += '<button class="btn ghost" onclick="load()">🔄 Actualizar datos</button>';
+  h += '<button class="btn ghost" style="color:var(--bad);border-color:#FFCDD2" onclick="sb.auth.signOut();login()">Cerrar sesión</button>';
+  view(h);
+}
+
+function cardConductor(x){
+  var docs = [["Licencia", x.doc_licencia], ["Seguro", x.doc_seguro], ["Cédula", x.doc_vehiculo], ["VTV", x.doc_vtv]];
+  var verificadoIA = (x.estado_revision === "aprobado");
+
+  return '<div class="card">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+      '<div>' +
+        '<b style="font-size:17px">'+esc(x.nombre)+' '+esc(x.apellido)+'</b>' +
+        '<p style="margin:2px 0 0;font-size:13px;color:var(--ink-secondary)">'+esc(x.vehiculo)+' · <b>'+esc(x.patente)+'</b></p>' +
+      '</div>' +
+      (verificadoIA ? '<span class="tag" style="background:#E8F5E9;color:#1B5E20">🤖 Aprobado</span>' : '<span class="tag">'+esc(x.tipo)+'</span>') +
+    '</div>' +
+    '<p style="font-size:12px;color:var(--ink-secondary);margin:8px 0">'+esc(x.email)+' · DNI '+esc(x.dni)+'</p>' +
+    (x.motivo_rechazo ? '<p style="color:var(--bad);font-size:12px;margin:4px 0"><b>Motivo:</b> '+esc(x.motivo_rechazo)+'</p>' : '') +
+    '<div class="chips" style="margin:10px 0 6px">' +
+      docs.map(function(d){
+        return d[1] ? '<button class="chip" onclick="verDoc(\''+esc(d[1])+'\')">👁️ '+d[0]+'</button>' : '<span class="tag">Falta '+d[0]+'</span>';
+      }).join("") +
+    '</div>' +
+    (tab !== "aprobado" ? '<button class="btn accent" onclick="revisar(\''+x.id+'\', true)">Aprobar chofer</button>' : '') +
+    (tab !== "rechazado" ? '<button class="btn ghost" style="margin-top:6px" onclick="revisar(\''+x.id+'\', false)">'+(tab==="aprobado"?"Suspender chofer":"Rechazar")+'</button>' : '') +
+  '</div>';
+}
+
+function verDoc(p){
+  var w = window.open("", "_blank");
+  sb.storage.from("documentos").createSignedUrl(p, 120).then(function(r){
+    if(r.data && r.data.signedUrl) w.location = r.data.signedUrl;
+    else { w.close(); toast("No se pudo cargar el documento."); }
+  });
+}
+
+function revisar(id, ap){
+  var m = ap ? null : prompt("Motivo (lo verá el conductor):");
+  if(!ap && m === null) return;
+  sb.rpc("admin_revisar", { cid: id, aprobar: ap, motivo: m }).then(function(r){
+    toast(ap ? "Chofer aprobado" : "Chofer suspendido");
+    load();
+  });
+}
+
+function saldosView(){
+  var totViajes = 0, totFacturado = 0, totComision = 0;
+  SD.forEach(function(s){
+    totViajes += Number(s.viajes || 0);
+    totFacturado += Number(s.facturado || 0);
+    totComision += Number(s.comision_total || 0);
+  });
+
+  var h = 
+    '<div class="card">' +
+      '<h3 style="margin:0 0 10px;font-size:18px;font-weight:800">Resumen de Comisiones</h3>' +
+      '<div style="display:flex;justify-content:space-between;text-align:center">' +
+        '<div><b style="font-size:18px">'+totViajes+'</b><small style="display:block;color:var(--ink-secondary)">Viajes</small></div>' +
+        '<div><b style="font-size:18px">'+M(totFacturado)+'</b><small style="display:block;color:var(--ink-secondary)">Facturado</small></div>' +
+        '<div><b style="font-size:18px;color:var(--ok)">'+M(totComision)+'</b><small style="display:block;color:var(--ink-secondary)">Tu Ganancia</small></div>' +
+      '</div>' +
+    '</div>';
+
+  var rows = SD.filter(function(s){ return Number(s.viajes) > 0 || Number(s.pendiente) !== 0; });
+  h += rows.length ? rows.map(function(s){
+    var p = Number(s.pendiente);
+    var balanceTxt = p > 0 ? '<span style="color:var(--ok)">Tenés que pagarle '+M(p)+'</span>' : p < 0 ? '<span style="color:var(--bad)">Te debe '+M(-p)+'</span>' : 'Al día';
+    return '<div class="card">' +
+      '<b>'+esc(s.nombre)+'</b> · <span class="tag">'+s.viajes+' viajes</span>' +
+      '<p style="font-size:13px;color:var(--ink-secondary);margin:6px 0 10px">' +
+        'Mercado Pago (a favor de chofer): '+M(s.a_favor_mp)+'<br>' +
+        'Efectivo (te debe comisión): '+M(s.comision_efectivo) +
+      '</p>' +
+      '<div style="font-size:18px;font-weight:800">'+balanceTxt+'</div>' +
+    '</div>';
+  }).join("") : '<div class="card"><p style="color:var(--ink-secondary)">No hay saldos pendientes.</p></div>';
+
+  return h;
+}
+
+sb.auth.getSession().then(function(r){
+  if(!r.data || !r.data.session) login();
+  else check();
+});
+</script>
+</body>
+</html>

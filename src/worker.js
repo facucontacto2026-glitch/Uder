@@ -20,7 +20,7 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-// Iconos vectoriales de las 3 apps
+// Iconos vectoriales
 function servirIcono(tipo) {
   if (tipo === "admin") {
     const svgAdmin = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
@@ -50,7 +50,7 @@ function servirIcono(tipo) {
   return new Response(svg, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
 }
 
-// 1. REGISTRO MAESTRO DE CONDUCTOR
+// 1. Registro de chofer
 async function registroConductor(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -68,56 +68,40 @@ async function registroConductor(request, env) {
         email: b.email,
         password: b.password,
         email_confirm: true,
-        user_metadata: {
-          full_name: `${b.nombre} ${b.apellido}`,
-          rol: "conductor"
-        }
+        user_metadata: { full_name: `${b.nombre} ${b.apellido}`, rol: "conductor" }
       })
     });
     const authData = await authRes.json();
-    if (!authRes.ok) {
-      return json(400, { error: authData.msg || authData.message || "Error al crear cuenta" });
-    }
+    if (!authRes.ok) return json(400, { error: authData.msg || authData.message || "Error al crear cuenta" });
 
     const uid = authData.id;
 
     await fetch(`${SB}/rest/v1/perfiles`, {
       method: "POST",
       headers: { ...h, Prefer: "return=minimal" },
-      body: JSON.stringify({
-        id: uid,
-        rol: "conductor",
-        nombre: b.nombre,
-        apellido: b.apellido
-      })
+      body: JSON.stringify({ id: uid, rol: "conductor", nombre: b.nombre, apellido: b.apellido })
     });
 
     await fetch(`${SB}/rest/v1/conductores`, {
       method: "POST",
       headers: { ...h, Prefer: "return=minimal" },
       body: JSON.stringify({
-        id: uid,
-        vehiculo: b.vehiculo,
-        patente: b.patente,
-        tipo: b.tipo || "Remis",
-        verificado: false,
-        estado_revision: "pendiente",
-        conectado: false
+        id: uid, vehiculo: b.vehiculo, patente: b.patente, tipo: b.tipo || "Remis",
+        verificado: false, estado_revision: "pendiente", conectado: false
       })
     });
 
     return json(200, { ok: true, id: uid });
   } catch (e) {
-    console.error(e);
     return json(500, { error: "Error en el servidor al crear chofer" });
   }
 }
 
-// 2. VERIFICADOR INTELIGENTE CON IA (GOOGLE GEMINI 1.5 FLASH VISION)
+// 2. Verificador con IA
 async function verificarDocumentosAI(request, env) {
   const geminiKey = env.GEMINI_API_KEY;
   const sbKey = env.SUPABASE_SECRET_KEY;
-  if (!geminiKey || !sbKey) return json(500, { error: "Falta configurar GEMINI_API_KEY o SUPABASE_SECRET_KEY" });
+  if (!geminiKey || !sbKey) return json(500, { error: "Faltan claves de configuración" });
 
   let b;
   try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
@@ -145,16 +129,12 @@ async function verificarDocumentosAI(request, env) {
           }
         });
       }
-    } catch(errImg) {
-      console.error("Error descargando doc:", doc.path, errImg);
-    }
+    } catch(errImg) {}
   }
 
-  if (!inlineImages.length) {
-    return json(400, { error: "No se pudieron descargar las fotos para la IA" });
-  }
+  if (!inlineImages.length) return json(400, { error: "No se pudieron descargar las fotos para la IA" });
 
-  const prompt = `Eres el perito auditor de Inteligencia Artificial de la app UDER en Rosario de la Frontera, Salta, Argentina.
+  const prompt = `Eres el perito auditor de IA de la app UDER en Rosario de la Frontera, Salta, Argentina.
 Verifica la documentación del chofer:
 - Nombre: ${nombreChofer}
 - Vehículo: ${vehiculo}
@@ -200,11 +180,7 @@ Responde ÚNICAMENTE en JSON:
       })
     });
 
-    return json(200, {
-      aprobado: esAprobado,
-      motivo: veredicto.motivo,
-      detalles: veredicto.detalles
-    });
+    return json(200, { aprobado: esAprobado, motivo: veredicto.motivo, detalles: veredicto.detalles });
   } catch(e) {
     return json(500, { error: "Error en el análisis de IA" });
   }
@@ -503,24 +479,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Rutas limpias
-    if (pathname === "/descargar" || pathname === "/descargar/") {
-      url.pathname = "/descargar.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-    if (pathname === "/apps" || pathname === "/app") {
-      url.pathname = "/descargar.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-    if (pathname === "/conductor" || pathname === "/conductor/") {
-      url.pathname = "/conductor.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-    if (pathname === "/admin" || pathname === "/admin/") {
-      url.pathname = "/admin.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-
+    // Cloudflare Assets entrega directamente /descargar, /conductor, /admin e /index.html sin rebotes
     return env.ASSETS.fetch(request);
   }
 };

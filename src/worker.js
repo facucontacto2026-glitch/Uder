@@ -20,7 +20,7 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-// Iconos vectoriales
+// Iconos vectoriales de las 3 apps
 function servirIcono(tipo) {
   if (tipo === "admin") {
     const svgAdmin = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
@@ -50,7 +50,7 @@ function servirIcono(tipo) {
   return new Response(svg, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
 }
 
-// 1. REGISTRO MAESTRO DE CONDUCTOR (CREA USUARIO, PERFIL Y VEHÍCULO SIN BLOQUEOS)
+// 1. REGISTRO MAESTRO DE CONDUCTOR
 async function registroConductor(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -61,7 +61,6 @@ async function registroConductor(request, env) {
   const h = { ...sbHeaders(key), "Content-Type": "application/json" };
 
   try {
-    // A. Crear usuario en Auth con confirmación automática
     const authRes = await fetch(`${SB}/auth/v1/admin/users`, {
       method: "POST",
       headers: h,
@@ -82,7 +81,6 @@ async function registroConductor(request, env) {
 
     const uid = authData.id;
 
-    // B. Crear registro en perfiles
     await fetch(`${SB}/rest/v1/perfiles`, {
       method: "POST",
       headers: { ...h, Prefer: "return=minimal" },
@@ -94,7 +92,6 @@ async function registroConductor(request, env) {
       })
     });
 
-    // C. Crear registro en conductores
     await fetch(`${SB}/rest/v1/conductores`, {
       method: "POST",
       headers: { ...h, Prefer: "return=minimal" },
@@ -120,7 +117,7 @@ async function registroConductor(request, env) {
 async function verificarDocumentosAI(request, env) {
   const geminiKey = env.GEMINI_API_KEY;
   const sbKey = env.SUPABASE_SECRET_KEY;
-  if (!geminiKey || !sbKey) return json(500, { error: "Faltan claves de configuración" });
+  if (!geminiKey || !sbKey) return json(500, { error: "Falta configurar GEMINI_API_KEY o SUPABASE_SECRET_KEY" });
 
   let b;
   try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
@@ -507,6 +504,14 @@ export default {
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
     // Rutas limpias
+    if (pathname === "/descargar" || pathname === "/descargar/") {
+      url.pathname = "/descargar.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+    if (pathname === "/apps" || pathname === "/app") {
+      url.pathname = "/descargar.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
     if (pathname === "/conductor" || pathname === "/conductor/") {
       url.pathname = "/conductor.html";
       return env.ASSETS.fetch(new Request(url, request));

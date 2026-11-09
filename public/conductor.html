@@ -124,7 +124,7 @@ function sonarAlerta(){
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
-function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 function err(m){var e=$("err");if(e)e.textContent=m}
 
 function view(h){
@@ -133,6 +133,7 @@ function view(h){
   $("v").innerHTML = h;
 }
 
+// PANTALLA INGRESO
 function login(){
   view(
     '<div class="card">' +
@@ -149,6 +150,7 @@ function login(){
   );
 }
 
+// PANTALLA REGISTRO
 function reg(){
   view(
     '<div class="card">' +
@@ -163,7 +165,7 @@ function reg(){
       '<label style="font-size:12px;font-weight:700">TIPO DE SERVICIO</label>' +
       '<select id="r_ti" class="field-input"><option>Remis</option><option>Uder</option></select>' +
       '<p id="err" style="color:var(--bad);font-size:13px;margin:0 0 10px"></p>' +
-      '<button class="btn accent" onclick="doReg()">Crear cuenta</button>' +
+      '<button class="btn accent" id="btn_crear_chofer" onclick="doReg()">Crear cuenta</button>' +
       '<button class="btn ghost" onclick="login()">Volver al ingreso</button>' +
     '</div>'
   );
@@ -181,54 +183,77 @@ function doLogin(){
   }).catch(function(e){ err("Error al conectar: " + e.message); });
 }
 
+// CREACIÓN DE CONDUCTOR BLINDADA A TRAVÉS DEL SERVIDOR
 function doReg(){
   initAudio();
   var e = $("r_e").value.trim(), w = $("r_w").value, n = $("r_n").value.trim(), a = $("r_a").value.trim(), ve = $("r_ve").value.trim(), pa = $("r_pa").value.trim().toUpperCase(), ti = $("r_ti").value;
   if(!e || !w || !n || !ve || !pa) return err("Completá todos los campos.");
   if(w.length < 6) return err("Contraseña de al menos 6 caracteres.");
+
+  var btn = $("btn_crear_chofer");
+  if(btn){ btn.disabled = true; btn.textContent = "Creando cuenta de conductor…"; }
   err("Creando tu cuenta de conductor…");
 
-  sb.auth.signUp({
-    email: e, password: w,
-    options: { data: { full_name: n + " " + a, rol: "conductor" } }
-  }).then(function(r){
-    if(r.error) return err(r.error.message);
-    var id = r.data.user ? r.data.user.id : null;
-    if(!id) return err("Revisá tu correo para confirmar la cuenta.");
+  fetch("/api/registro-conductor", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: e,
+      password: w,
+      nombre: n,
+      apellido: a,
+      vehiculo: ve,
+      patente: pa,
+      tipo: ti
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if(res.error) throw new Error(res.error);
+    
+    // Iniciar sesión automáticamente
+    return sb.auth.signInWithPassword({ email: e, password: w });
+  })
+  .then(function(r){
+    if(r.error) throw new Error(r.error.message);
     D.u = r.data.user;
-
-    sb.from("perfiles").upsert({ id: id, rol: "conductor", nombre: n, apellido: a }).then(function(){
-      sb.from("conductores").upsert({ id: id, vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false }).then(function(){
-        load();
-      });
-    });
-  }).catch(function(e){ err(e.message); });
+    load();
+  })
+  .catch(function(e){
+    err("Error: " + e.message);
+    if(btn){ btn.disabled = false; btn.textContent = "Crear cuenta"; }
+  });
 }
 
 function load(){
   if(!D.u) return login();
   
   sb.from("perfiles").select("*").eq("id", D.u.id).single().then(function(p){
-    if(p.error || !p.data || p.data.rol !== "conductor"){
+    // Solo si el perfil dice explícitamente "pasajero"
+    if(p.data && p.data.rol === "pasajero"){
       view(
         '<div class="card" style="text-align:center;padding:30px 16px">' +
           '<div style="font-size:40px;margin-bottom:12px">⚠️</div>' +
           '<h3 style="margin:0 0 8px;font-size:20px;font-weight:800">Cuenta de Pasajero detectada</h3>' +
-          '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Iniciaste sesión con tu cuenta de pasajero. Para recibir viajes como chofer, iniciá sesión con tu cuenta de conductor.</p>' +
+          '<p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Iniciaste sesión con tu cuenta de pasajero. Para recibir viajes como chofer, ingresá con tu cuenta de conductor.</p>' +
           '<button class="btn accent" onclick="cambiarACuentaChofer()">Ingresar con cuenta de chofer</button>' +
         '</div>'
       );
       return;
     }
 
-    D.p = p.data;
+    D.p = p.data || { nombre: "Conductor", apellido: "Uder" };
     panel();
   }).catch(function(){
-    login();
+    panel();
   });
 }
 
 function cambiarACuentaChofer(){
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem("sb-mmgvttmgchnbppcemrwg-auth-token");
+  } catch(e){}
   sb.auth.signOut().then(function(){
     D.u = null; D.p = null; D.c = null;
     login();
@@ -237,6 +262,10 @@ function cambiarACuentaChofer(){
 
 function out(){
   untrack();
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem("sb-mmgvttmgchnbppcemrwg-auth-token");
+  } catch(e){}
   sb.auth.signOut().then(function(){
     D.u = null; D.p = null; D.c = null; D.on = false;
     login();
@@ -368,7 +397,7 @@ function draw(act, off){
   mapaViaje(act);
 }
 
-// FORMULARIO DE DOCUMENTACIÓN CON VERIFICACIÓN POR INTELIGENCIA ARTIFICIAL
+// FORMULARIO DE DOCUMENTACIÓN CON VERIFICACIÓN POR IA
 function docsCard(){
   var c = D.c;
   var esRechazado = (c.estado_revision === "rechazado");
@@ -405,7 +434,6 @@ function subirYAnalizarDocs(){
   var t = Date.now();
   var tipos = ["licencia", "seguro", "cedula", "vtv"];
 
-  // 1. Subir archivos a Supabase Storage
   Promise.all(fs.map(function(f, i){
     var ext = (f.name.split(".").pop() || "jpg").toLowerCase();
     var p = D.u.id + "/" + tipos[i] + "-" + t + "." + ext;
@@ -414,7 +442,6 @@ function subirYAnalizarDocs(){
       return { tipo: tipos[i], path: p };
     });
   })).then(function(uploadedDocs){
-    // 2. Llamar a la IA en Cloudflare Worker
     return fetch("/api/verificar-documentos-ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -573,7 +600,7 @@ function avanzar(id, est){
   });
 }
 
-// INICIO CONTROLADO
+// ARRANQUE
 sb.auth.getSession().then(function(r){
   if(!r.data || !r.data.session) return login();
   D.u = r.data.session.user;

@@ -3,345 +3,575 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Descargar Uder · Rosario de la Frontera</title>
+<title>Uder Argentina · Rosario de la Frontera</title>
 <link rel="icon" type="image/svg+xml" href="/icon-pasajero.svg">
 <meta name="theme-color" content="#000000">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap">
 <style>
 :root{
   --bg:#FFFFFF;
-  --surface:#F8F9FA;
+  --surface:#F6F6F6;
   --ink:#000000;
   --ink-secondary:#5E5E5E;
-  --line:#EAEAEA;
+  --line:#EEEEEE;
   --accent:#F5B700;
-  --navy:#14213D;
   --wa:#25D366;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
   margin:0;
-  background:var(--bg);
-  color:var(--ink);
+  background:#fff;
+  color:#000;
   font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
   min-height:100vh;
   display:flex;
   flex-direction:column;
-  align-items:center
-}
-.container{
-  max-width:480px;
-  width:100%;
-  padding:24px 20px 50px;
-  display:flex;
-  flex-direction:column
+  overflow-x:hidden
 }
 
-/* HEADER */
-.header{
+/* NAVBAR SUPERIOR ESTILO UBER */
+.navbar{
+  width:100%;
+  height:70px;
+  background:#000;
+  color:#fff;
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  margin-bottom:28px
+  justify-content:space-between;
+  padding:0 5%;
+  position:sticky;
+  top:0;
+  z-index:1000
 }
-.brand{
-  font-size:28px;
+.nav-brand{
+  font-size:26px;
   font-weight:900;
   letter-spacing:-1px;
   display:flex;
   align-items:center;
-  gap:2px
+  gap:2px;
+  color:#fff;
+  text-decoration:none
 }
-.brand span{
-  background:#000;
-  color:var(--accent);
+.nav-brand span{
+  background:var(--accent);
+  color:#000;
   padding:2px 8px;
-  border-radius:8px;
+  border-radius:6px;
   margin-right:4px
 }
-.badge-city{
-  background:var(--surface);
-  border:1px solid var(--line);
-  padding:6px 12px;
-  border-radius:20px;
-  font-size:12px;
+.nav-links{
+  display:flex;
+  align-items:center;
+  gap:20px
+}
+.nav-link{
+  color:#fff;
+  text-decoration:none;
+  font-size:14px;
   font-weight:700;
-  color:var(--ink-secondary)
+  transition:opacity 0.2s
+}
+.nav-link:hover{opacity:0.8}
+.btn-nav{
+  background:#fff;
+  color:#000;
+  border-radius:24px;
+  padding:8px 18px;
+  font-size:14px;
+  font-weight:700;
+  text-decoration:none;
+  transition:background 0.2s
+}
+.btn-nav:hover{background:#eee}
+
+/* HERO SECTION (UBER STYLE) */
+.hero{
+  width:100%;
+  padding:40px 5% 60px;
+  background:#fff;
+  display:flex;
+  justify-content:center
+}
+.hero-wrapper{
+  max-width:1200px;
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:50px;
+  align-items:center
+}
+@media (max-width:850px){
+  .hero-wrapper{grid-template-columns:1fr;gap:30px}
+  .hero-img{display:none}
 }
 
-/* HERO */
-.hero{
-  text-align:center;
-  margin-bottom:30px
+/* WIDGET INTERACTIVO DE UBER */
+.uber-widget{
+  background:#fff;
+  border-radius:24px;
+  padding:28px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.08);
+  border:1px solid var(--line)
 }
-.hero h1{
+
+/* TABS DEL WIDGET (VIAJAR VS CONDUCIR) */
+.widget-tabs{
+  display:flex;
+  gap:12px;
+  margin-bottom:24px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:14px
+}
+.widget-tab{
+  border:0;
+  background:transparent;
+  font:700 16px 'Plus Jakarta Sans',sans-serif;
+  color:var(--ink-secondary);
+  padding:8px 16px;
+  border-radius:12px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  transition:all 0.2s
+}
+.widget-tab.active{
+  background:var(--surface);
+  color:#000
+}
+
+/* CONTENIDO DEL WIDGET */
+.tab-content h2{
   font-size:32px;
   font-weight:900;
-  line-height:1.15;
   letter-spacing:-1px;
-  margin:0 0 10px
+  margin:0 0 10px;
+  line-height:1.2
 }
-.hero p{
+.tab-content p{
   font-size:15px;
+  color:var(--ink-secondary);
+  margin:0 0 24px;
+  line-height:1.5
+}
+.widget-input-box{
+  background:var(--surface);
+  border-radius:14px;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+  border:1.5px solid transparent
+}
+.widget-input-box:focus-within{
+  border-color:#000;
+  background:#fff
+}
+.widget-input-box input{
+  border:0;
+  background:transparent;
+  font:600 15px 'Plus Jakarta Sans',sans-serif;
+  outline:none;
+  width:100%
+}
+.btn-cta{
+  width:100%;
+  height:54px;
+  background:#000;
+  color:#fff;
+  border-radius:14px;
+  font:800 16px 'Plus Jakarta Sans',sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-decoration:none;
+  margin-top:16px;
+  cursor:pointer;
+  transition:background 0.2s
+}
+.btn-cta:hover{background:#333}
+.btn-cta.yellow{
+  background:var(--accent);
+  color:#000
+}
+.btn-cta.yellow:hover{background:#e0a800}
+
+/* ILUSTRACIÓN HERO */
+.hero-img{
+  background:linear-gradient(135deg, #14213D 0%, #000000 100%);
+  border-radius:30px;
+  height:440px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  text-align:center;
+  padding:40px;
+  box-shadow:0 15px 45px rgba(20,33,61,0.2)
+}
+.hero-img h3{
+  font-size:28px;
+  font-weight:900;
+  margin:16px 0 8px
+}
+.hero-img p{
+  color:#bbb;
+  font-size:15px;
+  margin:0
+}
+
+/* SECCIÓN CÓDIGOS QR */
+.section-qr{
+  background:var(--surface);
+  padding:70px 5%;
+  display:flex;
+  justify-content:center
+}
+.qr-container{
+  max-width:1200px;
+  width:100%
+}
+.section-qr h2{
+  font-size:32px;
+  font-weight:900;
+  letter-spacing:-1px;
+  margin:0 0 36px;
+  text-align:center
+}
+.qr-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:30px
+}
+@media (max-width:700px){
+  .qr-grid{grid-template-columns:1fr}
+}
+.qr-card{
+  background:#fff;
+  border-radius:24px;
+  padding:30px;
+  display:flex;
+  align-items:center;
+  gap:24px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.05);
+  border:1px solid var(--line)
+}
+.qr-card img{
+  width:130px;
+  height:130px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  padding:6px;
+  background:#fff;
+  flex-shrink:0
+}
+.qr-text h4{
+  margin:0 0 6px;
+  font-size:20px;
+  font-weight:800
+}
+.qr-text p{
+  margin:0 0 16px;
+  color:var(--ink-secondary);
+  font-size:14px;
+  line-height:1.4
+}
+.link-directo{
+  color:#000;
+  font-weight:800;
+  font-size:14px;
+  text-decoration:underline
+}
+
+/* SECCIÓN BENEFICIOS / SEGURIDAD */
+.section-features{
+  padding:70px 5%;
+  max-width:1200px;
+  margin:0 auto;
+  width:100%
+}
+.section-features h2{
+  font-size:32px;
+  font-weight:900;
+  letter-spacing:-1px;
+  margin:0 0 40px
+}
+.features-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+  gap:24px
+}
+.feat-card{
+  background:var(--surface);
+  border-radius:20px;
+  padding:26px;
+  border:1px solid var(--line)
+}
+.feat-icon{
+  font-size:32px;
+  margin-bottom:14px
+}
+.feat-card h4{
+  font-size:18px;
+  font-weight:800;
+  margin:0 0 8px
+}
+.feat-card p{
+  font-size:14px;
   color:var(--ink-secondary);
   line-height:1.5;
   margin:0
 }
 
-/* TARJETAS DE DESCARGA */
-.download-card{
-  border-radius:20px;
-  padding:22px;
-  margin-bottom:18px;
-  border:2px solid var(--line);
-  background:#fff;
-  box-shadow:0 6px 20px rgba(0,0,0,0.04);
-  display:flex;
-  flex-direction:column;
-  gap:16px;
-  transition:all 0.2s ease
+/* FOOTER OFICIAL UBER STYLE */
+.footer{
+  background:#000;
+  color:#fff;
+  padding:60px 5% 40px;
+  margin-top:auto
 }
-.download-card:hover{
-  border-color:#000;
-  transform:translateY(-2px);
-  box-shadow:0 10px 25px rgba(0,0,0,0.08)
-}
-.card-header-app{
+.footer-wrapper{
+  max-width:1200px;
+  margin:0 auto;
   display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:30px;
+  padding-bottom:40px;
+  border-bottom:1px solid #222
+}
+.footer-col h4{
+  font-size:18px;
+  font-weight:800;
+  margin:0 0 12px
+}
+.footer-col p{
+  color:#888;
+  font-size:14px;
+  margin:0 0 16px;
+  max-width:320px;
+  line-height:1.5
+}
+.footer-bottom{
+  max-width:1200px;
+  margin:30px auto 0;
+  display:flex;
+  justify-content:space-between;
   align-items:center;
+  color:#777;
+  font-size:13px;
+  flex-wrap:wrap;
   gap:16px
 }
-.app-icon{
-  width:64px;
-  height:64px;
-  border-radius:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:28px;
-  font-weight:900;
-  flex-shrink:0;
-  box-shadow:0 4px 12px rgba(0,0,0,0.12)
-}
-.icon-pasajero{
-  background:var(--navy);
-  color:var(--accent);
-  border:2px solid #fff
-}
-.icon-conductor{
-  background:var(--accent);
-  color:var(--navy);
-  border:2px solid #fff
-}
-.app-details h3{
-  margin:0 0 4px;
-  font-size:20px;
-  font-weight:800
-}
-.app-details p{
-  margin:0;
-  font-size:13px;
-  color:var(--ink-secondary);
-  line-height:1.4
-}
-
-.btn-download{
-  width:100%;
-  height:52px;
-  border-radius:14px;
-  font:800 16px 'Plus Jakarta Sans',sans-serif;
-  text-decoration:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  cursor:pointer;
-  transition:background 0.2s
-}
-.btn-pasajero{
-  background:#000;
-  color:#fff
-}
-.btn-pasajero:active{background:#333}
-
-.btn-conductor{
-  background:var(--accent);
-  color:#000
-}
-.btn-conductor:active{background:#e0a800}
-
-/* BENEFICIOS RÁPIDOS */
-.features-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-  margin:24px 0
-}
-.feature-box{
-  background:var(--surface);
-  border-radius:14px;
-  padding:14px;
-  border:1px solid var(--line)
-}
-.feature-box b{
-  display:block;
-  font-size:13px;
-  margin-top:6px;
-  font-weight:800
-}
-.feature-box span{
-  font-size:12px;
-  color:var(--ink-secondary);
-  line-height:1.3;
-  display:block;
-  margin-top:2px
-}
-
-/* GUÍA DE INSTALACIÓN */
-.guide-box{
-  background:var(--surface);
-  border-radius:18px;
-  padding:20px;
-  margin-top:10px;
-  border:1px solid var(--line)
-}
-.guide-box h4{
-  margin:0 0 12px;
-  font-size:16px;
-  font-weight:800
-}
-.step{
-  display:flex;
-  align-items:flex-start;
-  gap:12px;
-  margin-bottom:10px;
-  font-size:13px;
-  line-height:1.4
-}
-.step i{
-  width:22px;
-  height:22px;
-  border-radius:50%;
-  background:#000;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-style:normal;
-  font-size:11px;
-  font-weight:800;
-  flex-shrink:0;
-  margin-top:1px
-}
-
-/* BOTÓN WHATSAPP */
-.btn-whatsapp-support{
+.btn-wa-footer{
   background:var(--wa);
   color:#fff;
-  border-radius:14px;
-  height:50px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  font:700 15px 'Plus Jakarta Sans',sans-serif;
+  padding:10px 20px;
+  border-radius:30px;
+  font-weight:800;
   text-decoration:none;
-  margin-top:20px;
-  box-shadow:0 4px 15px rgba(37,211,102,0.25)
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px
 }
 </style>
 </head>
 <body>
 
-<div class="container">
+  <!-- BARRA DE NAVEGACIÓN -->
+  <nav class="navbar">
+    <a href="/descargar" class="nav-brand"><span>U</span>der</a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Viajar</a>
+      <a href="/conductor" class="nav-link">Conducir</a>
+      <a href="/" class="btn-nav">Iniciar sesión</a>
+    </div>
+  </nav>
 
-  <!-- CABECERA -->
-  <div class="header">
-    <div class="brand"><span>U</span>der</div>
-    <div class="badge-city">📍 Rosario de la Frontera</div>
-  </div>
+  <!-- HERO SECTION PRINCIPAL -->
+  <section class="hero">
+    <div class="hero-wrapper">
+      
+      <!-- WIDGET INTERACTIVO DE UBER -->
+      <div class="uber-widget">
+        
+        <!-- PESTAÑAS (VIAJAR O CONDUCIR) -->
+        <div class="widget-tabs">
+          <button id="tab_viajar_btn" class="widget-tab active" onclick="switchWidgetTab('viajar')">
+            🚗 Viajar
+          </button>
+          <button id="tab_conducir_btn" class="widget-tab" onclick="switchWidgetTab('conducir')">
+            🚖 Conducir
+          </button>
+        </div>
 
-  <!-- HERO -->
-  <div class="hero">
-    <h1>Viajá y manejá seguro en tu ciudad</h1>
-    <p>Elegí la aplicación que necesitás y descargala gratis directo en tu celular.</p>
-  </div>
+        <!-- CONTENIDO: VIAJAR (PASAJERO) -->
+        <div id="content_viajar" class="tab-content">
+          <h2>Ve a donde quieras con Uder</h2>
+          <p>Remises y autos particulares en Rosario de la Frontera con precio cerrado por cuadra.</p>
 
-  <!-- APP 1: PASAJERO -->
-  <div class="download-card">
-    <div class="card-header-app">
-      <div class="app-icon icon-pasajero">U</div>
-      <div class="app-details">
-        <h3>Uder · Pasajero</h3>
-        <p>Pedí tu remis o auto particular en segundos con precio cerrado por cuadra.</p>
+          <div class="widget-input-box">
+            <span style="font-size:18px">📍</span>
+            <input id="input_origen" placeholder="Punto de partida (ej. Güemes 248)">
+          </div>
+
+          <div class="widget-input-box">
+            <span style="font-size:18px">🏁</span>
+            <input id="input_destino" placeholder="Introduce tu destino (ej. B° Perón)">
+          </div>
+
+          <a href="/" class="btn-cta">
+            Ver precios y pedir viaje ➔
+          </a>
+        </div>
+
+        <!-- CONTENIDO: CONDUCIR (CHOFER) -->
+        <div id="content_conducir" class="tab-content" style="display:none">
+          <h2>Manejá cuando quieras y ganá plata</h2>
+          <p>Sumate con tu remis o auto particular en Rosario de la Frontera con <b>aprobación inmediata por Inteligencia Artificial</b>.</p>
+
+          <div style="background:var(--surface);padding:14px 18px;border-radius:14px;margin-bottom:14px;font-size:14px;line-height:1.5">
+            ✅ <b>Cobros en mano</b> en cada viaje<br>
+            ✅ <b>Horarios libres:</b> vos decidís cuándo conectarte<br>
+            ✅ <b>Subís tus fotos</b> y la IA te habilita en 3 segundos
+          </div>
+
+          <a href="/conductor" class="btn-cta yellow">
+            Empezar a conducir hoy ➔
+          </a>
+        </div>
+
+      </div>
+
+      <!-- ILUSTRACIÓN HERO CORPORATIVA -->
+      <div class="hero-img">
+        <div style="font-size:70px;margin-bottom:10px">🚗💨</div>
+        <h3>La nueva forma de moverse en Rosario de la Frontera</h3>
+        <p>Seguridad satelital, tarifas transparentes y pagos en efectivo o Mercado Pago.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECCIÓN CÓDIGOS QR (PARA ESCANEAR CON EL CELULAR) -->
+  <section class="section-qr">
+    <div class="qr-container">
+      <h2>Es más fácil desde las aplicaciones</h2>
+      <div class="qr-grid">
+        
+        <!-- QR PASAJERO -->
+        <div class="qr-card">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=https://uder.facucontacto2026.workers.dev/" alt="QR Pasajero">
+          <div class="qr-text">
+            <h4>Descarga la app de Pasajeros</h4>
+            <p>Escanea el código QR con tu celular para instalar Uder y pedir viajes en 1 toque.</p>
+            <a href="/" class="link-directo">Abrir en el celular ➔</a>
+          </div>
+        </div>
+
+        <!-- QR CONDUCTOR -->
+        <div class="qr-card">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=https://uder.facucontacto2026.workers.dev/conductor" alt="QR Conductor">
+          <div class="qr-text">
+            <h4>Descarga la app de Conductores</h4>
+            <p>Escanea el código QR para sumarte como chofer y empezar a recibir viajes hoy.</p>
+            <a href="/conductor" class="link-directo">Abrir en el celular ➔</a>
+          </div>
+        </div>
+
       </div>
     </div>
-    <a href="/" class="btn-download btn-pasajero">
-      📲 Descargar App Pasajero
-    </a>
-  </div>
+  </section>
 
-  <!-- APP 2: CONDUCTOR -->
-  <div class="download-card">
-    <div class="card-header-app">
-      <div class="app-icon icon-conductor">U</div>
-      <div class="app-details">
-        <h3>Uder · Conductor</h3>
-        <p>Manejá con tu auto, cobrá en mano y sumate con aprobación por IA en 3 seg.</p>
+  <!-- SECCIÓN BENEFICIOS -->
+  <section class="section-features">
+    <h2>Centrados en tu seguridad y comodidad</h2>
+    <div class="features-grid">
+      
+      <div class="feat-card">
+        <div class="feat-icon">🛡️</div>
+        <h4>Seguridad en cada viaje</h4>
+        <p>Compartí tu recorrido en tiempo real por WhatsApp con tu familia con solo presionar un botón.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">🤖</div>
+        <h4>Choferes auditados con IA</h4>
+        <p>Nuestra Inteligencia Artificial comprueba la vigencia de licencias, VTV y seguros en segundos.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">💵</div>
+        <h4>Efectivo y Mercado Pago</h4>
+        <p>Elegí cómo pagar: efectivo en mano al finalizar el viaje, tarjetas o dinero en cuenta online.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">📍</div>
+        <h4>Tarifa fija por cuadra</h4>
+        <p>Precios oficiales transparentes de día ($2.600) y de noche ($3.600) para cuidar tu bolsillo.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-wrapper">
+      <div class="footer-col">
+        <div class="nav-brand" style="margin-bottom:14px"><span>U</span>der</div>
+        <p>La plataforma tecnológica de movilidad de Rosario de la Frontera, Salta, Argentina.</p>
+        <a href="https://api.whatsapp.com/send?phone=5493876000000&text=Hola%20Uder!%20Quiero%20hacer%20una%20consulta" target="_blank" rel="noopener" class="btn-wa-footer">
+          💬 Contacto por WhatsApp
+        </a>
+      </div>
+
+      <div class="footer-col">
+        <h4>Viajar</h4>
+        <p><a href="/" style="color:#aaa;text-decoration:none">Pedir un viaje</a></p>
+        <p><a href="/" style="color:#aaa;text-decoration:none">Tarifas diurnas y nocturnas</a></p>
+        <p><a href="/" style="color:#aaa;text-decoration:none">Medios de pago</a></p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Conductores</h4>
+        <p><a href="/conductor" style="color:#aaa;text-decoration:none">Registrarse para manejar</a></p>
+        <p><a href="/conductor" style="color:#aaa;text-decoration:none">Requisitos de vehículos</a></p>
+        <p><a href="/conductor" style="color:#aaa;text-decoration:none">Ganancias y comisiones</a></p>
       </div>
     </div>
-    <a href="/conductor" class="btn-download btn-conductor">
-      🚖 Descargar App Conductor
-    </a>
-  </div>
 
-  <!-- BENEFICIOS -->
-  <div class="features-grid">
-    <div class="feature-box">
-      <div style="font-size:22px">💵</div>
-      <b>Efectivo o Mercado Pago</b>
-      <span>Pagá en mano o directo con tarjeta y saldo.</span>
+    <div class="footer-bottom">
+      <div>© 2026 Uder Argentina. Todos los derechos reservados.</div>
+      <div>Rosario de la Frontera, Salta</div>
     </div>
-    <div class="feature-box">
-      <div style="font-size:22px">🛡️</div>
-      <b>Viajes seguros</b>
-      <span>Compartí tu viaje por WhatsApp con tu familia.</span>
-    </div>
-    <div class="feature-box">
-      <div style="font-size:22px">🤖</div>
-      <b>Choferes con IA</b>
-      <span>Verificación de licencias, seguro y VTV al instante.</span>
-    </div>
-    <div class="feature-box">
-      <div style="font-size:22px">📍</div>
-      <b>Tarifa fija y justa</b>
-      <span>Precio oficial de día y noche sin sorpresas.</span>
-    </div>
-  </div>
+  </footer>
 
-  <!-- GUÍA DE INSTALACIÓN PASO A PASO -->
-  <div class="guide-box">
-    <h4>¿Cómo instalar en tu teléfono?</h4>
-    <div class="step">
-      <i>1</i>
-      <span>Tocá el botón negro o amarillo de la app que quieras descargar arriba.</span>
-    </div>
-    <div class="step">
-      <i>2</i>
-      <span>En tu navegador tocá los <b>3 puntitos (⋮)</b> arriba a la derecha (o el botón compartir <b>📤</b> en iPhone).</span>
-    </div>
-    <div class="step">
-      <i>3</i>
-      <span>Elegí <b>"Instalar aplicación"</b> o <b>"Agregar a Inicio"</b>. ¡Y listo! Te queda el ícono en tu pantalla.</span>
-    </div>
-  </div>
+  <script>
+    function switchWidgetTab(tab){
+      var btnViajar = document.getElementById("tab_viajar_btn");
+      var btnConducir = document.getElementById("tab_conducir_btn");
+      var cViajar = document.getElementById("content_viajar");
+      var cConducir = document.getElementById("content_conducir");
 
-  <!-- CONTACTO SOPORTE -->
-  <a href="https://api.whatsapp.com/send?phone=5493876000000&text=Hola!%20Tengo%20una%20consulta%20sobre%20Uder%20Rosario%20de%20la%20Frontera" target="_blank" rel="noopener" class="btn-whatsapp-support">
-    💬 Consultas por WhatsApp
-  </a>
-
-</div>
-
+      if(tab === "viajar"){
+        btnViajar.classList.add("active");
+        btnConducir.classList.remove("active");
+        cViajar.style.display = "block";
+        cConducir.style.display = "none";
+      } else {
+        btnConducir.classList.add("active");
+        btnViajar.classList.remove("active");
+        cConducir.style.display = "block";
+        cViajar.style.display = "none";
+      }
+    }
+  </script>
 </body>
 </html>

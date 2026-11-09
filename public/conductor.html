@@ -124,7 +124,7 @@ function sonarAlerta(){
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
-function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 function err(m){var e=$("err");if(e)e.textContent=m}
 
 function view(h){
@@ -183,7 +183,7 @@ function doLogin(){
   }).catch(function(e){ err("Error al conectar: " + e.message); });
 }
 
-// CREACIÓN DE CONDUCTOR RÁPIDA Y SIN COLGADAS
+// CREACIÓN DE CONDUCTOR INSTANTÁNEA
 function doReg(){
   initAudio();
   var e = $("r_e").value.trim(), w = $("r_w").value, n = $("r_n").value.trim(), a = $("r_a").value.trim(), ve = $("r_ve").value.trim(), pa = $("r_pa").value.trim().toUpperCase(), ti = $("r_ti").value;
@@ -204,15 +204,17 @@ function doReg(){
     if(!uid) throw new Error("No se pudo obtener el usuario");
     D.u = r.data.user;
 
-    // Guardar en perfiles y conductores
+    // Establecer datos en memoria de inmediato para dibujar la pantalla en 0 segundos
+    D.p = { nombre: n, apellido: a, rol: "conductor" };
+    D.c = { vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false };
+
+    // Guardar en Supabase en paralelo
     sb.from("perfiles").upsert({ id: uid, rol: "conductor", nombre: n, apellido: a }).then(function(){});
     sb.from("conductores").upsert({ id: uid, vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false }).then(function(){});
 
-    // Iniciar el panel directamente sin demoras
-    D.p = { nombre: n, apellido: a, rol: "conductor" };
-    D.c = { vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false };
-    
+    // Abrir de inmediato la pantalla para subir las 4 fotos
     panel();
+    draw(null, []);
   }).catch(function(e){
     err("Error: " + (e.message || "No se pudo registrar"));
     if(btn){ btn.disabled = false; btn.textContent = "Crear cuenta"; }
@@ -222,7 +224,8 @@ function doReg(){
 function load(){
   if(!D.u) return login();
   
-  sb.from("perfiles").select("*").eq("id", D.u.id).single().then(function(p){
+  // Usamos maybeSingle para que no arroje error si el chofer es nuevo
+  sb.from("perfiles").select("*").eq("id", D.u.id).maybeSingle().then(function(p){
     if(p.data && p.data.rol === "pasajero"){
       view(
         '<div class="card" style="text-align:center;padding:30px 16px">' +
@@ -235,9 +238,12 @@ function load(){
       return;
     }
 
-    D.p = p.data || { nombre: "Conductor", apellido: "Uder" };
+    var nom = (p.data && p.data.nombre) ? p.data.nombre : (D.u.user_metadata?.first_name || D.u.user_metadata?.full_name?.split(" ")[0] || "Conductor");
+    var ape = (p.data && p.data.apellido) ? p.data.apellido : (D.u.user_metadata?.last_name || "");
+    D.p = { nombre: nom, apellido: ape, rol: "conductor" };
     panel();
   }).catch(function(){
+    D.p = { nombre: "Conductor", apellido: "Uder", rol: "conductor" };
     panel();
   });
 }
@@ -245,7 +251,7 @@ function load(){
 function cambiarACuentaChofer(){
   try {
     sessionStorage.clear();
-    localStorage.removeItem("sb-mmgvttmgchnbppcemrwg-auth-token");
+    localStorage.clear();
   } catch(e){}
   sb.auth.signOut().then(function(){
     D.u = null; D.p = null; D.c = null;
@@ -257,7 +263,7 @@ function out(){
   untrack();
   try {
     sessionStorage.clear();
-    localStorage.removeItem("sb-mmgvttmgchnbppcemrwg-auth-token");
+    localStorage.clear();
   } catch(e){}
   sb.auth.signOut().then(function(){
     D.u = null; D.p = null; D.c = null; D.on = false;
@@ -276,17 +282,15 @@ function refresh(){
   var uid = D.u.id;
 
   Promise.all([
-    sb.from("conductores").select("*").eq("id", uid).single(),
+    sb.from("conductores").select("*").eq("id", uid).maybeSingle(),
     sb.from("viajes").select("*").eq("conductor_id", uid).in("estado", ["aceptado", "en_camino", "en_curso"]).limit(1),
     D.on ? sb.from("viajes").select("*").eq("estado", "buscando").order("creado_en") : Promise.resolve({ data: [] })
   ]).then(function(r){
-    D.c = r[0].data || D.c;
-    
-    if(!D.c){
-      sb.from("conductores").upsert({ id: uid, vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false }).then(function(res){
-        D.c = res.data;
-      });
-      return;
+    var cData = r[0].data;
+    if(cData){
+      D.c = cData;
+    } else if(!D.c){
+      D.c = { vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false };
     }
 
     if(D.init === undefined){
@@ -302,12 +306,14 @@ function refresh(){
       sonarAlerta();
     }
 
-    var sg = JSON.stringify([D.c.verificado, D.c.estado_revision, D.on, act, off.map(function(o){return o.id})]);
-    if(sg === D.sig) return;
-    D.sig = sg;
+    // Dibujar la pantalla de inmediato sin trabarse
     draw(act, off);
   }).catch(function(e){
     console.error("Refresh error:", e);
+    if(!D.c){
+      D.c = { vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false };
+    }
+    draw(null, []);
   });
 }
 
@@ -384,12 +390,12 @@ function draw(act, off){
               '<button class="btn accent" style="margin:0" onclick="aceptar(\''+o.id+'\')">Aceptar viaje</button>' +
             '</div>';
           }).join("") 
-        : '<p style="color:var(--ink-secondary);margin:16px 0 0;font-size:14px">Esperando pedidos… Mantené la pantalla abierta.</p>') +
+        : '<p style="color:var(--ink-secondary);margin-16px 0 0;font-size:14px">Esperando pedidos… Mantené la pantalla abierta.</p>') +
         '<button class="btn ghost" style="margin-top:16px" onclick="setOn(false)">Desconectarme</button>' +
       '</div>';
   }
 
-  h += '<button class="btn ghost" onclick="verGan()">Mis ganancias</button>';
+  if(D.c && D.c.verificado) h += '<button class="btn ghost" onclick="verGan()">Mis ganancias</button>';
   h += '<button class="btn ghost" style="color:var(--bad);border-color:#FFCDD2" onclick="out()">Cerrar sesión</button>';
   
   $("v").innerHTML = h;
@@ -599,12 +605,18 @@ function avanzar(id, est){
   });
 }
 
-// ARRANQUE
+// ARRANQUE AUTOMÁTICO INMEDIATO (CON TIMEOUT DE SEGURIDAD PARA NUNCA QUEDARSE COLGADO)
+var initTimeout = setTimeout(function(){
+  if(!D.u) login();
+}, 1500);
+
 sb.auth.getSession().then(function(r){
-  if(!r.data || !r.data.session) return login();
+  clearTimeout(initTimeout);
+  if(!r || !r.data || !r.data.session) return login();
   D.u = r.data.session.user;
   load();
 }).catch(function(){
+  clearTimeout(initTimeout);
   login();
 });
 </script>

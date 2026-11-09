@@ -53,6 +53,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 .payment-bar:active{background:#ececec}
 .payment-bar div{display:flex;align-items:center;gap:10px}
 
+/* MODAL DE PAGOS */
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);z-index:4000;display:flex;flex-direction:column;justify-content:flex-end;animation:fadeIn 0.2s ease}
 .bottom-sheet-content{background:#fff;border-radius:24px 24px 0 0;padding:14px 20px 32px;max-height:80vh;overflow-y:auto;box-shadow:0 -4px 25px rgba(0,0,0,0.2);animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1)}
 .sheet-drag{width:44px;height:4px;background:#E0E0E0;border-radius:2px;margin:0 auto 16px}
@@ -106,7 +107,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
   <div id="map"></div>
   <main id="v" class="main-view"></main>
 
-  <!-- MODAL DESLIZABLE DE PAGOS -->
+  <!-- MODAL DE PAGOS DESLIZABLE -->
   <div id="sheet_pago" class="bottom-sheet-overlay" style="display:none" onclick="cerrarModalPago(event)">
     <div class="bottom-sheet-content" onclick="event.stopPropagation()">
       <div class="sheet-drag"></div>
@@ -286,7 +287,6 @@ function sincronizarUsuario(usr){
   };
   save();
 
-  // Asegurar que el usuario exista en perfiles
   sb.from("perfiles").upsert({
     id: usr.id,
     rol: "pasajero",
@@ -478,7 +478,6 @@ function cambiarSeccion(sec){
     go("welcome");
     return;
   }
-  // Si tiene un viaje activo, bloquear volver a pedir otro
   if(S.viajeId && (sec === "home" || sec === "opt")){
     go(S.ph || "search");
     return;
@@ -829,7 +828,6 @@ function consultarViaje(){
       var v = res.viaje;
       if(!v) return;
 
-      // 1. Cancelado
       if(v.estado === "cancelado"){
         clearInterval(pollTm);
         localStorage.removeItem("uder_active_viaje");
@@ -839,7 +837,6 @@ function consultarViaje(){
         return;
       }
 
-      // 2. ACEPTADO POR EL CHOFER
       if((v.estado === "aceptado" || v.estado === "en_camino") && S.ph !== "pick" && S.ph !== "trip"){
         S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"];
         sonarAvisoAceptado();
@@ -847,17 +844,14 @@ function consultarViaje(){
         go("pick");
       }
 
-      // 3. Posición en vivo
       if(res.conductor_pos){
         actualizarPosicionChofer(res.conductor_pos);
       }
 
-      // 4. En viaje
       if(v.estado === "en_curso" && S.ph !== "trip"){
         go("trip");
       }
 
-      // 5. Finalizado
       if(v.estado === "finalizado" && S.ph !== "done"){
         clearInterval(pollTm);
         localStorage.removeItem("uder_active_viaje");
@@ -884,7 +878,7 @@ function cancelarViajeActual(){
 }
 
 function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
-function toast(m){var d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
 
 function calcularRutaReal(origen, destino){
   var distDirecta = hav(origen, destino);
@@ -1117,6 +1111,7 @@ function opts(){
   });
 }
 
+// CONTROL DE PANTALLAS
 function go(ph){
   clearInterval(tm);clearInterval(pollTm);
 
@@ -1462,6 +1457,11 @@ function go(ph){
         '<button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;localStorage.removeItem(\'uder_active_viaje\');draw();cambiarSeccion(\'home\')">Listo</button>' +
       '</div>';
   }
+}
+
+// ARRANQUE AUTOMÁTICO AL CARGAR LA PÁGINA
+if(!volverMP()) {
+  verificarViajeActivo();
 }
 </script>
 </body>

@@ -10,7 +10,6 @@ function sbHeaders(key) {
   return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: "Bearer " + key };
 }
 
-// Convertir ArrayBuffer a Base64 sin desbordar memoria
 function arrayBufferToBase64(buffer) {
   let binary = '';
   const bytes = new Uint8Array(buffer);
@@ -51,11 +50,77 @@ function servirIcono(tipo) {
   return new Response(svg, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
 }
 
-// 1. VERIFICADOR INTELIGENTE CON IA (GOOGLE GEMINI 1.5 FLASH VISION)
+// 1. REGISTRO MAESTRO DE CONDUCTOR (CREA USUARIO, PERFIL Y VEHÍCULO SIN BLOQUEOS)
+async function registroConductor(request, env) {
+  const key = env.SUPABASE_SECRET_KEY;
+  if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
+
+  let b;
+  try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
+
+  const h = { ...sbHeaders(key), "Content-Type": "application/json" };
+
+  try {
+    // A. Crear usuario en Auth con confirmación automática
+    const authRes = await fetch(`${SB}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: h,
+      body: JSON.stringify({
+        email: b.email,
+        password: b.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: `${b.nombre} ${b.apellido}`,
+          rol: "conductor"
+        }
+      })
+    });
+    const authData = await authRes.json();
+    if (!authRes.ok) {
+      return json(400, { error: authData.msg || authData.message || "Error al crear cuenta" });
+    }
+
+    const uid = authData.id;
+
+    // B. Crear registro en perfiles
+    await fetch(`${SB}/rest/v1/perfiles`, {
+      method: "POST",
+      headers: { ...h, Prefer: "return=minimal" },
+      body: JSON.stringify({
+        id: uid,
+        rol: "conductor",
+        nombre: b.nombre,
+        apellido: b.apellido
+      })
+    });
+
+    // C. Crear registro en conductores
+    await fetch(`${SB}/rest/v1/conductores`, {
+      method: "POST",
+      headers: { ...h, Prefer: "return=minimal" },
+      body: JSON.stringify({
+        id: uid,
+        vehiculo: b.vehiculo,
+        patente: b.patente,
+        tipo: b.tipo || "Remis",
+        verificado: false,
+        estado_revision: "pendiente",
+        conectado: false
+      })
+    });
+
+    return json(200, { ok: true, id: uid });
+  } catch (e) {
+    console.error(e);
+    return json(500, { error: "Error en el servidor al crear chofer" });
+  }
+}
+
+// 2. VERIFICADOR INTELIGENTE CON IA (GOOGLE GEMINI 1.5 FLASH VISION)
 async function verificarDocumentosAI(request, env) {
   const geminiKey = env.GEMINI_API_KEY;
   const sbKey = env.SUPABASE_SECRET_KEY;
-  if (!geminiKey || !sbKey) return json(500, { error: "Faltan claves de configuración (GEMINI o SUPABASE)" });
+  if (!geminiKey || !sbKey) return json(500, { error: "Faltan claves de configuración" });
 
   let b;
   try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
@@ -64,24 +129,22 @@ async function verificarDocumentosAI(request, env) {
   const nombreChofer = `${b.nombre || ''} ${b.apellido || ''}`.trim();
   const vehiculo = b.vehiculo || '';
   const patente = b.patente || '';
-  const docs = b.docs || []; // [{ tipo: "licencia", path: "..." }, ...]
+  const docs = b.docs || [];
 
-  if (!cid || !docs.length) return json(400, { error: "Faltan documentos para analizar" });
+  if (!cid || !docs.length) return json(400, { error: "Faltan documentos" });
 
   const h = sbHeaders(sbKey);
   const inlineImages = [];
 
-  // Descargar las imágenes de los documentos desde Supabase Storage
   for (const doc of docs) {
     try {
       const resImg = await fetch(`${SB}/storage/v1/object/documentos/${doc.path}`, { headers: h });
       if (resImg.ok) {
         const buf = await resImg.arrayBuffer();
-        const base64Data = arrayBufferToBase64(buf);
         inlineImages.push({
           inline_data: {
             mime_type: resImg.headers.get("content-type") || "image/jpeg",
-            data: base64Data
+            data: arrayBufferToBase64(buf)
           }
         });
       }
@@ -91,71 +154,44 @@ async function verificarDocumentosAI(request, env) {
   }
 
   if (!inlineImages.length) {
-    return json(400, { error: "No se pudieron descargar las imágenes para la IA" });
+    return json(400, { error: "No se pudieron descargar las fotos para la IA" });
   }
 
-  // Prompt oficial con análisis de normativas argentinas
-  const prompt = `Eres el perito auditor de Inteligencia Artificial de la aplicación de transporte UDER en Rosario de la Frontera, Salta, Argentina.
-Tu tarea es verificar rigurosamente la documentación presentada por un chofer para decidir si se le autoriza a trabajar de inmediato.
+  const prompt = `Eres el perito auditor de Inteligencia Artificial de la app UDER en Rosario de la Frontera, Salta, Argentina.
+Verifica la documentación del chofer:
+- Nombre: ${nombreChofer}
+- Vehículo: ${vehiculo}
+- Patente: ${patente}
 
-Datos declarados por el chofer:
-- Nombre y Apellido: ${nombreChofer}
-- Vehículo declarado: ${vehiculo}
-- Patente declarada: ${patente}
-
-Se te adjuntan las fotografías de los 4 documentos (Licencia de conducir, Cédula de identificación del automotor, Póliza de Seguro y Revisión Técnica Obligatoria VTV/RTO).
-
-Debes inspeccionar y responder ÚNICAMENTE un objeto JSON válido con la siguiente estructura exacta:
+Inspecciona las 4 fotos (Licencia, Cédula, Seguro y VTV/RTO).
+Responde ÚNICAMENTE en JSON:
 {
   "aprobado": true o false,
-  "motivo": "Explicación breve y cordial si es rechazado (ej. 'La póliza de seguro está vencida' o 'La foto de la licencia no se lee bien'), o 'Documentación aprobada y en regla' si cumple todo",
-  "confianza": 0 a 100,
+  "motivo": "Explicación breve si se rechaza, o 'Documentación aprobada y en regla' si cumple",
   "detalles": {
-    "licencia_legible": true/false,
     "licencia_vigente": true/false,
     "identidad_coincide": true/false,
     "patente_coincide": true/false,
     "seguro_vigente": true/false,
     "vtv_vigente": true/false
   }
-}
-
-Reglas estrictas:
-1. Si un documento crucial está visiblemente vencido, "aprobado" debe ser false.
-2. Si las fotos son de objetos no relacionados o completamente borrosas, "aprobado" debe ser false.
-3. Si los documentos son legibles, vigentes y coinciden con la identidad y el vehículo, "aprobado" debe ser true.`;
+}`;
 
   try {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-    const geminiPayload = {
-      contents: [{
-        parts: [
-          { text: prompt },
-          ...inlineImages
-        ]
-      }],
-      generationConfig: {
-        response_mime_type: "application/json",
-        temperature: 0.1
-      }
-    };
-
     const rGemini = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiPayload)
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }, ...inlineImages] }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0.1 }
+      })
     });
 
     const jGemini = await rGemini.json();
-    if (!rGemini.ok) {
-      console.error("Gemini Error:", jGemini);
-      return json(502, { error: "La IA no pudo procesar las fotos en este momento" });
-    }
-
     const aiRawText = jGemini.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const veredicto = JSON.parse(aiRawText);
 
-    // Actualizar Supabase con el resultado de la IA
     const esAprobado = (veredicto.aprobado === true);
     await fetch(`${SB}/rest/v1/conductores?id=eq.${cid}`, {
       method: "PATCH",
@@ -172,14 +208,12 @@ Reglas estrictas:
       motivo: veredicto.motivo,
       detalles: veredicto.detalles
     });
-
   } catch(e) {
-    console.error("Error general IA:", e);
     return json(500, { error: "Error en el análisis de IA" });
   }
 }
 
-// 2. Buscador de calles
+// 3. Buscador de calles
 async function buscarCalle(request) {
   const q = (new URL(request.url).searchParams.get("q") || "").trim();
   if (!q) return json(200, { resultados: [] });
@@ -227,7 +261,7 @@ async function buscarCalle(request) {
   return json(200, { resultados });
 }
 
-// 3. Débito transparente con tarjeta
+// 4. Débito con tarjeta
 async function procesarPagoTarjeta(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -246,10 +280,7 @@ async function procesarPagoTarjeta(request, env) {
     installments: 1,
     payer: {
       email: b.email || "pasajero@uder.app",
-      identification: {
-        type: "DNI",
-        number: String(b.dni || "0").replace(/\D/g, "").slice(0, 8)
-      }
+      identification: { type: "DNI", number: String(b.dni || "0").replace(/\D/g, "").slice(0, 8) }
     },
     statement_descriptor: "UDER VIAJES",
     external_reference: "uder-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8)
@@ -281,15 +312,14 @@ async function procesarPagoTarjeta(request, env) {
       }
       return json(200, { aprobado: true, id: j.id, estado: "approved" });
     } else {
-      const motivo = j.status_detail || j.message || "Pago rechazado por el banco";
-      return json(200, { aprobado: false, estado: j.status, detalle: motivo });
+      return json(200, { aprobado: false, estado: j.status, detalle: j.status_detail || "Rechazado" });
     }
   } catch (e) {
     return json(502, { error: "Error de conexión con Mercado Pago" });
   }
 }
 
-// 4. Checkout Pro
+// 5. Checkout Pro
 async function crearPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { error: "Falta configurar MP_ACCESS_TOKEN" });
@@ -304,22 +334,13 @@ async function crearPago(request, env) {
   const viajeId = b.viaje_id || "";
 
   const pref = {
-    items: [{ 
-      title: String(b.descripcion || "Viaje Uder").slice(0, 120), 
-      quantity: 1, 
-      unit_price: monto, 
-      currency_id: "ARS" 
-    }],
+    items: [{ title: String(b.descripcion || "Viaje Uder").slice(0, 120), quantity: 1, unit_price: monto, currency_id: "ARS" }],
     payer: {
       name: String(b.nombre || "").slice(0, 60),
       surname: String(b.apellido || "").slice(0, 60),
       identification: { type: "DNI", number: String(b.dni || "").replace(/\D/g, "").slice(0, 8) }
     },
-    back_urls: { 
-      success: base + "/?pago=ok" + (viajeId ? "&viaje=" + viajeId : ""), 
-      failure: base + "/?pago=error", 
-      pending: base + "/?pago=pendiente" 
-    },
+    back_urls: { success: base + "/?pago=ok" + (viajeId ? "&viaje=" + viajeId : ""), failure: base + "/?pago=error", pending: base + "/?pago=pendiente" },
     auto_return: "approved",
     external_reference: ref,
     notification_url: base + "/api/webhook-mp"
@@ -339,11 +360,10 @@ async function crearPago(request, env) {
   }
 }
 
-// 5. Verificar cobro
+// 6. Verificar pago
 async function verificarPago(request, env) {
   const token = env.MP_ACCESS_TOKEN;
   if (!token) return json(500, { aprobado: false, error: "Falta configurar MP_ACCESS_TOKEN" });
-
   const q = new URL(request.url).searchParams;
   const id = String(q.get("payment_id") || "").replace(/\D/g, "");
   const ref = q.get("ref") || "";
@@ -352,9 +372,7 @@ async function verificarPago(request, env) {
   if (!id) return json(400, { aprobado: false });
 
   try {
-    const mpRes = await fetch("https://api.mercadopago.com/v1/payments/" + id, {
-      headers: { Authorization: "Bearer " + token }
-    });
+    const mpRes = await fetch("https://api.mercadopago.com/v1/payments/" + id, { headers: { Authorization: "Bearer " + token } });
     const p = await mpRes.json();
     const aprobado = (p.status === "approved") && (!ref || p.external_reference === ref);
 
@@ -378,7 +396,7 @@ async function verificarPago(request, env) {
   }
 }
 
-// 6. Crear viaje en Supabase
+// 7. Crear viaje
 async function pedirViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -404,23 +422,16 @@ async function pedirViaje(request, env) {
   }
 
   try {
-    const r = await fetch(`${SB}/rest/v1/viajes`, {
-      method: "POST",
-      headers: h,
-      body: JSON.stringify(b)
-    });
+    const r = await fetch(`${SB}/rest/v1/viajes`, { method: "POST", headers: h, body: JSON.stringify(b) });
     const data = await r.json();
-    if (!r.ok) {
-      console.error("DB error:", data);
-      return json(500, { error: "No se pudo crear el viaje", detalle: data });
-    }
+    if (!r.ok) return json(500, { error: "No se pudo crear el viaje", detalle: data });
     return json(200, { viaje: data[0] });
   } catch (e) {
     return json(500, { error: "Error al guardar el viaje" });
   }
 }
 
-// 7. Consultar estado del viaje
+// 8. Estado viaje
 async function estadoViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -447,7 +458,7 @@ async function estadoViaje(request, env) {
   }
 }
 
-// 8. Cancelar viaje
+// 9. Cancelar viaje
 async function cancelarViaje(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
   if (!key) return json(500, { error: "Falta SUPABASE_SECRET_KEY" });
@@ -483,6 +494,7 @@ export default {
     if (pathname === "/icon-admin.svg" || pathname === "/icon-admin.png") return servirIcono("admin");
 
     // Rutas de API
+    if (pathname === "/api/registro-conductor" && request.method === "POST") return registroConductor(request, env);
     if (pathname === "/api/verificar-documentos-ai" && request.method === "POST") return verificarDocumentosAI(request, env);
     if (pathname === "/api/buscar-calle" && request.method === "GET") return buscarCalle(request);
     if (pathname === "/api/procesar-pago-tarjeta" && request.method === "POST") return procesarPagoTarjeta(request, env);

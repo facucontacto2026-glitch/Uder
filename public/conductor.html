@@ -38,8 +38,10 @@ header{position:sticky;top:0;z-index:1000;background:#fff;padding:14px 20px 8px;
 .btn:active{opacity:0.85}
 
 .chip{border:1px solid #ddd;background:var(--surface);color:#000;border-radius:20px;padding:8px 14px;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
-.field-input{width:100%;padding:14px;border-radius:10px;border:1px solid #D5DBE5;background:#F9F9F9;font:600 15px 'Plus Jakarta Sans',sans-serif;margin-top:6px;margin-bottom:14px;outline:none}
+.field-input{width:100%;padding:14px;border-radius:10px;border:1px solid #D5DBE5;background:#F9F9F9;font:600 15px 'Plus Jakarta Sans',sans-serif;margin-top:6px;margin-bottom:8px;outline:none}
 .field-input:focus{border-color:#000;background:#fff}
+
+.check-doc{display:block;font-size:12px;font-weight:700;color:var(--ok);margin-bottom:12px}
 
 .plate{font-weight:800;letter-spacing:2px;border:2px solid #000;border-radius:6px;padding:3px 8px;font-size:13px}
 .fare{font-size:36px;font-weight:900;letter-spacing:-1px}
@@ -183,7 +185,6 @@ function doLogin(){
   }).catch(function(e){ err("Error al conectar: " + e.message); });
 }
 
-// CREACIÓN DE CONDUCTOR INSTANTÁNEA
 function doReg(){
   initAudio();
   var e = $("r_e").value.trim(), w = $("r_w").value, n = $("r_n").value.trim(), a = $("r_a").value.trim(), ve = $("r_ve").value.trim(), pa = $("r_pa").value.trim().toUpperCase(), ti = $("r_ti").value;
@@ -204,16 +205,12 @@ function doReg(){
     if(!uid) throw new Error("No se pudo obtener el usuario");
     D.u = r.data.user;
 
-    // Establecer datos en memoria de inmediato para dibujar la pantalla en 0 segundos
     D.p = { nombre: n, apellido: a, rol: "conductor" };
     D.c = { vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false };
 
-    // Guardar en Supabase en paralelo
     sb.from("perfiles").upsert({ id: uid, rol: "conductor", nombre: n, apellido: a }).then(function(){});
     sb.from("conductores").upsert({ id: uid, vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false }).then(function(){});
 
-    // Abrir de inmediato la pantalla para subir las 4 fotos
-    panel();
     draw(null, []);
   }).catch(function(e){
     err("Error: " + (e.message || "No se pudo registrar"));
@@ -224,7 +221,6 @@ function doReg(){
 function load(){
   if(!D.u) return login();
   
-  // Usamos maybeSingle para que no arroje error si el chofer es nuevo
   sb.from("perfiles").select("*").eq("id", D.u.id).maybeSingle().then(function(p){
     if(p.data && p.data.rol === "pasajero"){
       view(
@@ -241,10 +237,21 @@ function load(){
     var nom = (p.data && p.data.nombre) ? p.data.nombre : (D.u.user_metadata?.first_name || D.u.user_metadata?.full_name?.split(" ")[0] || "Conductor");
     var ape = (p.data && p.data.apellido) ? p.data.apellido : (D.u.user_metadata?.last_name || "");
     D.p = { nombre: nom, apellido: ape, rol: "conductor" };
-    panel();
+    
+    // Consultar estado de conductor
+    sb.from("conductores").select("*").eq("id", D.u.id).maybeSingle().then(function(cRes){
+      if(cRes.data){
+        D.c = cRes.data;
+      } else {
+        D.c = { vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false };
+      }
+      draw(null, []);
+      if(D.c.verificado) panel();
+    });
   }).catch(function(){
     D.p = { nombre: "Conductor", apellido: "Uder", rol: "conductor" };
-    panel();
+    D.c = { vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false };
+    draw(null, []);
   });
 }
 
@@ -272,13 +279,14 @@ function out(){
 }
 
 function panel(){
+  clearInterval(tm);
   D.sig = "";
   refresh();
   tm = setInterval(refresh, 3500);
 }
 
 function refresh(){
-  if(!D.u) return;
+  if(!D.u || !D.c || !D.c.verificado) return;
   var uid = D.u.id;
 
   Promise.all([
@@ -286,12 +294,7 @@ function refresh(){
     sb.from("viajes").select("*").eq("conductor_id", uid).in("estado", ["aceptado", "en_camino", "en_curso"]).limit(1),
     D.on ? sb.from("viajes").select("*").eq("estado", "buscando").order("creado_en") : Promise.resolve({ data: [] })
   ]).then(function(r){
-    var cData = r[0].data;
-    if(cData){
-      D.c = cData;
-    } else if(!D.c){
-      D.c = { vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false };
-    }
+    if(r[0].data) D.c = r[0].data;
 
     if(D.init === undefined){
       D.init = 1;
@@ -306,14 +309,9 @@ function refresh(){
       sonarAlerta();
     }
 
-    // Dibujar la pantalla de inmediato sin trabarse
     draw(act, off);
   }).catch(function(e){
     console.error("Refresh error:", e);
-    if(!D.c){
-      D.c = { vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false };
-    }
-    draw(null, []);
   });
 }
 
@@ -337,7 +335,9 @@ function draw(act, off){
       '</div>' +
     '</div>';
 
+  // Si no está verificado, mostrar formulario de fotos fijo (sin reloj que lo borre)
   if(!D.c || !D.c.verificado){
+    clearInterval(tm); // Detener cualquier reloj para no pisar las fotos que el usuario está eligiendo
     h += docsCard();
   } else if(act){
     var tx = {
@@ -374,7 +374,7 @@ function draw(act, off){
           '<span class="tag" style="background:#E8F5E9;color:#1B5E20;font-weight:800">● Conectado</span>' +
         '</div>' +
         '<button class="chip" onclick="sonarAlerta()">🔊 Probar sonido de alerta</button>' +
-        (off.length ? 
+        (off && off.length ? 
           off.map(function(o){
             return '<div class="card card-alerta" style="margin-top:14px">' +
               '<div style="display:flex;justify-content:space-between;align-items:center">' +
@@ -390,7 +390,7 @@ function draw(act, off){
               '<button class="btn accent" style="margin:0" onclick="aceptar(\''+o.id+'\')">Aceptar viaje</button>' +
             '</div>';
           }).join("") 
-        : '<p style="color:var(--ink-secondary);margin-16px 0 0;font-size:14px">Esperando pedidos… Mantené la pantalla abierta.</p>') +
+        : '<p style="color:var(--ink-secondary);margin:16px 0 0;font-size:14px">Esperando pedidos… Mantené la pantalla abierta.</p>') +
         '<button class="btn ghost" style="margin-top:16px" onclick="setOn(false)">Desconectarme</button>' +
       '</div>';
   }
@@ -402,7 +402,7 @@ function draw(act, off){
   mapaViaje(act);
 }
 
-// FORMULARIO DE DOCUMENTACIÓN CON VERIFICACIÓN POR IA
+// FORMULARIO DE FOTOS CON VISTA PREVIA Y CONFIRMACIÓN
 function docsCard(){
   var c = D.c || {};
   var esRechazado = (c.estado_revision === "rechazado");
@@ -411,18 +411,31 @@ function docsCard(){
     '<h3 style="margin:0 0 6px;font-size:20px;font-weight:800">' + (esRechazado ? 'Documentación no aprobada' : 'Verificación obligatoria') + '</h3>' +
     (esRechazado && c.motivo_rechazo ? '<p style="color:var(--bad);font-weight:700;margin-bottom:12px">Motivo: ' + esc(c.motivo_rechazo) + '</p>' : '') +
     '<p style="color:var(--ink-secondary);font-size:14px;margin-bottom:16px">Subí fotos claras de tus 4 documentos. <b>Nuestra Inteligencia Artificial los analiza en 3 segundos</b> para habilitarte automáticamente.</p>' +
-    docInput("d_l", "1. Licencia de conducir (frente)") +
-    docInput("d_s", "2. Póliza de seguro vigente") +
-    docInput("d_v", "3. Cédula del vehículo (frente)") +
-    docInput("d_t", "4. Revisión Técnica (VTV / RTO)") +
+    docInput("d_l", "l", "1. Licencia de conducir (frente)") +
+    docInput("d_s", "s", "2. Póliza de seguro vigente") +
+    docInput("d_v", "v", "3. Cédula del vehículo (frente)") +
+    docInput("d_t", "t", "4. Revisión Técnica (VTV / RTO)") +
     '<p id="err" style="color:var(--bad);font-size:13px;margin:8px 0"></p>' +
     '<button class="btn accent" id="btn_subir_docs" onclick="subirYAnalizarDocs()">🤖 Enviar y verificar con IA</button>' +
   '</div>';
 }
 
-function docInput(id, title){
-  return '<label style="font-size:12px;font-weight:700;display:block;margin-top:10px">' + title + '</label>' +
-         '<input id="' + id + '" type="file" accept="image/jpeg,image/png,image/webp" class="field-input" style="padding:10px">';
+function docInput(id, tag, title){
+  return '<div style="margin-bottom:10px">' +
+    '<label style="font-size:12px;font-weight:700;display:block">' + title + '</label>' +
+    '<input id="' + id + '" type="file" accept="image/jpeg,image/png,image/webp" class="field-input" onchange="marcarArchivoCargado(\''+tag+'\', this)">' +
+    '<span id="chk_' + tag + '" class="check-doc" style="display:none"></span>' +
+  '</div>';
+}
+
+function marcarArchivoCargado(tag, el){
+  var badge = $("chk_" + tag);
+  if(el.files && el.files[0]){
+    badge.style.display = "block";
+    badge.textContent = "✓ " + el.files[0].name + " (" + Math.round(el.files[0].size / 1024) + " KB)";
+  } else {
+    badge.style.display = "none";
+  }
 }
 
 // SUBIR Y ANALIZAR CON IA EN 3 SEGUNDOS
@@ -433,8 +446,8 @@ function subirYAnalizarDocs(){
 
   var btn = $("btn_subir_docs");
   btn.disabled = true;
-  btn.textContent = "🤖 Analizando con Inteligencia Artificial… (3 seg)";
-  err("Subiendo documentos y validando vigencia con IA…");
+  btn.textContent = "Subiendo fotos (1/4)…";
+  err("");
 
   var t = Date.now();
   var tipos = ["licencia", "seguro", "cedula", "vtv"];
@@ -444,9 +457,11 @@ function subirYAnalizarDocs(){
     var p = D.u.id + "/" + tipos[i] + "-" + t + "." + ext;
     return sb.storage.from("documentos").upload(p, f, { contentType: f.type, upsert: true }).then(function(r){
       if(r.error) throw r.error;
+      btn.textContent = "Subiendo fotos (" + (i+1) + "/4)…";
       return { tipo: tipos[i], path: p };
     });
   })).then(function(uploadedDocs){
+    btn.textContent = "🤖 Analizando con Inteligencia Artificial… (3 seg)";
     return fetch("/api/verificar-documentos-ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -462,15 +477,18 @@ function subirYAnalizarDocs(){
   }).then(function(r){ return r.json(); }).then(function(res){
     if(res.aprobado){
       alert("¡Felicitaciones! 🎉\n\nNuestra Inteligencia Artificial analizó tus documentos y comprobó que todo está en regla.\n\nYa estás habilitado para conectarte y empezar a trabajar con Uder.");
+      D.c.verificado = true;
+      D.c.estado_revision = "aprobado";
+      panel();
     } else {
       alert("Aviso de verificación de IA:\n\n" + (res.motivo || "No se pudieron validar todos los documentos. Revisá las fotos e intentá de nuevo."));
+      btn.disabled = false;
+      btn.textContent = "🤖 Reintentar verificación con IA";
     }
-    D.sig = "";
-    refresh();
   }).catch(function(e){
     err("Error: " + (e.message || "No se pudo completar el análisis"));
     btn.disabled = false;
-    btn.textContent = "🤖 Reintentar verificación";
+    btn.textContent = "🤖 Reintentar verificación con IA";
   });
 }
 
@@ -605,7 +623,7 @@ function avanzar(id, est){
   });
 }
 
-// ARRANQUE AUTOMÁTICO INMEDIATO (CON TIMEOUT DE SEGURIDAD PARA NUNCA QUEDARSE COLGADO)
+// INICIO CONTROLADO
 var initTimeout = setTimeout(function(){
   if(!D.u) login();
 }, 1500);

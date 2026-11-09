@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Descargar Uder · Rosario de la Frontera</title>
+<link rel="icon" type="image/svg+xml" href="/icon-pasajero.svg">
+<meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root{
+  --bg:#FFFFFF;
+  --surface:#F8F9FA;
+  --ink:#000000;
+  --ink-secondary:#5E5E5E;
+  --line:#EAEAEA;
+  --accent:#F5B700;
+  --navy:#14213D;
+  --wa:#25D366;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center
+}
+.container{
+  max-width:480px;
+  width:100%;
+  padding:24px 20px 50px;
+  display:flex;
+  flex-direction:column
+}
+
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:28px
+}
+.brand{
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:-1px;
+  display:flex;
+  align-items:center;
+  gap:2px
+}
+.brand span{
+  background:#000;
+  color:var(--accent);
+  padding:2px 8px;
+  border-radius:8px;
+  margin-right:4px
+}
+.badge-city{
+  background:var(--surface);
+  border:1px solid var(--line);
+  padding:6px 12px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-secondary)
+}
+
+/* HERO */
+.hero{
+  text-align:center;
+  margin-bottom:30px
+}
+.hero h1{
+  font-size:32px;
+  font-weight:900;
+  line-height:1.15;
+  letter-spacing:-1px;
+  margin:0 0 10px
+}
+.hero p{
+  font-size:15px;
+  color:var(--ink-secondary);
+  line-height:1.5;
+  margin:0
+}
+
+/* TARJETAS DE DESCARGA */
+.download-card{
+  border-radius:20px;
+  padding:22px;
+  margin-bottom:18px;
+  border:2px solid var(--line);
+  background:#fff;
+  box-shadow:0 6px 20px rgba(0,0,0,0.04);
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  transition:all 0.2s ease
+}
+.download-card:hover{
+  border-color:#000;
+  transform:translateY(-2px);
+  box-shadow:0 10px 25px rgba(0,0,0,0.08)
+}
+.card-header-app{
+  display:flex;
+  align-items:center;
+  gap:16px
+}
+.app-icon{
+  width:64px;
+  height:64px;
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  font-weight:900;
+  flex-shrink:0;
+  box-shadow:0 4px 12px rgba(0,0,0,0.12)
+}
+.icon-pasajero{
+  background:var(--navy);
+  color:var(--accent);
+  border:2px solid #fff
+}
+.icon-conductor{
+  background:var(--accent);
+  color:var(--navy);
+  border:2px solid #fff
+}
+.app-details h3{
+  margin:0 0 4px;
+  font-size:20px;
+  font-weight:800
+}
+.app-details p{
+  margin:0;
+  font-size:13px;
+  color:var(--ink-secondary);
+  line-height:1.4
+}
+
+.btn-download{
+  width:100%;
+  height:52px;
+  border-radius:14px;
+  font:800 16px 'Plus Jakarta Sans',sans-serif;
+  text-decoration:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  cursor:pointer;
+  transition:background 0.2s
+}
+.btn-pasajero{
+  background:#000;
+  color:#fff
+}
+.btn-pasajero:active{background:#333}
+
+.btn-conductor{
+  background:var(--accent);
+  color:#000
+}
+.btn-conductor:active{background:#e0a800}
+
+/* BENEFICIOS RÁPIDOS */
+.features-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin:24px 0
+}
+.feature-box{
+  background:var(--surface);
+  border-radius:14px;
+  padding:14px;
+  border:1px solid var(--line)
+}
+.feature-box b{
+  display:block;
+  font-size:13px;
+  margin-top:6px;
+  font-weight:800
+}
+.feature-box span{
+  font-size:12px;
+  color:var(--ink-secondary);
+  line-height:1.3;
+  display:block;
+  margin-top:2px
+}
+
+/* GUÍA DE INSTALACIÓN */
+.guide-box{
+  background:var(--surface);
+  border-radius:18px;
+  padding:20px;
+  margin-top:10px;
+  border:1px solid var(--line)
+}
+.guide-box h4{
+  margin:0 0 12px;
+  font-size:16px;
+  font-weight:800
+}
+.step{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:10px;
+  font-size:13px;
+  line-height:1.4
+}
+.step i{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#000;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-style:normal;
+  font-size:11px;
+  font-weight:800;
+  flex-shrink:0;
+  margin-top:1px
+}
+
+/* BOTÓN WHATSAPP */
+.btn-whatsapp-support{
+  background:var(--wa);
+  color:#fff;
+  border-radius:14px;
+  height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font:700 15px 'Plus Jakarta Sans',sans-serif;
+  text-decoration:none;
+  margin-top:20px;
+  box-shadow:0 4px 15px rgba(37,211,102,0.25)
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- CABECERA -->
+  <div class="header">
+    <div class="brand"><span>U</span>der</div>
+    <div class="badge-city">📍 Rosario de la Frontera</div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Viajá y manejá seguro en tu ciudad</h1>
+    <p>Elegí la aplicación que necesitás y descargala gratis directo en tu celular.</p>
+  </div>
+
+  <!-- APP 1: PASAJERO -->
+  <div class="download-card">
+    <div class="card-header-app">
+      <div class="app-icon icon-pasajero">U</div>
+      <div class="app-details">
+        <h3>Uder · Pasajero</h3>
+        <p>Pedí tu remis o auto particular en segundos con precio cerrado por cuadra.</p>
+      </div>
+    </div>
+    <a href="/" class="btn-download btn-pasajero">
+      📲 Descargar App Pasajero
+    </a>
+  </div>
+
+  <!-- APP 2: CONDUCTOR -->
+  <div class="download-card">
+    <div class="card-header-app">
+      <div class="app-icon icon-conductor">U</div>
+      <div class="app-details">
+        <h3>Uder · Conductor</h3>
+        <p>Manejá con tu auto, cobrá en mano y sumate con aprobación por IA en 3 seg.</p>
+      </div>
+    </div>
+    <a href="/conductor" class="btn-download btn-conductor">
+      🚖 Descargar App Conductor
+    </a>
+  </div>
+
+  <!-- BENEFICIOS -->
+  <div class="features-grid">
+    <div class="feature-box">
+      <div style="font-size:22px">💵</div>
+      <b>Efectivo o Mercado Pago</b>
+      <span>Pagá en mano o directo con tarjeta y saldo.</span>
+    </div>
+    <div class="feature-box">
+      <div style="font-size:22px">🛡️</div>
+      <b>Viajes seguros</b>
+      <span>Compartí tu viaje por WhatsApp con tu familia.</span>
+    </div>
+    <div class="feature-box">
+      <div style="font-size:22px">🤖</div>
+      <b>Choferes con IA</b>
+      <span>Verificación de licencias, seguro y VTV al instante.</span>
+    </div>
+    <div class="feature-box">
+      <div style="font-size:22px">📍</div>
+      <b>Tarifa fija y justa</b>
+      <span>Precio oficial de día y noche sin sorpresas.</span>
+    </div>
+  </div>
+
+  <!-- GUÍA DE INSTALACIÓN PASO A PASO -->
+  <div class="guide-box">
+    <h4>¿Cómo instalar en tu teléfono?</h4>
+    <div class="step">
+      <i>1</i>
+      <span>Tocá el botón negro o amarillo de la app que quieras descargar arriba.</span>
+    </div>
+    <div class="step">
+      <i>2</i>
+      <span>En tu navegador tocá los <b>3 puntitos (⋮)</b> arriba a la derecha (o el botón compartir <b>📤</b> en iPhone).</span>
+    </div>
+    <div class="step">
+      <i>3</i>
+      <span>Elegí <b>"Instalar aplicación"</b> o <b>"Agregar a Inicio"</b>. ¡Y listo! Te queda el ícono en tu pantalla.</span>
+    </div>
+  </div>
+
+  <!-- CONTACTO SOPORTE -->
+  <a href="https://api.whatsapp.com/send?phone=5493876000000&text=Hola!%20Tengo%20una%20consulta%20sobre%20Uder%20Rosario%20de%20la%20Frontera" target="_blank" rel="noopener" class="btn-whatsapp-support">
+    💬 Consultas por WhatsApp
+  </a>
+
+</div>
+
+</body>
+</html>

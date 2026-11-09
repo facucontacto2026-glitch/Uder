@@ -133,7 +133,7 @@ function view(h){
   $("v").innerHTML = h;
 }
 
-// PANTALLA INGRESO
+// INGRESO
 function login(){
   view(
     '<div class="card">' +
@@ -150,7 +150,7 @@ function login(){
   );
 }
 
-// PANTALLA REGISTRO
+// REGISTRO
 function reg(){
   view(
     '<div class="card">' +
@@ -183,7 +183,7 @@ function doLogin(){
   }).catch(function(e){ err("Error al conectar: " + e.message); });
 }
 
-// CREACIÓN DE CONDUCTOR BLINDADA A TRAVÉS DEL SERVIDOR
+// CREACIÓN DE CONDUCTOR RÁPIDA Y SIN COLGADAS
 function doReg(){
   initAudio();
   var e = $("r_e").value.trim(), w = $("r_w").value, n = $("r_n").value.trim(), a = $("r_a").value.trim(), ve = $("r_ve").value.trim(), pa = $("r_pa").value.trim().toUpperCase(), ti = $("r_ti").value;
@@ -191,36 +191,30 @@ function doReg(){
   if(w.length < 6) return err("Contraseña de al menos 6 caracteres.");
 
   var btn = $("btn_crear_chofer");
-  if(btn){ btn.disabled = true; btn.textContent = "Creando cuenta de conductor…"; }
-  err("Creando tu cuenta de conductor…");
+  if(btn){ btn.disabled = true; btn.textContent = "Creando cuenta…"; }
+  err("Creando tu cuenta de chofer…");
 
-  fetch("/api/registro-conductor", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: e,
-      password: w,
-      nombre: n,
-      apellido: a,
-      vehiculo: ve,
-      patente: pa,
-      tipo: ti
-    })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res){
-    if(res.error) throw new Error(res.error);
-    
-    // Iniciar sesión automáticamente
-    return sb.auth.signInWithPassword({ email: e, password: w });
-  })
-  .then(function(r){
-    if(r.error) throw new Error(r.error.message);
+  sb.auth.signUp({
+    email: e,
+    password: w,
+    options: { data: { full_name: n + " " + a, rol: "conductor" } }
+  }).then(function(r){
+    if(r.error) throw r.error;
+    var uid = r.data.user ? r.data.user.id : null;
+    if(!uid) throw new Error("No se pudo obtener el usuario");
     D.u = r.data.user;
-    load();
-  })
-  .catch(function(e){
-    err("Error: " + e.message);
+
+    // Guardar en perfiles y conductores
+    sb.from("perfiles").upsert({ id: uid, rol: "conductor", nombre: n, apellido: a }).then(function(){});
+    sb.from("conductores").upsert({ id: uid, vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false }).then(function(){});
+
+    // Iniciar el panel directamente sin demoras
+    D.p = { nombre: n, apellido: a, rol: "conductor" };
+    D.c = { vehiculo: ve, patente: pa, tipo: ti, verificado: false, estado_revision: "pendiente", conectado: false };
+    
+    panel();
+  }).catch(function(e){
+    err("Error: " + (e.message || "No se pudo registrar"));
     if(btn){ btn.disabled = false; btn.textContent = "Crear cuenta"; }
   });
 }
@@ -229,7 +223,6 @@ function load(){
   if(!D.u) return login();
   
   sb.from("perfiles").select("*").eq("id", D.u.id).single().then(function(p){
-    // Solo si el perfil dice explícitamente "pasajero"
     if(p.data && p.data.rol === "pasajero"){
       view(
         '<div class="card" style="text-align:center;padding:30px 16px">' +
@@ -287,7 +280,7 @@ function refresh(){
     sb.from("viajes").select("*").eq("conductor_id", uid).in("estado", ["aceptado", "en_camino", "en_curso"]).limit(1),
     D.on ? sb.from("viajes").select("*").eq("estado", "buscando").order("creado_en") : Promise.resolve({ data: [] })
   ]).then(function(r){
-    D.c = r[0].data;
+    D.c = r[0].data || D.c;
     
     if(!D.c){
       sb.from("conductores").upsert({ id: uid, vehiculo: "Auto Uder", patente: "UDER", tipo: "Remis", verificado: false, estado_revision: "pendiente", conectado: false }).then(function(res){
@@ -321,18 +314,24 @@ function refresh(){
 function draw(act, off){
   if(D.view === "gan") return;
 
+  var nom = (D.p && D.p.nombre) ? D.p.nombre : "Conductor";
+  var ape = (D.p && D.p.apellido) ? D.p.apellido : "";
+  var veh = (D.c && D.c.vehiculo) ? D.c.vehiculo : "Vehículo";
+  var pat = (D.c && D.c.patente) ? D.c.patente : "---";
+  var tip = (D.c && D.c.tipo) ? D.c.tipo : "Remis";
+
   var h = 
     '<div class="card">' +
       '<div style="display:flex;justify-content:space-between;align-items:center">' +
         '<div>' +
-          '<h3 style="margin:0;font-size:18px;font-weight:800">'+esc(D.p.nombre)+' '+esc(D.p.apellido)+'</h3>' +
-          '<p style="margin:3px 0 0;color:var(--ink-secondary);font-size:13px">'+esc(D.c.vehiculo)+' · <span class="plate">'+esc(D.c.patente)+'</span></p>' +
+          '<h3 style="margin:0;font-size:18px;font-weight:800">'+esc(nom)+' '+esc(ape)+'</h3>' +
+          '<p style="margin:3px 0 0;color:var(--ink-secondary);font-size:13px">'+esc(veh)+' · <span class="plate">'+esc(pat)+'</span></p>' +
         '</div>' +
-        '<span class="tag" style="background:#000;color:#fff">'+esc(D.c.tipo)+'</span>' +
+        '<span class="tag" style="background:#000;color:#fff">'+esc(tip)+'</span>' +
       '</div>' +
     '</div>';
 
-  if(!D.c.verificado){
+  if(!D.c || !D.c.verificado){
     h += docsCard();
   } else if(act){
     var tx = {
@@ -390,7 +389,7 @@ function draw(act, off){
       '</div>';
   }
 
-  if(D.c.verificado) h += '<button class="btn ghost" onclick="verGan()">Mis ganancias</button>';
+  h += '<button class="btn ghost" onclick="verGan()">Mis ganancias</button>';
   h += '<button class="btn ghost" style="color:var(--bad);border-color:#FFCDD2" onclick="out()">Cerrar sesión</button>';
   
   $("v").innerHTML = h;
@@ -399,7 +398,7 @@ function draw(act, off){
 
 // FORMULARIO DE DOCUMENTACIÓN CON VERIFICACIÓN POR IA
 function docsCard(){
-  var c = D.c;
+  var c = D.c || {};
   var esRechazado = (c.estado_revision === "rechazado");
 
   return '<div class="card">' +
@@ -447,10 +446,10 @@ function subirYAnalizarDocs(){
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         conductor_id: D.u.id,
-        nombre: D.p.nombre,
-        apellido: D.p.apellido,
-        vehiculo: D.c.vehiculo,
-        patente: D.c.patente,
+        nombre: D.p ? D.p.nombre : "Chofer",
+        apellido: D.p ? D.p.apellido : "",
+        vehiculo: D.c ? D.c.vehiculo : "",
+        patente: D.c ? D.c.patente : "",
         docs: uploadedDocs
       })
     });
@@ -579,9 +578,9 @@ function aceptar(id){
   initAudio();
   sb.from("viajes").update({
     conductor_id: D.u.id,
-    conductor_nombre: D.p.nombre + " " + D.p.apellido.charAt(0) + ".",
-    vehiculo: D.c.vehiculo,
-    patente: D.c.patente,
+    conductor_nombre: (D.p ? D.p.nombre : "Chofer") + " " + (D.p && D.p.apellido ? D.p.apellido.charAt(0) + "." : ""),
+    vehiculo: D.c ? D.c.vehiculo : "Auto",
+    patente: D.c ? D.c.patente : "---",
     estado: "aceptado"
   }).eq("id", id).eq("estado", "buscando").select().then(function(r){
     if(r.error || !r.data || !r.data.length) toast("Otro conductor ya tomó este viaje.");

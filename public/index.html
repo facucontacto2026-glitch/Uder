@@ -2,543 +2,152 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Uder · Rosario de la Frontera</title>
-<link rel="icon" type="image/svg+xml" href="/icon-pasajero.svg">
-<meta name="theme-color" content="#000000">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uder · Movilidad en Rosario de la Frontera</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <style>
-:root{
-  --bg:#FFFFFF;
-  --surface:#F8F9FA;
-  --ink:#000000;
-  --ink-secondary:#5E5E5E;
-  --line:#EAEAEA;
-  --accent:#F5B700;
-  --navy:#14213D;
-  --wa:#25D366;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{
-  margin:0;
-  background:#fff;
-  color:#000;
-  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  overflow-x:hidden
-}
-
-/* NAVBAR SUPERIOR ESTILO UBER */
-.navbar{
-  width:100%;
-  height:72px;
-  background:#000;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 5%;
-  position:sticky;
-  top:0;
-  z-index:1000
-}
-.nav-brand{
-  font-size:26px;
-  font-weight:900;
-  letter-spacing:-1px;
-  display:flex;
-  align-items:center;
-  gap:2px;
-  color:#fff;
-  text-decoration:none
-}
-.nav-brand span{
-  background:var(--accent);
-  color:#000;
-  padding:2px 8px;
-  border-radius:6px;
-  margin-right:4px
-}
-.nav-links{
-  display:flex;
-  align-items:center;
-  gap:16px
-}
-.btn-nav-download{
-  background:var(--accent);
-  color:#000;
-  border-radius:24px;
-  padding:8px 18px;
-  font-size:13px;
-  font-weight:800;
-  text-decoration:none;
-  transition:transform 0.15s
-}
-.btn-nav-download:active{transform:scale(0.96)}
-
-/* HERO SECTION */
-.hero{
-  width:100%;
-  padding:40px 5% 50px;
-  background:linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);
-  display:flex;
-  justify-content:center
-}
-.hero-wrapper{
-  max-width:1150px;
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  align-items:center
-}
-.hero-header{
-  text-align:center;
-  max-width:700px;
-  margin-bottom:36px
-}
-.badge-city{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  background:#fff;
-  border:1px solid #ddd;
-  padding:6px 14px;
-  border-radius:20px;
-  font-size:13px;
-  font-weight:700;
-  color:var(--ink-secondary);
-  margin-bottom:14px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.04)
-}
-.hero-header h1{
-  font-size:38px;
-  font-weight:900;
-  line-height:1.15;
-  letter-spacing:-1.5px;
-  margin:0 0 12px
-}
-.hero-header p{
-  font-size:16px;
-  color:var(--ink-secondary);
-  line-height:1.5;
-  margin:0
-}
-
-/* SECCIÓN PRINCIPAL DE LAS 2 APPS (PROTAGONISTAS) */
-.apps-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:24px;
-  width:100%;
-  max-width:950px;
-  margin-bottom:30px
-}
-@media (max-width:760px){
-  .apps-grid{grid-template-columns:1fr;gap:18px}
-  .hero-header h1{font-size:30px}
-}
-
-.app-box{
-  background:#fff;
-  border-radius:24px;
-  padding:28px 24px;
-  border:2px solid var(--line);
-  box-shadow:0 10px 30px rgba(0,0,0,0.05);
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  transition:all 0.25s ease
-}
-.app-box:hover{
-  border-color:#000;
-  transform:translateY(-3px);
-  box-shadow:0 14px 40px rgba(0,0,0,0.09)
-}
-
-.app-top{
-  display:flex;
-  align-items:center;
-  gap:18px;
-  margin-bottom:16px
-}
-.app-avatar{
-  width:68px;
-  height:68px;
-  border-radius:20px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:30px;
-  font-weight:900;
-  flex-shrink:0;
-  box-shadow:0 4px 15px rgba(0,0,0,0.12)
-}
-.avatar-pasajero{
-  background:var(--navy);
-  color:var(--accent);
-  border:2.5px solid #fff
-}
-.avatar-conductor{
-  background:var(--accent);
-  color:var(--navy);
-  border:2.5px solid #fff
-}
-.app-title h2{
-  margin:0 0 4px;
-  font-size:22px;
-  font-weight:900
-}
-.app-title span{
-  font-size:12px;
-  font-weight:700;
-  padding:3px 8px;
-  border-radius:6px;
-  display:inline-block
-}
-.tag-blue{background:#EBF3FF;color:#1A56DB}
-.tag-gold{background:#FFF9E6;color:#856404}
-
-.app-desc{
-  font-size:14px;
-  color:var(--ink-secondary);
-  line-height:1.5;
-  margin:0 0 20px
-}
-.app-features{
-  list-style:none;
-  padding:0;
-  margin:0 0 24px;
-  font-size:13px;
-  display:flex;
-  flex-direction:column;
-  gap:8px
-}
-.app-features li{
-  display:flex;
-  align-items:center;
-  gap:8px
-}
-.app-features li i{
-  font-style:normal;
-  font-size:14px
-}
-
-/* BOTONES GIGANTES DE DESCARGA */
-.btn-app-action{
-  width:100%;
-  height:56px;
-  border-radius:14px;
-  font:800 16px 'Plus Jakarta Sans',sans-serif;
-  text-decoration:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  cursor:pointer;
-  transition:all 0.15s
-}
-.btn-action-pasajero{
-  background:#000;
-  color:#fff
-}
-.btn-action-pasajero:active{background:#333}
-
-.btn-action-conductor{
-  background:var(--accent);
-  color:#000
-}
-.btn-action-conductor:active{background:#e0a800}
-
-/* SECCIÓN CÓDIGOS QR (PARA LA COMPU) */
-.section-qr{
-  padding:50px 5%;
-  background:#fff;
-  display:flex;
-  justify-content:center
-}
-.qr-container{
-  max-width:950px;
-  width:100%
-}
-.qr-container h3{
-  font-size:24px;
-  font-weight:900;
-  letter-spacing:-0.5px;
-  margin:0 0 24px;
-  text-align:center
-}
-.qr-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px
-}
-@media (max-width:650px){
-  .qr-grid{display:none} /* Se oculta en celular porque en celu ya tienen el botón directo */
-  .section-qr{display:none}
-}
-.qr-card{
-  background:var(--surface);
-  border-radius:20px;
-  padding:20px;
-  display:flex;
-  align-items:center;
-  gap:20px;
-  border:1px solid var(--line)
-}
-.qr-card img{
-  width:110px;
-  height:110px;
-  border-radius:12px;
-  border:1px solid #ddd;
-  background:#fff;
-  padding:4px;
-  flex-shrink:0
-}
-.qr-info h4{margin:0 0 4px;font-size:17px;font-weight:800}
-.qr-info p{margin:0 0 10px;font-size:13px;color:var(--ink-secondary);line-height:1.4}
-.qr-info a{color:#000;font-weight:800;font-size:13px;text-decoration:underline}
-
-/* BENEFICIOS / SEGURIDAD */
-.section-benefits{
-  padding:60px 5%;
-  background:var(--surface);
-  display:flex;
-  justify-content:center
-}
-.benefits-wrapper{
-  max-width:1100px;
-  width:100%
-}
-.benefits-wrapper h2{
-  font-size:28px;
-  font-weight:900;
-  letter-spacing:-0.5px;
-  margin:0 0 32px;
-  text-align:center
-}
-.grid-benefits{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
-  gap:18px
-}
-.card-benefit{
-  background:#fff;
-  border-radius:18px;
-  padding:22px;
-  border:1px solid var(--line)
-}
-.card-benefit div{font-size:28px;margin-bottom:10px}
-.card-benefit b{display:block;font-size:16px;margin-bottom:6px;font-weight:800}
-.card-benefit p{margin:0;font-size:13px;color:var(--ink-secondary);line-height:1.4}
-
-/* GUÍA DE INSTALACIÓN RÁPIDA */
-.guide-banner{
-  background:#fff;
-  border:2px dashed #ddd;
-  border-radius:20px;
-  padding:22px;
-  margin-top:30px;
-  text-align:center
-}
-.guide-banner h4{margin:0 0 8px;font-size:17px;font-weight:800}
-.guide-banner p{margin:0;font-size:14px;color:var(--ink-secondary);line-height:1.5}
-
-/* FOOTER */
-.footer{
-  background:#000;
-  color:#fff;
-  padding:50px 5% 30px;
-  margin-top:auto
-}
-.footer-wrapper{
-  max-width:1100px;
-  margin:0 auto;
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  flex-wrap:wrap;
-  gap:30px;
-  padding-bottom:30px;
-  border-bottom:1px solid #222
-}
-.footer-brand{font-size:24px;font-weight:900;margin-bottom:10px}
-.footer-brand span{background:var(--accent);color:#000;padding:2px 8px;border-radius:6px;margin-right:4px}
-.btn-wa-support{
-  background:var(--wa);
-  color:#fff;
-  border-radius:24px;
-  padding:10px 20px;
-  font-size:14px;
-  font-weight:800;
-  text-decoration:none;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  margin-top:10px
-}
+  :root { --bg: #ffffff; --ink: #000000; --ink-sec: #5E5E5E; --line: #EEEEEE; --accent: #F5B700; --dark: #14213D; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; line-height: 1.5; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #000; color: #fff; position: sticky; top: 0; z-index: 100; }
+  .brand { font-size: 24px; font-weight: 800; letter-spacing: -1px; }
+  .brand span { background: var(--accent); color: #000; padding: 0 6px; border-radius: 6px; margin-right: 4px; }
+  .btn-header { background: var(--accent); color: #000; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 14px; }
+  .hero { text-align: center; padding: 40px 20px 20px; }
+  .location-pill { display: inline-flex; align-items: center; gap: 6px; background: #F6F6F6; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 20px; }
+  .location-pill i { width: 8px; height: 8px; background: #276EF1; border-radius: 50%; }
+  .hero h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+  .hero p { color: var(--ink-sec); font-size: 16px; max-width: 500px; margin: 0 auto; }
+  .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+  .cards { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 768px) { .cards { grid-template-columns: 1fr 1fr; } }
+  .card { background: #fff; border-radius: 24px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .card-icon { width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 16px; }
+  .card-icon.pasajero { background: var(--dark); }
+  .card-icon.chofer { background: var(--accent); color: var(--dark); }
+  .card h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+  .card .badge { font-size: 12px; font-weight: 700; color: var(--ink-sec); background: #F6F6F6; padding: 4px 10px; border-radius: 10px; display: inline-block; margin-bottom: 16px; }
+  .card p { color: var(--ink-sec); font-size: 15px; margin-bottom: 20px; }
+  .features { list-style: none; margin-bottom: 32px; flex-grow: 1; }
+  .features li { font-size: 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; }
+  .btn-download { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; text-decoration: none; transition: transform 0.1s; }
+  .btn-download:active { transform: scale(0.98); }
+  .btn-download.pasajero { background: #000; color: #fff; }
+  .btn-download.chofer { background: var(--accent); color: #000; }
+  .qr-section { margin-top: 60px; text-align: center; }
+  .qr-section h3 { font-size: 24px; font-weight: 800; margin-bottom: 24px; }
+  .qr-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 768px) { .qr-grid { grid-template-columns: 1fr 1fr; } }
+  .qr-card { background: #F9F9F9; padding: 24px; border-radius: 20px; border: 1px solid var(--line); }
+  .qr-card img { width: 150px; height: 150px; margin: 0 auto 16px; display: block; }
+  .features-section { margin-top: 60px; background: #F9F9F9; padding: 40px 20px; border-radius: 24px; }
+  .features-section h3 { text-align: center; font-size: 24px; font-weight: 800; margin-bottom: 32px; }
+  .features-grid { display: grid; grid-template-columns: 1fr; gap: 24px; text-align: center; }
+  @media (min-width: 768px) { .features-grid { grid-template-columns: repeat(4, 1fr); } }
+  .feature-item h4 { font-size: 16px; font-weight: 800; margin: 12px 0 6px; }
+  .feature-item p { font-size: 13px; color: var(--ink-sec); }
 </style>
 </head>
 <body>
 
-  <!-- NAVBAR -->
-  <header class="navbar">
-    <a href="/" class="nav-brand"><span>U</span>der</a>
-    <div class="nav-links">
-      <a href="/app" class="btn-nav-download">📲 Pedir Viaje</a>
-    </div>
-  </header>
+<header class="header">
+  <div class="brand"><span>U</span>der</div>
+  <a href="/app" class="btn-header">Pedir Viaje</a>
+</header>
 
-  <!-- HERO SECTION CON LAS 2 APPS PROTAGONISTAS -->
-  <section class="hero">
-    <div class="hero-wrapper">
-      
-      <div class="hero-header">
-        <div class="badge-city">📍 Rosario de la Frontera, Salta</div>
-        <h1>Movilidad segura y moderna en tu ciudad</h1>
-        <p>Elegí la aplicación que necesitás y descargala gratis directo en tu celular sin pasar por Play Store.</p>
-      </div>
+<section class="hero">
+  <div class="location-pill"><i></i> Rosario de la Frontera, Salta</div>
+  <h1>Movilidad segura y moderna en tu ciudad</h1>
+  <p>Elegí la aplicación que necesitás y descargala gratis directo en tu celular sin pasar por Play Store.</p>
+</section>
 
-      <!-- LAS 2 CARDS GRANDES DE DESCARGA -->
-      <div class="apps-grid">
-        
-        <!-- CARD 1: PASAJERO -->
-        <div class="app-box">
-          <div>
-            <div class="app-top">
-              <div class="app-avatar avatar-pasajero">U</div>
-              <div class="app-title">
-                <h2>Uder Pasajero</h2>
-                <span class="tag-blue">Para viajar</span>
-              </div>
-            </div>
-            <p class="app-desc">Pedí remises y autos particulares en segundos con precio cerrado por cuadra.</p>
-            <ul class="app-features">
-              <li><i>💵</i> Pagá en efectivo, con tarjeta o Mercado Pago</li>
-              <li><i>🚗</i> Seguí a tu chofer en vivo en el mapa satelital</li>
-              <li><i>📲</i> Compartí tu viaje por WhatsApp por seguridad</li>
-            </ul>
-          </div>
-          <a href="/app" class="btn-app-action btn-action-pasajero">
-            📲 Descargar App Pasajero
-          </a>
-        </div>
-
-        <!-- CARD 2: CONDUCTOR -->
-        <div class="app-box">
-          <div>
-            <div class="app-top">
-              <div class="app-avatar avatar-conductor">U</div>
-              <div class="app-title">
-                <h2>Uder Chofer</h2>
-                <span class="tag-gold">Para manejar</span>
-              </div>
-            </div>
-            <p class="app-desc">Sumate a manejar con tu auto, cobrá en mano y generá tus propios ingresos.</p>
-            <ul class="app-features">
-              <li><i>🤖</i> Aprobación inmediata por Inteligencia Artificial</li>
-              <li><i>🔔</i> Alerta sonora fuerte y vibración en cada viaje</li>
-              <li><i>🗺️</i> Navegación directa con Google Maps integrada</li>
-            </ul>
-          </div>
-          <a href="/conductor" class="btn-app-action btn-action-conductor">
-            🚖 Descargar App Conductor
-          </a>
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
-  <!-- SECCIÓN CÓDIGOS QR (SE VE EN COMPUTADORAS) -->
-  <section class="section-qr">
-    <div class="qr-container">
-      <h3>¿Estás desde la computadora? Escaneá con tu celular</h3>
-      <div class="qr-grid">
-        
-        <div class="qr-card">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=https://uder.uder-app.workers.dev/app" alt="QR Pasajero">
-          <div class="qr-info">
-            <h4>App de Pasajeros</h4>
-            <p>Apuntá con la cámara de tu teléfono para abrir y descargar la app de viajes.</p>
-            <a href="/app">O hacé clic aquí para entrar ➔</a>
-          </div>
-        </div>
-
-        <div class="qr-card">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=https://uder.uder-app.workers.dev/conductor" alt="QR Conductor">
-          <div class="qr-info">
-            <h4>App de Conductores</h4>
-            <p>Apuntá con tu cámara para registrarte como chofer y subir tus documentos con IA.</p>
-            <a href="/conductor">O hacé clic aquí para entrar ➔</a>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- BENEFICIOS Y SEGURIDAD -->
-  <section class="section-benefits">
-    <div class="benefits-wrapper">
-      <h2>Diseñado para tu comodidad y seguridad</h2>
-      <div class="grid-benefits">
-        <div class="card-benefit">
-          <div>📍</div>
-          <b>Tarifa justa por cuadra</b>
-          <p>Precios oficiales transparentes de día ($2.600) y de noche ($3.600) para cuidar tu bolsillo.</p>
-        </div>
-        <div class="card-benefit">
-          <div>🤖</div>
-          <b>Choferes auditados con IA</b>
-          <p>Inteligencia Artificial que comprueba vigencia de licencias, seguros y VTV al instante.</p>
-        </div>
-        <div class="card-benefit">
-          <div>🛡️</div>
-          <b>Seguridad en cada viaje</b>
-          <p>Enviá los datos de tu chofer y patente por WhatsApp a tu familia con 1 solo toque.</p>
-        </div>
-        <div class="card-benefit">
-          <div>💳</div>
-          <b>Todos los medios de pago</b>
-          <p>Elegí cómo abonar: efectivo en mano, tarjetas con débito automático o saldo de Mercado Pago.</p>
-        </div>
-      </div>
-
-      <!-- BANNER EXPLICATIVO DE INSTALACIÓN -->
-      <div class="guide-banner">
-        <h4>📲 ¿Cómo se instala en tu celular?</h4>
-        <p>Es muy fácil: tocás el botón de descarga, en tu navegador presionás los <b>3 puntitos (⋮)</b> arriba a la derecha (o compartir 📤 en iPhone) y elegís <b>"Instalar aplicación"</b> o <b>"Agregar a Inicio"</b>.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer class="footer">
-    <div class="footer-wrapper">
-      <div>
-        <div class="footer-brand"><span>U</span>der</div>
-        <p style="color:#888;font-size:14px;max-width:320px;line-height:1.5;margin:0 0 16px">La plataforma tecnológica oficial de viajes para Rosario de la Frontera, Salta.</p>
-        <a href="https://api.whatsapp.com/send?phone=5493876000000&text=Hola%20Uder!%20Quiero%20hacer%20una%20consulta" target="_blank" rel="noopener" class="btn-wa-support">
-          💬 Consultas por WhatsApp
-        </a>
-      </div>
-
-      <div>
-        <h4 style="margin:0 0 12px;font-size:16px">Accesos rápidos</h4>
-        <p style="margin:0 0 8px"><a href="/app" style="color:#aaa;text-decoration:none;font-size:14px">App Pasajero</a></p>
-        <p style="margin:0 0 8px"><a href="/conductor" style="color:#aaa;text-decoration:none;font-size:14px">App Chofer</a></p>
-        <p style="margin:0 0 8px"><a href="/admin" style="color:#aaa;text-decoration:none;font-size:14px">Panel Administrador</a></p>
-      </div>
+<div class="container">
+  <div class="cards">
+    
+    <!-- Tarjeta Pasajero -->
+    <div class="card">
+      <div class="card-icon pasajero">U</div>
+      <h2>Uder Pasajero</h2>
+      <span class="badge">Para viajar</span>
+      <p>Pedí remises y autos particulares en segundos con precio cerrado por cuadra.</p>
+      <ul class="features">
+        <li>💵 Pagá en efectivo, con tarjeta o Mercado Pago</li>
+        <li>🚗 Seguí a tu chofer en vivo en el mapa satelital</li>
+        <li>📲 Compartí tu viaje por WhatsApp por seguridad</li>
+      </ul>
+      <!-- BOTÓN PASAJERO FINAL -->
+      <a href="https://mmgvttmgchnbppcemrwg.supabase.co/storage/v1/object/public/apks/uder-pasajero.apk?download" 
+         download="Uder-Pasajero.apk" 
+         class="btn-download pasajero">
+         📲 Descargar App Pasajero
+      </a>
     </div>
 
-    <div style="max-width:1100px;margin:24px auto 0;color:#666;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div>© 2026 Uder Argentina. Todos los derechos reservados.</div>
-      <div>Rosario de la Frontera, Salta</div>
+    <!-- Tarjeta Chofer -->
+    <div class="card">
+      <div class="card-icon chofer">U</div>
+      <h2>Uder Chofer</h2>
+      <span class="badge">Para manejar</span>
+      <p>Sumate a manejar con tu auto, cobrá en mano y generá tus propios ingresos.</p>
+      <ul class="features">
+        <li>🤖 Aprobación inmediata por Inteligencia Artificial</li>
+        <li>🔔 Alerta sonora fuerte y vibración en cada viaje</li>
+        <li>🗺️ Navegación directa con Google Maps integrada</li>
+      </ul>
+      <!-- BOTÓN CHOFER FINAL -->
+      <a href="https://mmgvttmgchnbppcemrwg.supabase.co/storage/v1/object/public/apks/uder-chofer.apk?download" 
+         download="Uder-Chofer.apk" 
+         class="btn-download chofer">
+         📲 Descargar App Conductor
+      </a>
     </div>
-  </footer>
+
+  </div>
+
+  <!-- Sección QR -->
+  <div class="qr-section">
+    <h3>¿Estás desde la computadora? Escaneá con tu celular</h3>
+    <div class="qr-grid">
+      <div class="qr-card">
+        <h4>App de Pasajeros</h4>
+        <p style="font-size:13px; color:#5E5E5E; margin-bottom:16px;">Apuntá con la cámara de tu teléfono para abrir y descargar la app de viajes.</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://uder.uder-app.workers.dev/app" alt="QR Pasajero">
+      </div>
+      <div class="qr-card">
+        <h4>App de Conductores</h4>
+        <p style="font-size:13px; color:#5E5E5E; margin-bottom:16px;">Apuntá con la cámara para registrarte como chofer y subir tus documentos con IA.</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://uder.uder-app.workers.dev/conductor" alt="QR Chofer">
+      </div>
+    </div>
+  </div>
+
+  <!-- Características -->
+  <div class="features-section">
+    <h3>Diseñado para tu comodidad y seguridad</h3>
+    <div class="features-grid">
+      <div class="feature-item">
+        <div style="font-size:32px;">📍</div>
+        <h4>Tarifa justa por cuadra</h4>
+        <p>Precios oficiales transparentes de día y de noche para cuidar tu bolsillo.</p>
+      </div>
+      <div class="feature-item">
+        <div style="font-size:32px;">🤖</div>
+        <h4>Choferes auditados con IA</h4>
+        <p>Inteligencia Artificial que comprueba vigencia de licencias, seguros y VTV al instante.</p>
+      </div>
+      <div class="feature-item">
+        <div style="font-size:32px;">🛡️</div>
+        <h4>Seguridad en cada viaje</h4>
+        <p>Enviá los datos de tu chofer y patente por WhatsApp a tu familia con 1 solo toque.</p>
+      </div>
+      <div class="feature-item">
+        <div style="font-size:32px;">💳</div>
+        <h4>Todos los medios de pago</h4>
+        <p>Elegí cómo abonar: efectivo en mano, tarjetas o saldo de Mercado Pago.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

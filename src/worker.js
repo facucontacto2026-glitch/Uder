@@ -1,4 +1,4 @@
-// Uder · Backend en Cloudflare Workers (Mercado Pago + Supabase + IA Gemini)
+// Uder · Backend en Cloudflare Workers
 const SB = "https://mmgvttmgchnbppcemrwg.supabase.co";
 
 const json = (s, o) => new Response(JSON.stringify(o), { 
@@ -101,7 +101,7 @@ async function registroConductor(request, env) {
 async function verificarDocumentosAI(request, env) {
   const geminiKey = env.GEMINI_API_KEY;
   const sbKey = env.SUPABASE_SECRET_KEY;
-  if (!geminiKey || !sbKey) return json(500, { error: "Faltan claves de configuración" });
+  if (!geminiKey || !sbKey) return json(500, { error: "Falta configurar claves" });
 
   let b;
   try { b = await request.json(); } catch { return json(400, { error: "Datos inválidos" }); }
@@ -132,7 +132,7 @@ async function verificarDocumentosAI(request, env) {
     } catch(errImg) {}
   }
 
-  if (!inlineImages.length) return json(400, { error: "No se pudieron descargar las fotos para la IA" });
+  if (!inlineImages.length) return json(400, { error: "No se pudieron descargar las fotos" });
 
   const prompt = `Eres el perito auditor de IA de la app UDER en Rosario de la Frontera, Salta, Argentina.
 Verifica la documentación del chofer:
@@ -479,7 +479,20 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Cloudflare Assets entrega directamente /descargar, /conductor, /admin e /index.html sin rebotes
+    // RUTAS LIMPIAS OFICIALES
+    if (pathname === "/app" || pathname === "/app/") {
+      url.pathname = "/app.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+    if (pathname === "/conductor" || pathname === "/conductor/") {
+      url.pathname = "/conductor.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+    if (pathname === "/admin" || pathname === "/admin/") {
+      url.pathname = "/admin.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+
     return env.ASSETS.fetch(request);
   }
 };

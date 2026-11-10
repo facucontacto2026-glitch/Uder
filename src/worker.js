@@ -461,7 +461,21 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Iconos de las 3 apps
+    // 1. ARREGLO PARA PWABUILDER: Forzar cabeceras correctas para imágenes
+    if (pathname.endsWith(".png") || pathname.endsWith(".svg") || pathname.endsWith(".json")) {
+      const response = await env.ASSETS.fetch(request);
+      const newResponse = new Response(response.body, response);
+      
+      if (pathname.endsWith(".png")) newResponse.headers.set("Content-Type", "image/png");
+      if (pathname.endsWith(".svg")) newResponse.headers.set("Content-Type", "image/svg+xml");
+      if (pathname.endsWith(".json")) newResponse.headers.set("Content-Type", "application/json");
+      
+      // Permitir que PWABuilder acceda a estos archivos desde su servidor
+      newResponse.headers.set("Access-Control-Allow-Origin", "*");
+      return newResponse;
+    }
+
+    // Iconos dinámicos (Rutas directas del backend)
     if (pathname === "/icon-pasajero.svg" || pathname === "/icon-pasajero.png") return servirIcono("pasajero");
     if (pathname === "/icon-conductor.svg" || pathname === "/icon-conductor.png") return servirIcono("conductor");
     if (pathname === "/icon-admin.svg" || pathname === "/icon-admin.png") return servirIcono("admin");
@@ -479,7 +493,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Cloudflare maneja automáticamente los archivos .html (como app, conductor, admin)
+    // Cloudflare maneja automáticamente los archivos .html
     return env.ASSETS.fetch(request);
   }
 };

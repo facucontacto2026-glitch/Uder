@@ -7,7 +7,6 @@
 <link rel="manifest" href="/manifest-pasajero.json">
 <link rel="apple-touch-icon" href="/icon-pasajero.svg">
 <meta name="theme-color" content="#000000">
-<!-- Arreglo del aviso amarillo de la consola -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
@@ -512,26 +511,19 @@ function price(i){
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
 function verificarViajeActivo(){
-  // Renderizamos la pantalla de inicio por defecto inmediatamente
+  // Limpiamos cualquier ruta residual en el mapa al iniciar
+  S.o = null; S.on = ""; S.oref = "";
+  S.d = null; S.dn = ""; S.dref = "";
+  S.km = 0; S.cuadras = 0; S.mode = "o";
+  S.res = [];
+  draw();
+
+  // Renderizamos la pantalla de inicio por defecto
   cambiarSeccion("home");
 
   var viajeIdGuardado = localStorage.getItem("uder_active_viaje");
-  
-  if(!viajeIdGuardado && U && U.id && sb){
-    sb.from("viajes")
-      .select("*")
-      .eq("pasajero_id", U.id)
-      .in("estado", ["buscando", "aceptado", "en_camino", "en_curso"])
-      .order("creado_en", { ascending: false })
-      .limit(1)
-      .then(function(r){
-        if(r.data && r.data[0]){
-          restaurarViaje(r.data[0]);
-        }
-      }).catch(function(){});
-    return;
-  }
 
+  // Solo restauramos si hay un viaje guardado LOCALMENTE (ignoramos viajes viejos de la base de datos)
   if(viajeIdGuardado){
     fetch("/api/estado-viaje?id=" + encodeURIComponent(viajeIdGuardado))
       .then(function(r){ return r.json() })
@@ -1056,7 +1048,17 @@ if (window.map) {
   });
 }
 
-function mode(m){S.mode=m;go("home")}
+function mode(m){
+  S.mode = m;
+  if(m === "o"){
+    S.o = null; S.on = ""; S.oref = ""; 
+  } else if(m === "d"){
+    S.d = null; S.dn = ""; S.dref = "";
+  }
+  S.res = [];
+  draw();
+  go("home");
+}
 
 function loc(){
   toast("Buscando tu ubicación…");

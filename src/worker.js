@@ -479,20 +479,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // RUTAS LIMPIAS OFICIALES
-    if (pathname === "/app" || pathname === "/app/") {
-      url.pathname = "/app.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-    if (pathname === "/conductor" || pathname === "/conductor/") {
-      url.pathname = "/conductor.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-    if (pathname === "/admin" || pathname === "/admin/") {
-      url.pathname = "/admin.html";
-      return env.ASSETS.fetch(new Request(url, request));
-    }
-
+    // Cloudflare maneja automáticamente los archivos .html (como app, conductor, admin)
     return env.ASSETS.fetch(request);
   }
 };

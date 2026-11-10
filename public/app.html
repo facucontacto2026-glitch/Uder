@@ -7,7 +7,8 @@
 <link rel="manifest" href="/manifest-pasajero.json">
 <link rel="apple-touch-icon" href="/icon-pasajero.svg">
 <meta name="theme-color" content="#000000">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- Arreglo del aviso amarillo de la consola -->
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
@@ -184,8 +185,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 
 <script>
-var sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ");
-var mp = new MercadoPago("APP_USR-619e8167-a16b-472a-9e9b-71eef85dbb38");
+// INICIALIZACIÓN SEGURA
+var sb, mp;
+try {
+  sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ");
+} catch(e) { console.log("Error Supabase", e); }
+
+try {
+  mp = new MercadoPago("APP_USR-619e8167-a16b-472a-9e9b-71eef85dbb38");
+} catch(e) { console.log("Error MercadoPago", e); }
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(function(){});
@@ -213,7 +221,6 @@ function lab(n, r){
 
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
 
-// SONIDO DE AVISO CUANDO EL CHOFER ACEPTA EL VIAJE
 function sonarAvisoAceptado(){
   try{
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -287,31 +294,17 @@ function sincronizarUsuario(usr){
   };
   save();
 
-  sb.from("perfiles").upsert({
-    id: usr.id,
-    rol: "pasajero",
-    nombre: U.nombre,
-    apellido: U.apellido
-  }).then(function(){});
+  if (sb) {
+    sb.from("perfiles").upsert({
+      id: usr.id,
+      rol: "pasajero",
+      nombre: U.nombre,
+      apellido: U.apellido
+    }).then(function(){}).catch(function(){});
+  }
 
   verificarViajeActivo();
 }
-
-sb.auth.onAuthStateChange(function(event, session){
-  if(session && session.user){
-    sincronizarUsuario(session.user);
-  }
-});
-
-sb.auth.getSession().then(function(r){
-  if(r.data && r.data.session && r.data.session.user){
-    sincronizarUsuario(r.data.session.user);
-  } else if(!U || !U.nombre){
-    go("welcome");
-  } else {
-    verificarViajeActivo();
-  }
-});
 
 function loginGoogle(){
   toast("Conectando con Google…");
@@ -518,11 +511,13 @@ function price(i){
 
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
 
-// VERIFICAR VIAJE ACTIVO AL INICIAR
 function verificarViajeActivo(){
+  // Renderizamos la pantalla de inicio por defecto inmediatamente
+  cambiarSeccion("home");
+
   var viajeIdGuardado = localStorage.getItem("uder_active_viaje");
   
-  if(!viajeIdGuardado && U && U.id){
+  if(!viajeIdGuardado && U && U.id && sb){
     sb.from("viajes")
       .select("*")
       .eq("pasajero_id", U.id)
@@ -532,10 +527,8 @@ function verificarViajeActivo(){
       .then(function(r){
         if(r.data && r.data[0]){
           restaurarViaje(r.data[0]);
-        } else {
-          cambiarSeccion("home");
         }
-      });
+      }).catch(function(){});
     return;
   }
 
@@ -549,13 +542,8 @@ function verificarViajeActivo(){
         } else {
           localStorage.removeItem("uder_active_viaje");
           S.viajeId = null;
-          cambiarSeccion("home");
         }
-      }).catch(function(){
-        cambiarSeccion("home");
-      });
-  } else {
-    cambiarSeccion("home");
+      }).catch(function(){});
   }
 }
 
@@ -584,7 +572,6 @@ function restaurarViaje(v){
   }
 }
 
-// PEDIR VIAJE REAL
 function pedirViajeReal(){
   if(!U || !U.nombre){
     toast("Iniciá sesión para pedir un viaje");
@@ -772,10 +759,10 @@ function volverMP(){
   toast("El pago no se completó.");go("opt");return true;
 }
 
-// SEGUIMIENTO EN VIVO DEL CHOFER
 var carMarker = null;
 function actualizarPosicionChofer(pos){
   if(!pos || pos.lat == null || pos.lng == null) return;
+  if(!window.map) return;
   var p = [pos.lat, pos.lng];
 
   if(!carMarker){
@@ -783,7 +770,7 @@ function actualizarPosicionChofer(pos){
     carMarker = L.marker(p, {
       icon: L.divIcon({ className: '', html: carHtml, iconSize: [38, 38], iconAnchor: [19, 19] }),
       zIndexOffset: 2000
-    }).addTo(map);
+    }).addTo(window.map);
   } else {
     carMarker.setLatLng(p);
   }
@@ -802,8 +789,8 @@ function actualizarPosicionChofer(pos){
       }
     }
 
-    if(!S.mapFitDone){
-      map.fitBounds([p, [S.o.lat, S.o.lng]], { padding: [60, 60], maxZoom: 17 });
+    if(!S.mapFitDone && window.map){
+      window.map.fitBounds([p, [S.o.lat, S.o.lng]], { padding: [60, 60], maxZoom: 17 });
       S.mapFitDone = true;
     }
   }
@@ -818,7 +805,6 @@ function actualizarPosicionChofer(pos){
   }
 }
 
-// CONSULTA DIRECTA AL SERVIDOR CON CLAVE MAESTRA (SIN BLOQUEOS DE SUPABASE)
 function consultarViaje(){
   if(!S.viajeId) return;
 
@@ -994,11 +980,20 @@ function buscarDireccion(textoUsuario){
     });
 }
 
-var map=L.map("map",{zoomControl:false}).setView([CEN.lat,CEN.lng],14);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:""}).addTo(map);
-var G=L.layerGroup().addTo(map),routeLine=null;
+// Inicializar mapa de forma segura
+var map = null, G = null, routeLine = null;
+if (typeof L !== 'undefined') {
+  try {
+    map = L.map("map",{zoomControl:false}).setView([CEN.lat,CEN.lng],14);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:""}).addTo(map);
+    G = L.layerGroup().addTo(map);
+    window.map = map; // Hacerlo global para acceder en otras funciones
+    window.G = G;
+  } catch(e) { console.log("Error al iniciar mapa", e); }
+}
 
 function pin(p,c,m,t){
+  if(!G) return;
   var k=L.marker([p.lat,p.lng],{draggable:true,icon:L.divIcon({className:"",html:'<div style="width:20px;height:20px;border-radius:50%;background:'+c+';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(G).bindTooltip(t);
   k.on("dragend",function(){
     var q=k.getLatLng();
@@ -1007,6 +1002,7 @@ function pin(p,c,m,t){
 }
 
 function draw(keep){
+  if(!G) return;
   G.clearLayers();
   routeLine=null;
   var b=[];
@@ -1017,11 +1013,11 @@ function draw(keep){
     calcularRutaReal(S.o, S.d).then(function(res){
       S.km = res.km;
       S.cuadras = getCuadras();
-      routeLine = L.polyline(res.puntos, {color:"#000000", weight:5, opacity:0.85}).addTo(G);
+      if(G) routeLine = L.polyline(res.puntos, {color:"#000000", weight:5, opacity:0.85}).addTo(G);
     });
   }
 
-  if(keep)return;
+  if(keep || !map)return;
   if(b.length===2) map.fitBounds(b,{padding:[40,40]});
   else if(b.length===1) map.setView(b[0],16);
 }
@@ -1052,11 +1048,13 @@ function setPt(m,p,n,keep){
   }, 100);
 }
 
-map.on("click",function(e){
-  if(S.ph!=="home")return;
-  if(S.mode==="o")S.oref="";else S.dref="";
-  setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng},"Punto marcado");
-});
+if (window.map) {
+  window.map.on("click",function(e){
+    if(S.ph!=="home")return;
+    if(S.mode==="o")S.oref="";else S.dref="";
+    setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng},"Punto marcado");
+  });
+}
 
 function mode(m){S.mode=m;go("home")}
 
@@ -1067,7 +1065,7 @@ function loc(){
     var enRosario = (p.lng > BB.w && p.lng < BB.e && p.lat > BB.s && p.lat < BB.n);
     if(enRosario){
       setPt("o", p, "Ubicación actual");
-      map.setView([p.lat, p.lng], 16);
+      if (window.map) window.map.setView([p.lat, p.lng], 16);
     } else {
       setPt("o", { lat: CEN.lat, lng: CEN.lng }, "Centro (Rosario de la Frontera)");
     }
@@ -1111,7 +1109,6 @@ function opts(){
   });
 }
 
-// CONTROL DE PANTALLAS
 function go(ph){
   clearInterval(tm);clearInterval(pollTm);
 
@@ -1121,20 +1118,20 @@ function go(ph){
 
   S.ph = ph;
   var v = $("v");
+  if(!v) return;
 
   var showMap = (U && U.nombre && (ph === "home" || ph === "opt" || ph === "search" || ph === "pick" || ph === "trip"));
   $("map").style.display = showMap ? "block" : "none";
   $("top_bar").style.display = (U && U.nombre) ? "flex" : "none";
   $("bottom_nav").style.display = (U && U.nombre) ? "flex" : "none";
 
-  if(showMap) map.invalidateSize();
+  if(showMap && window.map) window.map.invalidateSize();
 
   if(ph==="home"||ph==="opt"){
-    if(carMarker){ map.removeLayer(carMarker); carMarker = null; }
+    if(carMarker && window.map){ window.map.removeLayer(carMarker); carMarker = null; }
     S.mapFitDone = false;
   }
 
-  // 1. INICIO
   if(ph==="home"){
     if(S.viajeId){
       v.innerHTML = 
@@ -1179,13 +1176,18 @@ function go(ph){
         '<button class="btn-uber" onclick="opts()">Ver precios y viajes</button>' : 
         '<button class="btn-uber" style="background:#E0E0E0;color:#888;cursor:not-allowed">Elegí origen y destino</button>');
 
-    $("q").addEventListener("keydown",function(e){if(e.key==="Enter")find()});
+    var qEl = $("q");
+    if(qEl) qEl.addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
 
-  // 2. ACTIVIDAD
   if(ph==="actividad"){
     v.innerHTML = '<div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Cargando tus viajes…</p></div>';
     
+    if (!sb) {
+      v.innerHTML = '<div style="text-align:center;padding:40px 20px"><p>Error de conexión con la base de datos.</p></div>';
+      return;
+    }
+
     var req = sb.from("viajes").select("*");
     if(U && U.id){
       req = req.eq("pasajero_id", U.id);
@@ -1235,7 +1237,6 @@ function go(ph){
     });
   }
 
-  // 3. CUENTA
   if(ph==="cuenta"){
     var nomUser = (U && U.nombre) ? U.nombre : "Facundo";
     var apeUser = (U && U.apellido) ? U.apellido : "";
@@ -1283,7 +1284,6 @@ function go(ph){
       '</div>';
   }
 
-  // 4. FORMULARIO TARJETA
   if(ph==="tarjeta_form"){
     v.innerHTML = 
       '<div style="padding:10px 0">' +
@@ -1310,7 +1310,6 @@ function go(ph){
       '</div>';
   }
 
-  // 5. LOGIN
   if(ph==="welcome"){
     v.innerHTML = 
       '<div style="text-align:center;padding:30px 10px">' +
@@ -1334,7 +1333,6 @@ function go(ph){
       '</div>';
   }
 
-  // 6. REGISTRO
   if(ph==="reg"){
     v.innerHTML = 
       '<div style="padding:20px 10px">' +
@@ -1349,7 +1347,6 @@ function go(ph){
       '</div>';
   }
 
-  // 7. ELEGIR VIAJE
   if(ph==="opt"){
     var cuadras = getCuadras();
     var noche = esNocturno();
@@ -1391,7 +1388,6 @@ function go(ph){
       '<button class="btn-ghost-uber" onclick="cambiarSeccion(\'home\')">Modificar ruta</button>';
   }
 
-  // 8. RADAR Y EN CURSO
   if(ph==="search"){
     v.innerHTML = 
       '<div style="text-align:center;padding:15px 0">' +
@@ -1459,10 +1455,43 @@ function go(ph){
   }
 }
 
-// ARRANQUE AUTOMÁTICO AL CARGAR LA PÁGINA
-if(!volverMP()) {
-  verificarViajeActivo();
-}
+// ARRANQUE AUTOMÁTICO SEGURO
+document.addEventListener("DOMContentLoaded", function() {
+  // 1. Dibujamos la pantalla de bienvenida o inicio inmediatamente
+  if (!U) {
+    go("welcome");
+  } else {
+    go("home");
+  }
+
+  // 2. Luego chequeamos si hay sesión de Supabase en segundo plano
+  if (sb) {
+    sb.auth.getSession().then(function(r){
+      if(r.data && r.data.session && r.data.session.user){
+        sincronizarUsuario(r.data.session.user);
+      } else if (!U || !U.nombre) {
+        go("welcome");
+      } else {
+        verificarViajeActivo();
+      }
+    }).catch(function() {
+      verificarViajeActivo();
+    });
+
+    sb.auth.onAuthStateChange(function(event, session){
+      if(session && session.user){
+        sincronizarUsuario(session.user);
+      }
+    });
+  } else {
+    verificarViajeActivo();
+  }
+
+  // 3. Verificamos si venimos de un pago de MP
+  if (typeof volverMP === 'function') {
+    volverMP();
+  }
+});
 </script>
 </body>
 </html>

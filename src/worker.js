@@ -20,36 +20,6 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-// Iconos vectoriales
-function servirIcono(tipo) {
-  if (tipo === "admin") {
-    const svgAdmin = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-      <rect width="512" height="512" rx="100" fill="#000000"/>
-      <circle cx="256" cy="235" r="150" fill="#F5B700"/>
-      <path d="M256 140 L340 180 L340 260 C340 310 256 345 256 345 C256 345 172 310 172 260 L172 180 Z" fill="#000000"/>
-      <text x="256" y="270" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="90" fill="#F5B700" text-anchor="middle">U</text>
-      <text x="256" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="44" fill="#F5B700" text-anchor="middle" letter-spacing="4">ADMIN</text>
-    </svg>`;
-    return new Response(svgAdmin, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
-  }
-
-  const esChofer = (tipo === "conductor");
-  const fondoExterior = esChofer ? "#F5B700" : "#14213D";
-  const circuloCentro = esChofer ? "#14213D" : "#F5B700";
-  const letraColor    = esChofer ? "#F5B700" : "#14213D";
-  const textoColor    = esChofer ? "#14213D" : "#FFFFFF";
-  const etiqueta      = esChofer ? "CHOFER" : "UDER";
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-    <rect width="512" height="512" rx="100" fill="${fondoExterior}"/>
-    <circle cx="256" cy="235" r="150" fill="${circuloCentro}"/>
-    <text x="256" y="305" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="200" fill="${letraColor}" text-anchor="middle">U</text>
-    <text x="256" y="450" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="46" fill="${textoColor}" text-anchor="middle" letter-spacing="4">${etiqueta}</text>
-  </svg>`;
-
-  return new Response(svg, { headers: { "Content-Type": "image/svg+xml; charset=utf-8" } });
-}
-
 // 1. Registro de chofer
 async function registroConductor(request, env) {
   const key = env.SUPABASE_SECRET_KEY;
@@ -461,7 +431,7 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // 1. ARREGLO PARA PWABUILDER: Forzar cabeceras correctas para imágenes
+    // 1. ARREGLO PARA PWABUILDER: Forzar cabeceras correctas para imágenes y JSON
     if (pathname.endsWith(".png") || pathname.endsWith(".svg") || pathname.endsWith(".json")) {
       const response = await env.ASSETS.fetch(request);
       const newResponse = new Response(response.body, response);
@@ -470,15 +440,9 @@ export default {
       if (pathname.endsWith(".svg")) newResponse.headers.set("Content-Type", "image/svg+xml");
       if (pathname.endsWith(".json")) newResponse.headers.set("Content-Type", "application/json");
       
-      // Permitir que PWABuilder acceda a estos archivos desde su servidor
       newResponse.headers.set("Access-Control-Allow-Origin", "*");
       return newResponse;
     }
-
-    // Iconos dinámicos (Rutas directas del backend)
-    if (pathname === "/icon-pasajero.svg" || pathname === "/icon-pasajero.png") return servirIcono("pasajero");
-    if (pathname === "/icon-conductor.svg" || pathname === "/icon-conductor.png") return servirIcono("conductor");
-    if (pathname === "/icon-admin.svg" || pathname === "/icon-admin.png") return servirIcono("admin");
 
     // Rutas de API
     if (pathname === "/api/registro-conductor" && request.method === "POST") return registroConductor(request, env);
@@ -493,7 +457,7 @@ export default {
     if (pathname === "/api/webhook-mp") return webhookMp(request, env);
     if (pathname.startsWith("/api/")) return json(404, { error: "No existe" });
 
-    // Cloudflare maneja automáticamente los archivos .html
+    // Cloudflare maneja automáticamente los archivos .html y las imágenes reales de public/
     return env.ASSETS.fetch(request);
   }
 };

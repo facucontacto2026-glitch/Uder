@@ -444,6 +444,36 @@ export default {
       return newResponse;
     }
 
+    // 2. SERVIR ASSETLINKS.JSON PARA QUITAR LA BARRA DE URL
+    if (pathname === "/.well-known/assetlinks.json") {
+      const assetlinks = `[
+        {
+          "relation": ["delegate_permission/common.handle_all_urls"],
+          "target": {
+            "namespace": "android_app",
+            "package_name": "dev.workers.uder_app.uder.twa",
+            "sha256_cert_fingerprints": [
+              "8F:BC:57:19:18:02:49:F4:E7:9A:B1:16:55:09:A9:22:94:20:CE:7D:11:98:3E:46:27:87:84:A4:B8:ED:68:53",
+              "3A:87:2C:B3:00:BA:BB:9D:A8:D6:52:77:39:1B:FB:9D:61:9C:87:BB:8E:3A:0B:34:81:2A:93:B2:92:8C:5D:95"
+            ]
+          }
+        },
+        {
+          "relation": ["delegate_permission/common.handle_all_urls"],
+          "target": {
+            "namespace": "android_app",
+            "package_name": "com.uder.choferapp",
+            "sha256_cert_fingerprints": [
+              "9B:81:7E:FB:36:15:0C:57:FD:09:7A:32:DF:1A:41:4A:6D:60:F0:00:67:AA:43:CE:1A:4A:57:FF:33:73:AF:9D"
+            ]
+          }
+        }
+      ]`;
+      return new Response(assetlinks, {
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+      });
+    }
+
     // Rutas de API
     if (pathname === "/api/registro-conductor" && request.method === "POST") return registroConductor(request, env);
     if (pathname === "/api/verificar-documentos-ai" && request.method === "POST") return verificarDocumentosAI(request, env);

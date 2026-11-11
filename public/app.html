@@ -12,33 +12,25 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
-:root{
-  --bg:#FFFFFF;--surface:#F6F6F6;--card:#FFFFFF;--ink:#000000;--ink-secondary:#5E5E5E;--line:#EEEEEE;--accent:#F5B700;--ok:#0E8345;--bad:#DE1135;--wa:#25D366;
-  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
-}
+:root{ --bg:#FFFFFF;--surface:#F6F6F6;--card:#FFFFFF;--ink:#000000;--ink-secondary:#5E5E5E;--line:#EEEEEE;--accent:#F5B700;--ok:#0E8345;--bad:#DE1135;--wa:#25D366; box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px) }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column}
 .app{max-width:480px;width:100%;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;background:#fff}
-
 .top-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 8px;background:#fff;z-index:1000}
 .top-loc{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer}
 .top-loc i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#276EF1}
 .brand{font-size:26px;font-weight:800;letter-spacing:-1px;color:#000}
 .brand span{color:var(--accent);background:#000;padding:1px 7px;border-radius:6px;margin-right:4px}
-
 #map{width:100%;height:290px;background:#E5E3DF;z-index:1}
 .main-view{flex:1;padding:16px 20px 85px;background:#fff}
-
 .search-pill{display:flex;align-items:center;background:var(--surface);border-radius:30px;padding:12px 18px;gap:12px;box-shadow:0 3px 12px rgba(0,0,0,0.06);cursor:pointer;margin-bottom:16px}
 .search-pill svg{flex-shrink:0}
 .search-pill input{border:0;background:transparent;font:600 16px 'Plus Jakarta Sans',sans-serif;color:#000;width:100%;outline:none}
 .search-btn{border:0;background:#000;color:#fff;padding:8px 16px;border-radius:20px;font-weight:700;font-size:13px;cursor:pointer}
-
 .chips-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
 .chips-row::-webkit-scrollbar{display:none}
 .chip-uber{border:0;background:var(--surface);color:#000;font:600 13px 'Plus Jakarta Sans',sans-serif;padding:8px 16px;border-radius:20px;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:6px}
 .chip-uber[aria-pressed="true"]{background:#000;color:#fff}
-
 .ride-card{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:14px;border:2px solid transparent;background:#fff;margin-bottom:10px;cursor:pointer;transition:all 0.15s ease}
 .ride-card:hover{background:var(--surface)}
 .ride-card.selected{border-color:#000;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.08)}
@@ -48,12 +40,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 .ride-info h4 span{font-size:12px;font-weight:600;color:var(--ink-secondary)}
 .ride-info p{margin:3px 0 0;font-size:12px;color:var(--ink-secondary);font-weight:500}
 .ride-price b{font-size:18px;font-weight:800;color:#000}
-
 .payment-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-radius:12px;margin:14px 0;cursor:pointer;font-weight:700;font-size:14px}
 .payment-bar:active{background:#ececec}
 .payment-bar div{display:flex;align-items:center;gap:10px}
-
-/* MODAL DE PAGOS */
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);z-index:4000;display:flex;flex-direction:column;justify-content:flex-end;animation:fadeIn 0.2s ease}
 .bottom-sheet-content{background:#fff;border-radius:24px 24px 0 0;padding:14px 20px 32px;max-height:80vh;overflow-y:auto;box-shadow:0 -4px 25px rgba(0,0,0,0.2);animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1)}
 .sheet-drag{width:44px;height:4px;background:#E0E0E0;border-radius:2px;margin:0 auto 16px}
@@ -64,27 +53,21 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 .pay-opt-icon{width:44px;height:44px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .pay-opt-text b{font-size:15px;display:flex;align-items:center;gap:8px}
 .pay-opt-text p{margin:2px 0 0;font-size:12px;color:var(--ink-secondary)}
-
 .card-badges{display:inline-flex;align-items:center;gap:4px}
 .badge-visa{background:#1A1F71;color:#fff;font-size:8px;font-weight:900;padding:1px 5px;border-radius:3px}
 .badge-amex{background:#006FCF;color:#fff;font-size:8px;font-weight:900;padding:1px 4px;border-radius:3px}
-
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-
 .btn-uber{width:100%;height:54px;background:#000;color:#fff;border:0;border-radius:12px;font:700 16px 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
 .btn-uber:active{background:#333}
 .btn-ghost-uber{width:100%;height:48px;background:transparent;color:var(--ink-secondary);border:0;font:700 14px 'Plus Jakarta Sans',sans-serif;cursor:pointer;margin-top:6px}
 .btn-whatsapp{width:100%;height:50px;background:var(--wa);color:#fff;border:0;border-radius:12px;font:700 15px 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;box-shadow:0 3px 10px rgba(37,211,102,0.25)}
-
 .field-input{width:100%;padding:14px;border-radius:10px;border:1px solid #D5DBE5;background:#F9F9F9;font:600 15px 'Plus Jakarta Sans',sans-serif;margin-top:6px;margin-bottom:14px;outline:none}
 .field-input:focus{border-color:#000;background:#fff}
-
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;height:65px;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;z-index:2000;padding-bottom:env(safe-area-inset-bottom,0px)}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--ink-secondary);cursor:pointer;background:none;border:0}
 .nav-item.active{color:#000}
 .nav-item svg{width:22px;height:22px}
-
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#000;color:#fff;padding:12px 20px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 4px 15px rgba(0,0,0,0.2);z-index:5000;max-width:85%;text-align:center}
 .badge-status{display:inline-flex;align-items:center;gap:6px;background:#E8F5E9;color:#1B5E20;padding:6px 12px;border-radius:8px;font-weight:700;font-size:13px}
 .plate{font-weight:800;letter-spacing:2px;border:2px solid #000;border-radius:6px;padding:3px 8px;font-size:13px}
@@ -96,289 +79,136 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sa
 </head>
 <body>
 <div class="app">
-
   <div class="top-bar" id="top_bar">
-    <div class="top-loc" onclick="loc()">
-      <i></i> Rosario de la Frontera ⌵
-    </div>
+    <div class="top-loc" onclick="loc()"><i></i> Rosario de la Frontera ⌵</div>
     <div class="brand"><span>U</span>der</div>
   </div>
-
   <div id="map"></div>
   <main id="v" class="main-view"></main>
-
   <div id="sheet_pago" class="bottom-sheet-overlay" style="display:none" onclick="cerrarModalPago(event)">
     <div class="bottom-sheet-content" onclick="event.stopPropagation()">
       <div class="sheet-drag"></div>
-      
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="margin:0;font-size:20px;font-weight:800">Elige un método de pago</h3>
         <button onclick="cerrarModalPago()" style="border:0;background:none;font-size:24px;cursor:pointer;color:var(--ink-secondary);padding:0">&times;</button>
       </div>
-
       <div class="pay-card-option" id="opt_efectivo" onclick="seleccionarMetodo('Efectivo')">
-        <div class="pay-opt-left">
-          <div class="pay-opt-icon">💵</div>
-          <div class="pay-opt-text">
-            <b>Efectivo</b>
-            <p>Pagás en mano al chofer al finalizar el viaje</p>
-          </div>
-        </div>
+        <div class="pay-opt-left"><div class="pay-opt-icon">💵</div><div class="pay-opt-text"><b>Efectivo</b><p>Pagás en mano al chofer al finalizar el viaje</p></div></div>
         <div id="check_efectivo" style="font-size:18px;font-weight:800;color:var(--ok)">✓</div>
       </div>
-
       <div class="pay-card-option" id="opt_tarjeta" onclick="seleccionarTarjetaOAgregar()">
-        <div class="pay-opt-left">
-          <div class="pay-opt-icon">💳</div>
-          <div class="pay-opt-text" id="txt_tarjeta_box">
-            <b>
-              Tarjetas 
-              <span class="card-badges">
-                <span class="badge-visa">VISA</span>
-                <svg width="18" height="11" viewBox="0 0 24 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#EB001B"/><circle cx="16.5" cy="7.5" r="7.5" fill="#F79E1B" fill-opacity="0.85"/></svg>
-                <span class="badge-amex">AMEX</span>
-              </span>
-            </b>
-            <p id="sub_tarjeta_txt">Débito directo al instante sin salir de la app</p>
-          </div>
-        </div>
+        <div class="pay-opt-left"><div class="pay-opt-icon">💳</div><div class="pay-opt-text" id="txt_tarjeta_box"><b>Tarjetas <span class="card-badges"><span class="badge-visa">VISA</span><svg width="18" height="11" viewBox="0 0 24 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#EB001B"/><circle cx="16.5" cy="7.5" r="7.5" fill="#F79E1B" fill-opacity="0.85"/></svg><span class="badge-amex">AMEX</span></span></b><p id="sub_tarjeta_txt">Débito directo al instante sin salir de la app</p></div></div>
         <div id="check_tarjeta" style="font-size:18px;font-weight:800;color:var(--ok);display:none">✓</div>
       </div>
-
       <div class="pay-card-option" id="opt_mp" onclick="seleccionarMetodo('Mercado Pago')">
-        <div class="pay-opt-left">
-          <div class="pay-opt-icon">🔵</div>
-          <div class="pay-opt-text">
-            <b>Mercado Pago</b>
-            <p>Dinero en cuenta, tarjetas o Mercado Crédito</p>
-          </div>
-        </div>
+        <div class="pay-opt-left"><div class="pay-opt-icon">🔵</div><div class="pay-opt-text"><b>Mercado Pago</b><p>Dinero en cuenta, tarjetas o Mercado Crédito</p></div></div>
         <div id="check_mp" style="font-size:18px;font-weight:800;color:var(--ok);display:none">✓</div>
       </div>
     </div>
   </div>
-
   <nav class="bottom-nav" id="bottom_nav" style="display:none">
-    <button id="nav_inicio" class="nav-item active" onclick="cambiarSeccion('home')">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      Inicio
-    </button>
-    <button id="nav_actividad" class="nav-item" onclick="cambiarSeccion('actividad')">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-      Actividad
-    </button>
-    <button id="nav_cuenta" class="nav-item" onclick="cambiarSeccion('cuenta')">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-      Cuenta
-    </button>
+    <button id="nav_inicio" class="nav-item active" onclick="cambiarSeccion('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Inicio</button>
+    <button id="nav_actividad" class="nav-item" onclick="cambiarSeccion('actividad')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>Actividad</button>
+    <button id="nav_cuenta" class="nav-item" onclick="cambiarSeccion('cuenta')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Cuenta</button>
   </nav>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-
 <script>
 var sb, mp;
 try { sb = supabase.createClient("https://mmgvttmgchnbppcemrwg.supabase.co", "sb_publishable_HtTCeT611_CKOvtxebUxTw_FQpL_seZ"); } catch(e) { console.log("Error Supabase", e); }
 try { mp = new MercadoPago("APP_USR-619e8167-a16b-472a-9e9b-71eef85dbb38"); } catch(e) { console.log("Error MercadoPago", e); }
-
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
-
 var CEN={lat:-25.798,lng:-64.968},BB={w:-65.05,e:-64.90,n:-25.74,s:-25.86};
 var S={o:null,on:"",d:null,dn:"",mode:"o",ty:0,pg:"Efectivo",p:0,dr:null,km:0,cuadras:0,res:[],msg:"¿A dónde vamos hoy?",ph:"welcome",oref:"",dref:"",viajeId:null,mapFitDone:false},tm=null,pollTm=null;
-
-var TY=[
-  ["Remis", "Servicio tradicional de remis", 1.0, "🚗", "4 min"],
-  ["Uder", "Auto particular, el más económico", 0.95, "🚘", "3 min"]
-];
-
+var TY=[["Remis", "Servicio tradicional de remis", 1.0, "🚗", "4 min"],["Uder", "Auto particular, el más económico", 0.95, "🚘", "3 min"]];
 function $(x){return document.getElementById(x)}
 function esc(s){return String(s||"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-
-function lab(n, r){
-  var nom = esc(n || "Punto");
-  var ref = esc(r || "").trim();
-  if(!ref) return nom;
-  var soloNum = ref.replace(/altura\s*/gi, "").trim();
-  if(nom.indexOf(soloNum) >= 0 || nom.indexOf(ref) >= 0) return nom;
-  return nom + " · " + ref;
-}
-
+function lab(n, r){ var nom = esc(n || "Punto"); var ref = esc(r || "").trim(); if(!ref) return nom; var soloNum = ref.replace(/altura\s*/gi, "").trim(); if(nom.indexOf(soloNum) >= 0 || nom.indexOf(ref) >= 0) return nom; return nom + " · " + ref; }
 function setRef(v){if(S.mode==="o")S.oref=v;else S.dref=v}
-
-function sonarAvisoAceptado(){
-  try{
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var now = ctx.currentTime;
-    var osc = ctx.createOscillator(), g = ctx.createGain();
-    osc.type = "sine"; osc.frequency.setValueAtTime(587.33, now);
-    osc.frequency.setValueAtTime(880, now + 0.15);
-    g.gain.setValueAtTime(0.5, now);
-    g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start(now); osc.stop(now + 0.5);
-  }catch(e){}
-}
-
-function compartirPorWhatsApp(){
-  var d = S.dr || ["Conductor asignado", "Auto en camino", "---"];
-  var chofer = d[0], auto = d[1], patente = d[2];
-  var destino = S.dn ? lab(S.dn, S.dref) : "mi destino";
-  var monto = M(price(S.ty));
-  var texto = "👋 *Hola! Te comparto mi viaje por seguridad:*\n\n" +
-              "🚕 *App:* Uder Rosario de la Frontera\n" +
-              "📍 *Destino:* " + destino + "\n" +
-              "👤 *Chofer:* " + chofer + "\n" +
-              "🚘 *Vehículo:* " + auto + " (Patente: " + patente + ")\n" +
-              "💵 *Monto:* " + monto + " (" + S.pg + ")\n\n" +
-              "Voy viajando seguro con Uder.";
-  window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
-}
-
-var U = null;
-try { U = JSON.parse(localStorage.getItem("uder_user") || "null"); } catch(e){}
+function sonarAvisoAceptado(){ try{ var ctx = new (window.AudioContext || window.webkitAudioContext)(); var now = ctx.currentTime; var osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = "sine"; osc.frequency.setValueAtTime(587.33, now); osc.frequency.setValueAtTime(880, now + 0.15); g.gain.setValueAtTime(0.5, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.connect(g); g.connect(ctx.destination); osc.start(now); osc.stop(now + 0.5); }catch(e){} }
+function compartirPorWhatsApp(){ var d = S.dr || ["Conductor asignado", "Auto en camino", "---"]; var chofer = d[0], auto = d[1], patente = d[2]; var destino = S.dn ? lab(S.dn, S.dref) : "mi destino"; var monto = M(price(S.ty)); var texto = "👋 *Hola! Te comparto mi viaje por seguridad:*\n\n" + "🚕 *App:* Uder Rosario de la Frontera\n" + "📍 *Destino:* " + destino + "\n" + "👤 *Chofer:* " + chofer + "\n" + "🚘 *Vehículo:* " + auto + " (Patente: " + patente + ")\n" + "💵 *Monto:* " + monto + " (" + S.pg + ")\n\n" + "Voy viajando seguro con Uder."; window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank"); }
+var U = null; try { U = JSON.parse(localStorage.getItem("uder_user") || "null"); } catch(e){}
 function save(){ try { localStorage.setItem("uder_user", JSON.stringify(U)); } catch(e){} }
-
 function luhn(n){var s=0,d=false;for(var i=n.length-1;i>=0;i--){var x=+n[i];if(d){x*=2;if(x>9)x-=9}s+=x;d=!d}return s%10===0}
 function brand(n){if(/^4/.test(n))return"Visa";if(/^(5[1-5]|2[2-7])/.test(n))return"Mastercard";if(/^3[47]/.test(n))return"Amex";return"Tarjeta"}
-
-async function logout(){
-  toast("Cerrando sesión…");
-  try { await sb.auth.signOut(); } catch(e){}
-  U = null; S.viajeId = null;
-  try { localStorage.removeItem("uder_user"); localStorage.removeItem("uder_active_viaje"); sessionStorage.clear(); } catch(e){}
-  toast("Sesión cerrada");
-  go("welcome");
-}
-
-function sincronizarUsuario(usr){
-  var meta = usr.user_metadata || {};
-  var nomComp = meta.full_name || meta.name || "";
-  var partes = nomComp.split(" ");
-  var nombreReal = meta.first_name || partes[0] || (U && U.nombre !== "Pasajero" ? U.nombre : "");
-  var apellidoReal = meta.last_name || partes.slice(1).join(" ") || (U ? U.apellido : "");
-  U = { id: usr.id, email: usr.email, nombre: nombreReal || "Facundo", apellido: apellidoReal || "", dni: meta.dni || (U ? U.dni : ""), card: U && U.card ? U.card : null };
-  save();
-  if (sb) { sb.from("perfiles").upsert({ id: usr.id, rol: "pasajero", nombre: U.nombre, apellido: U.apellido }).then(function(){}).catch(function(){}); }
-  verificarViajeActivo();
-}
-
-// ESTA ES LA FUNCIÓN CORREGIDA PARA QUE NO TE SAQUE A LA WEB
-function loginGoogle(){
-  toast("Conectando con Google…");
-  var rutaRetorno = window.location.origin + (window.location.pathname.includes('app') ? '/app' : '/app.html');
-  sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: rutaRetorno }
-  }).catch(function(){
-    toast("Error al conectar con Google.");
-  });
-}
-
-function doLoginEmail(){
-  var e = $("l_e").value.trim(), w = $("l_w").value;
-  if(!e || !w) { toast("Completá email y contraseña"); return; }
-  toast("Ingresando…");
-  sb.auth.signInWithPassword({ email: e, password: w }).then(function(r){
-    if(r.error) { toast("Email o contraseña incorrectos"); return; }
-    sincronizarUsuario(r.data.user);
-  });
-}
-
-function doRegistroEmail(){
-  var e = $("r_e").value.trim(), w = $("r_w").value;
-  var n = $("r_n").value.trim(), a = $("r_a").value.trim();
-  if(!e || !w || !n) { toast("Completá tu nombre y correo"); return; }
-  if(w.length < 6) { toast("La contraseña debe tener al menos 6 caracteres"); return; }
-  toast("Creando cuenta…");
-  sb.auth.signUp({ email: e, password: w, options: { data: { full_name: n + " " + a, first_name: n, last_name: a } } }).then(function(r){
-    if(r.error) { toast("Error: " + r.error.message); return; }
-    toast("¡Cuenta creada!");
-    if(r.data.user) { sincronizarUsuario(r.data.user); } else { go("welcome"); }
-  });
-}
-
-function editarNombrePerfil(){
-  var actual = (U && U.nombre) ? U.nombre : "Facundo";
-  var nuevo = prompt("Escribí tu nombre:", actual);
-  if(nuevo && nuevo.trim()){ if(!U) U = {}; U.nombre = nuevo.trim(); save(); toast("Nombre actualizado"); cambiarSeccion("cuenta"); }
-}
-
-function guardarTarjetaNativa(){
-  var num = $("c_n").value.replace(/\D/g,""), exp = $("c_e").value.trim(), cvv = $("c_c").value.replace(/\D/g,""), nom = $("c_t").value.trim(), dni = $("c_dni").value.replace(/\D/g,"");
-  if(num.length < 13 || num.length > 19 || !luhn(num)) return toast("Número de tarjeta inválido");
-  if(!/^\d{2}\/\d{2}$/.test(exp)) return toast("Vencimiento inválido (MM/AA)");
-  if(cvv.length < 3 || cvv.length > 4) return toast("Código de seguridad inválido");
-  if(nom.length < 3) return toast("Nombre del titular requerido");
-  if(dni.length < 7 || dni.length > 8) return toast("DNI del titular requerido");
-  var m = exp.split("/");
-  toast("Verificando tarjeta con el banco…");
-  mp.createCardToken({ cardNumber: num, cardholderName: nom, cardExpirationMonth: m[0], cardExpirationYear: "20" + m[1], securityCode: cvv, identificationType: "DNI", identificationNumber: dni }).then(function(token){
-    if(!token || !token.id) throw new Error("No se pudo tokenizar");
-    if(!U) U = { nombre: "Facundo" };
-    U.card = { brand: brand(num), last4: num.slice(-4), titular: nom, dni: dni, num: num, exp: exp };
-    save();
-    toast("Tarjeta " + U.card.brand + " ···· " + U.card.last4 + " vinculada ✓");
-    S.pg = "Tarjeta";
-    if(S.ph === "opt") go("opt"); else cambiarSeccion("cuenta");
-  }).catch(function(e){ console.error(e); toast("El banco rechazó la tarjeta. Revisá los datos."); });
-}
-
+async function logout(){ toast("Cerrando sesión…"); try { await sb.auth.signOut(); } catch(e){} U = null; S.viajeId = null; try { localStorage.removeItem("uder_user"); localStorage.removeItem("uder_active_viaje"); sessionStorage.clear(); } catch(e){} toast("Sesión cerrada"); go("welcome"); }
+function sincronizarUsuario(usr){ var meta = usr.user_metadata || {}; var nomComp = meta.full_name || meta.name || ""; var partes = nomComp.split(" "); var nombreReal = meta.first_name || partes[0] || (U && U.nombre !== "Pasajero" ? U.nombre : ""); var apellidoReal = meta.last_name || partes.slice(1).join(" ") || (U ? U.apellido : ""); U = { id: usr.id, email: usr.email, nombre: nombreReal || "Facundo", apellido: apellidoReal || "", dni: meta.dni || (U ? U.dni : ""), card: U && U.card ? U.card : null }; save(); if (sb) { sb.from("perfiles").upsert({ id: usr.id, rol: "pasajero", nombre: U.nombre, apellido: U.apellido }).then(function(){}).catch(function(){}); } verificarViajeActivo(); }
+function loginGoogle(){ toast("Conectando con Google…"); var rutaRetorno = window.location.origin + (window.location.pathname.includes('app') ? '/app' : '/app.html'); sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: rutaRetorno } }).catch(function(){ toast("Error al conectar con Google."); }); }
+function doLoginEmail(){ var e = $("l_e").value.trim(), w = $("l_w").value; if(!e || !w) { toast("Completá email y contraseña"); return; } toast("Ingresando…"); sb.auth.signInWithPassword({ email: e, password: w }).then(function(r){ if(r.error) { toast("Email o contraseña incorrectos"); return; } sincronizarUsuario(r.data.user); }); }
+function doRegistroEmail(){ var e = $("r_e").value.trim(), w = $("r_w").value; var n = $("r_n").value.trim(), a = $("r_a").value.trim(); if(!e || !w || !n) { toast("Completá tu nombre y correo"); return; } if(w.length < 6) { toast("La contraseña debe tener al menos 6 caracteres"); return; } toast("Creando cuenta…"); sb.auth.signUp({ email: e, password: w, options: { data: { full_name: n + " " + a, first_name: n, last_name: a } } }).then(function(r){ if(r.error) { toast("Error: " + r.error.message); return; } toast("¡Cuenta creada!"); if(r.data.user) { sincronizarUsuario(r.data.user); } else { go("welcome"); } }); }
+function editarNombrePerfil(){ var actual = (U && U.nombre) ? U.nombre : "Facundo"; var nuevo = prompt("Escribí tu nombre:", actual); if(nuevo && nuevo.trim()){ if(!U) U = {}; U.nombre = nuevo.trim(); save(); toast("Nombre actualizado"); cambiarSeccion("cuenta"); } }
+function guardarTarjetaNativa(){ var num = $("c_n").value.replace(/\D/g,""), exp = $("c_e").value.trim(), cvv = $("c_c").value.replace(/\D/g,""), nom = $("c_t").value.trim(), dni = $("c_dni").value.replace(/\D/g,""); if(num.length < 13 || num.length > 19 || !luhn(num)) return toast("Número de tarjeta inválido"); if(!/^\d{2}\/\d{2}$/.test(exp)) return toast("Vencimiento inválido (MM/AA)"); if(cvv.length < 3 || cvv.length > 4) return toast("Código de seguridad inválido"); if(nom.length < 3) return toast("Nombre del titular requerido"); if(dni.length < 7 || dni.length > 8) return toast("DNI del titular requerido"); var m = exp.split("/"); toast("Verificando tarjeta con el banco…"); mp.createCardToken({ cardNumber: num, cardholderName: nom, cardExpirationMonth: m[0], cardExpirationYear: "20" + m[1], securityCode: cvv, identificationType: "DNI", identificationNumber: dni }).then(function(token){ if(!token || !token.id) throw new Error("No se pudo tokenizar"); if(!U) U = { nombre: "Facundo" }; U.card = { brand: brand(num), last4: num.slice(-4), titular: nom, dni: dni, num: num, exp: exp }; save(); toast("Tarjeta " + U.card.brand + " ···· " + U.card.last4 + " vinculada ✓"); S.pg = "Tarjeta"; if(S.ph === "opt") go("opt"); else cambiarSeccion("cuenta"); }).catch(function(e){ console.error(e); toast("El banco rechazó la tarjeta. Revisá los datos."); }); }
 function eliminarTarjeta(){ if(confirm("¿Querés quitar tu tarjeta guardada?")){ if(U) U.card = null; save(); if(S.pg === "Tarjeta") S.pg = "Efectivo"; toast("Tarjeta eliminada"); cambiarSeccion("cuenta"); } }
 function abrirModalPago(){ actualizarUIModalPago(); $("sheet_pago").style.display = "flex"; }
 function cerrarModalPago(){ $("sheet_pago").style.display = "none"; }
-
-function actualizarUIModalPago(){
-  $("opt_efectivo").classList.remove("selected"); $("opt_tarjeta").classList.remove("selected"); $("opt_mp").classList.remove("selected");
-  $("check_efectivo").style.display = "none"; $("check_tarjeta").style.display = "none"; $("check_mp").style.display = "none";
-  if(U && U.card){ $("txt_tarjeta_box").innerHTML = '<b>' + esc(U.card.brand) + ' ···· ' + esc(U.card.last4) + '</b><p>Débito automático al instante</p>'; } else { $("txt_tarjeta_box").innerHTML = '<b>Tarjetas <span class="card-badges"><span class="badge-visa">VISA</span><svg width="18" height="11" viewBox="0 0 24 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#EB001B"/><circle cx="16.5" cy="7.5" r="7.5" fill="#F79E1B" fill-opacity="0.85"/></svg><span class="badge-amex">AMEX</span></span></b><p>Agregar tarjeta de débito o crédito</p>'; }
-  if(S.pg === "Efectivo"){ $("opt_efectivo").classList.add("selected"); $("check_efectivo").style.display = "block"; }
-  else if(S.pg === "Tarjeta"){ $("opt_tarjeta").classList.add("selected"); $("check_tarjeta").style.display = "block"; }
-  else if(S.pg === "Mercado Pago"){ $("opt_mp").classList.add("selected"); $("check_mp").style.display = "block"; }
-}
-
+function actualizarUIModalPago(){ $("opt_efectivo").classList.remove("selected"); $("opt_tarjeta").classList.remove("selected"); $("opt_mp").classList.remove("selected"); $("check_efectivo").style.display = "none"; $("check_tarjeta").style.display = "none"; $("check_mp").style.display = "none"; if(U && U.card){ $("txt_tarjeta_box").innerHTML = '<b>' + esc(U.card.brand) + ' ···· ' + esc(U.card.last4) + '</b><p>Débito automático al instante</p>'; } else { $("txt_tarjeta_box").innerHTML = '<b>Tarjetas <span class="card-badges"><span class="badge-visa">VISA</span><svg width="18" height="11" viewBox="0 0 24 15"><circle cx="7.5" cy="7.5" r="7.5" fill="#EB001B"/><circle cx="16.5" cy="7.5" r="7.5" fill="#F79E1B" fill-opacity="0.85"/></svg><span class="badge-amex">AMEX</span></span></b><p>Agregar tarjeta de débito o crédito</p>'; } if(S.pg === "Efectivo"){ $("opt_efectivo").classList.add("selected"); $("check_efectivo").style.display = "block"; } else if(S.pg === "Tarjeta"){ $("opt_tarjeta").classList.add("selected"); $("check_tarjeta").style.display = "block"; } else if(S.pg === "Mercado Pago"){ $("opt_mp").classList.add("selected"); $("check_mp").style.display = "block"; } }
 function seleccionarMetodo(metodo){ S.pg = metodo; cerrarModalPago(); if(S.ph === "opt") go("opt"); }
 function seleccionarTarjetaOAgregar(){ if(U && U.card){ seleccionarMetodo("Tarjeta"); } else { cerrarModalPago(); go("tarjeta_form"); } }
-
-function cambiarSeccion(sec){
-  if(!U || !U.nombre){ go("welcome"); return; }
-  if(S.viajeId && (sec === "home" || sec === "opt")){ go(S.ph || "search"); return; }
-  document.querySelectorAll(".nav-item").forEach(function(btn){ btn.classList.remove("active"); });
-  if(sec === "home"){ $("nav_inicio").classList.add("active"); go("home"); }
-  else if(sec === "actividad"){ $("nav_actividad").classList.add("active"); go("actividad"); }
-  else if(sec === "cuenta"){ $("nav_cuenta").classList.add("active"); go("cuenta"); }
-}
-
+function cambiarSeccion(sec){ if(!U || !U.nombre){ go("welcome"); return; } if(S.viajeId && (sec === "home" || sec === "opt")){ go(S.ph || "search"); return; } document.querySelectorAll(".nav-item").forEach(function(btn){ btn.classList.remove("active"); }); if(sec === "home"){ $("nav_inicio").classList.add("active"); go("home"); } else if(sec === "actividad"){ $("nav_actividad").classList.add("active"); go("actividad"); } else if(sec === "cuenta"){ $("nav_cuenta").classList.add("active"); go("cuenta"); } }
 function esNocturno(){ var h = new Date().getHours(); return (h >= 22 || h < 6); }
 function getCuadras(){ return Math.max(1, Math.round(S.km * 10)); }
-
-function price(i){
-  var cuadras = getCuadras(), base = esNocturno() ? 3600 : 2600, total = base;
-  if(cuadras > 10){ total += (cuadras - 10) * 320; }
-  var mult = (TY[i] && TY[i][2]) ? TY[i][2] : 1.0;
-  return Math.round(total * mult);
-}
-
+function price(i){ var cuadras = getCuadras(), base = esNocturno() ? 3600 : 2600, total = base; if(cuadras > 10){ total += (cuadras - 10) * 320; } var mult = (TY[i] && TY[i][2]) ? TY[i][2] : 1.0; return Math.round(total * mult); }
 function M(n){return "ARS " + Math.round(n).toLocaleString("es-AR")}
+function verificarViajeActivo(){ S.o = null; S.on = ""; S.oref = ""; S.d = null; S.dn = ""; S.dref = ""; S.km = 0; S.cuadras = 0; S.mode = "o"; S.res = []; draw(); cambiarSeccion("home"); var viajeIdGuardado = localStorage.getItem("uder_active_viaje"); if(viajeIdGuardado){ fetch("/api/estado-viaje?id=" + encodeURIComponent(viajeIdGuardado)).then(function(r){ return r.json() }).then(function(res){ var v = res.viaje; if(v && ["buscando", "aceptado", "en_camino", "en_curso"].indexOf(v.estado) >= 0){ restaurarViaje(v); } else { localStorage.removeItem("uder_active_viaje"); S.viajeId = null; } }).catch(function(){}); } }
+function restaurarViaje(v){ S.viajeId = v.id; localStorage.setItem("uder_active_viaje", v.id); S.o = { lat: v.origen_lat, lng: v.origen_lng }; S.on = v.origen_nombre; S.oref = v.origen_ref || ""; S.d = { lat: v.destino_lat, lng: v.destino_lng }; S.dn = v.destino_nombre; S.dref = v.destino_ref || ""; S.km = v.km; S.cuadras = v.cuadras || Math.round(v.km * 10); S.pg = v.forma_pago; draw(); if(v.estado === "buscando"){ go("search"); } else if(v.estado === "aceptado" || v.estado === "en_camino"){ S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"]; go("pick"); } else if(v.estado === "en_curso"){ S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"]; go("trip"); } }
+function pedirViajeReal(){ if(!U || !U.nombre){ toast("Iniciá sesión para pedir un viaje"); go("welcome"); return; } if(S.viajeId){ toast("Ya tenés un viaje en curso"); go(S.ph || "search"); return; } var monto = Math.round(price(S.ty)); var cuadras = getCuadras(); if(S.pg === "Tarjeta" && !(U && U.card)){ toast("Cargá tu tarjeta para continuar"); go("tarjeta_form"); return; } var payload = { pasajero_id: U.id || null, pasajero_nombre: U.nombre + (U.apellido ? " " + U.apellido.charAt(0) + "." : ""), tipo: TY[S.ty][0], forma_pago: S.pg, monto: monto, ganancia_conductor: Math.round(monto * 0.85), km: Number(S.km.toFixed(1)), cuadras: cuadras, origen_nombre: S.on, origen_ref: S.oref || "", origen_lat: S.o.lat, origen_lng: S.o.lng, destino_nombre: S.dn, destino_ref: S.dref || "", destino_lat: S.d.lat, destino_lng: S.d.lng, pasajero_lat: S.o.lat, pasajero_lng: S.o.lng, estado: "buscando", pago_estado: "pendiente" }; fetch("/api/pedir-viaje", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) }).then(function(r){ return r.json() }).then(function(j){ if(!j.viaje) throw new Error("Error al crear viaje"); S.viajeId = j.viaje.id; localStorage.setItem("uder_active_viaje", S.viajeId); try { sessionStorage.setItem("uder_trip", JSON.stringify({ viajeId: S.viajeId, o:S.o, on:S.on, oref:S.oref, d:S.d, dn:S.dn, dref:S.dref, km:S.km, cuadras:cuadras, ty:S.ty, pg:S.pg })); } catch(e){} if(S.pg === "Tarjeta"){ procesarTarjetaSilenciosa(j.viaje.id, monto); } else if(S.pg === "Mercado Pago"){ pagarMP(j.viaje.id, monto); } else { go("search"); } }).catch(function(){ toast("No se pudo pedir el viaje. Probá de nuevo."); }); }
+function procesarTarjetaSilenciosa(viajeId, monto){ toast("Debitando de tu tarjeta…"); var cvv = prompt("Ingresá el código de seguridad (CVV de 3 dígitos) de tu tarjeta " + U.card.brand + " ···· " + U.card.last4 + ":"); if(!cvv || cvv.length < 3){ toast("Cancelado. El viaje queda en Efectivo."); S.pg = "Efectivo"; go("search"); return; } var m = (U.card.exp || "12/28").split("/"); mp.createCardToken({ cardNumber: U.card.num, cardholderName: U.card.titular, cardExpirationMonth: m[0], cardExpirationYear: "20" + m[1], securityCode: cvv, identificationType: "DNI", identificationNumber: U.card.dni || "0" }).then(function(t){ if(!t || !t.id) throw new Error("Token error"); fetch("/api/procesar-pago-tarjeta", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ viaje_id: viajeId, token: t.id, monto: monto, descripcion: "Viaje Uder: " + S.on + " a " + S.dn, email: U.email || "pasajero@uder.app", dni: U.card.dni || "0", nombre: U.nombre }) }).then(function(r){ return r.json() }).then(function(res){ if(res.aprobado){ toast("¡Pago debitado con éxito! 💳 ✓"); go("search"); } else { alert("El banco rechazó el débito: " + (res.detalle || "Fondos insuficientes") + ".\n\nEl viaje se mantiene en Efectivo."); S.pg = "Efectivo"; go("search"); } }).catch(function(){ toast("Error al debitar. El viaje se mantiene en Efectivo."); S.pg = "Efectivo"; go("search"); }); }).catch(function(){ toast("Código de seguridad incorrecto. El viaje queda en Efectivo."); S.pg = "Efectivo"; go("search"); }); }
+function pagarMP(viajeId, monto){ toast("Abriendo Mercado Pago…"); fetch("/api/crear-pago", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ viaje_id: viajeId, monto: monto, descripcion: "Viaje Uder: "+S.on+" a "+S.dn, nombre: U ? U.nombre : "Pasajero", apellido: U ? U.apellido : "Uder", dni: U ? U.dni : "0" }) }).then(function(r){ return r.json() }).then(function(j){ if(!j.url) throw 0; location.href = j.url; }).catch(function(){ toast("Error al conectar con Mercado Pago."); }); }
+function volverMP(){ var q=new URLSearchParams(location.search),r=q.get("pago");if(!r)return false; var id=q.get("payment_id")||q.get("collection_id"), viajeId=q.get("viaje"), t=null; try{t=JSON.parse(sessionStorage.getItem("uder_trip")||"null")}catch(e){} history.replaceState(null,"",location.pathname); if(!t && !viajeId){cambiarSeccion("home");toast("No encontramos tu viaje.");return true} if(t) Object.assign(S,t); if(viajeId) S.viajeId = viajeId; draw(); if(r==="ok"&&id){ S.ph="verif";$("v").innerHTML='<div style="padding:20px 0;text-align:center"><h3>Confirmando pago…</h3><p style="color:var(--ink-secondary)">Estamos verificando con Mercado Pago.</p></div>'; fetch("/api/verificar-pago?payment_id="+encodeURIComponent(id)+"&ref="+encodeURIComponent(t?t.ref:"")+"&viaje="+encodeURIComponent(S.viajeId||"")).then(function(x){return x.json()}).then(function(j){ if(j.aprobado){ toast("Pago acreditado ✓"); localStorage.setItem("uder_active_viaje", S.viajeId); go("search"); }else{ toast("No pudimos confirmar el pago."); go("opt"); } }).catch(function(){toast("Error de verificación.");go("opt")}); return true; } toast("El pago no se completó.");go("opt");return true; }
+var carMarker = null;
+function actualizarPosicionChofer(pos){ if(!pos || pos.lat == null || pos.lng == null) return; if(!window.map) return; var p = [pos.lat, pos.lng]; if(!carMarker){ var carHtml = '<div style="background:#000;color:#F5B700;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.3)">🚗</div>'; carMarker = L.marker(p, { icon: L.divIcon({ className: '', html: carHtml, iconSize: [38, 38], iconAnchor: [19, 19] }), zIndexOffset: 2000 }).addTo(window.map); } else { carMarker.setLatLng(p); } if(S.ph === "pick" && S.o){ var distKm = hav({lat: pos.lat, lng: pos.lng}, S.o); var cuadras = Math.max(1, Math.round(distKm * 10)); var elDist = $("eta_chofer"); if(elDist){ if(distKm < 0.12){ elDist.innerHTML = '<span class="badge-status" style="background:#FFF3CD;color:#856404">🔔 ¡Tu conductor ya está en tu puerta!</span>'; } else { var txtDist = distKm < 1 ? Math.round(distKm * 1000) + " m" : distKm.toFixed(1) + " km"; elDist.innerHTML = '<span class="badge-status">🚗 Conductor a <b>' + cuadras + ' cuadras</b> (' + txtDist + ')</span>'; } } if(!S.mapFitDone && window.map){ window.map.fitBounds([p, [S.o.lat, S.o.lng]], { padding: [60, 60], maxZoom: 17 }); S.mapFitDone = true; } } if(S.ph === "trip" && S.d){ var distDest = hav({lat: pos.lat, lng: pos.lng}, S.d); var elDest = $("eta_destino"); if(elDest){ var cuadrasRest = Math.max(1, Math.round(distDest * 10)); elDest.innerHTML = '<span class="badge-status">🏁 Faltan <b>' + cuadrasRest + ' cuadras</b> para llegar</span>'; } } }
+function consultarViaje(){ if(!S.viajeId) return; fetch("/api/estado-viaje?id=" + encodeURIComponent(S.viajeId)).then(function(r){ return r.json() }).then(function(res){ var v = res.viaje; if(!v) return; if(v.estado === "cancelado"){ clearInterval(pollTm); localStorage.removeItem("uder_active_viaje"); S.viajeId = null; toast("El viaje fue cancelado."); cambiarSeccion("home"); return; } if((v.estado === "aceptado" || v.estado === "en_camino") && S.ph !== "pick" && S.ph !== "trip"){ S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "---"]; sonarAvisoAceptado(); toast("¡Conductor asignado! Viene en camino 🚗"); go("pick"); } if(res.conductor_pos){ actualizarPosicionChofer(res.conductor_pos); } if(v.estado === "en_curso" && S.ph !== "trip"){ go("trip"); } if(v.estado === "finalizado" && S.ph !== "done"){ clearInterval(pollTm); localStorage.removeItem("uder_active_viaje"); S.viajeId = null; go("done"); } }).catch(function(){}); }
+function cancelarViajeActual(){ if(S.viajeId){ fetch("/api/cancelar-viaje", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ id: S.viajeId }) }).catch(function(){}); } clearInterval(pollTm); localStorage.removeItem("uder_active_viaje"); S.viajeId = null; toast("Viaje cancelado"); cambiarSeccion("home"); }
+function hav(p,q){var r=Math.PI/180,u=(q.lat-p.lat)*r,w=(q.lng-p.lng)*r,a=Math.pow(Math.sin(u/2),2)+Math.cos(p.lat*r)*Math.cos(q.lat*r)*Math.pow(Math.sin(w/2),2);return 12742*Math.asin(Math.sqrt(a))}
+function toast(m){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},3200)}
+function calcularRutaReal(origen, destino){ var distDirecta = hav(origen, destino); var urlDirecta = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson&alternatives=true"; var cruceLng = -64.9620, cruceLat = -25.7935; var urlConCruce = "https://router.project-osrm.org/route/v1/driving/" + origen.lng + "," + origen.lat + ";" + cruceLng + "," + cruceLat + ";" + destino.lng + "," + destino.lat + "?overview=full&geometries=geojson"; return fetch(urlDirecta).then(function(r){ return r.json(); }).then(function(j){ if(!j.routes || !j.routes.length) throw new Error("Sin ruta"); var rDirecta = j.routes.sort(function(a,b){ return a.distance - b.distance; })[0]; var kmDirecto = rDirecta.distance / 1000; if(kmDirecto > Math.max(0.6, distDirecta * 1.35)){ return fetch(urlConCruce).then(function(cr){ return cr.json(); }).then(function(cj){ if(cj.routes && cj.routes.length){ var rCruce = cj.routes[0]; var kmCruce = rCruce.distance / 1000; if(kmCruce < kmDirecto){ return { km: Math.max(0.5, kmCruce), puntos: rCruce.geometry.coordinates.map(function(c){ return [c[1], c[0]]; }) }; } } return { km: Math.max(0.5, Math.min(kmDirecto, distDirecta * 1.25)), puntos: rDirecta.geometry.coordinates.map(function(c){ return [c[1], c[0]]; }) }; }).catch(function(){ return { km: Math.max(0.5, Math.min(kmDirecto, distDirecta * 1.25)), puntos: rDirecta.geometry.coordinates.map(function(c){ return [c[1], c[0]]; }) }; }); } return { km: Math.max(0.5, kmDirecto), puntos: rDirecta.geometry.coordinates.map(function(c){ return [c[1], c[0]]; }) }; }).catch(function(){ return { km: Math.max(0.5, distDirecta * 1.25), puntos: [[origen.lat, origen.lng], [destino.lat, destino.lng]] }; }); }
+function buscarDireccion(textoUsuario){ var numMatch = textoUsuario.match(/\b\d{1,5}\b/); var num = numMatch ? numMatch[0] : ""; var textoLimpio = textoUsuario.replace(/\b\d{1,5}\b/g, "").trim(); var tMin = textoLimpio.toLowerCase(); var terminoBusqueda = textoLimpio; var esBarrioPeron = false; if(tMin.indexOf("peron") >= 0 || tMin.indexOf("malvina") >= 0){ terminoBusqueda = "Ex Combatientes de Malvinas"; esBarrioPeron = true; } else if(tMin.indexOf("mitre") >= 0){ terminoBusqueda = "Bartolomé Mitre"; } else if(tMin.indexOf("guemes") >= 0){ terminoBusqueda = "Güemes"; } var consulta = terminoBusqueda + (num ? " " + num : ""); var urlGeoref = "https://apis.datos.gob.ar/georef/api/v2.0/direcciones?max=6&provincia=salta&departamento=rosario%20de%20la%20frontera&direccion=" + encodeURIComponent(consulta); return fetch(urlGeoref).then(function(r){ return r.json() }).then(function(j){ var lista = (j.direcciones || []).filter(function(d){ return d.ubicacion && d.ubicacion.lat != null; }); if(lista.length > 0){ return lista.map(function(d){ var nom = d.nomenclatura ? d.nomenclatura.split(",")[0] : d.calle.nombre; if(esBarrioPeron) nom = "Ex Combatientes de Malvinas (B° Perón)"; return { p: { lat: parseFloat(d.ubicacion.lat), lng: parseFloat(d.ubicacion.lon) }, n: nom, num: num, refSugerida: num ? "altura " + num : "" }; }); } throw new Error("No en georef"); }).catch(function(){ var nomUrl = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=ar&viewbox=" + BB.w + "," + BB.n + "," + BB.e + "," + BB.s + "&bounded=0&q=" + encodeURIComponent(terminoBusqueda + ", Rosario de la Frontera, Salta"); return fetch(nomUrl).then(function(r){ return r.json() }).then(function(arr){ if(!Array.isArray(arr) || !arr.length) return []; return arr.map(function(x){ var calleNombre = x.display_name.split(",")[0]; calleNombre = calleNombre.replace(/Ram[oó]n Abdala/gi, "B° Perón"); if(esBarrioPeron && calleNombre.indexOf("Perón") < 0) calleNombre = "Ex Combatientes de Malvinas (B° Perón)"; return { p: { lat: parseFloat(x.lat), lng: parseFloat(x.lon) }, n: calleNombre, num: num, refSugerida: num ? "altura " + num : "" }; }); }).catch(function(){ return []; }); }); }
+var map = null, G = null, routeLine = null;
+if (typeof L !== 'undefined') { try { map = L.map("map",{zoomControl:false}).setView([CEN.lat,CEN.lng],14); L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:""}).addTo(map); G = L.layerGroup().addTo(map); window.map = map; window.G = G; } catch(e) { console.log("Error al iniciar mapa", e); } }
+function pin(p,c,m,t){ if(!G) return; var k=L.marker([p.lat,p.lng],{draggable:true,icon:L.divIcon({className:"",html:'<div style="width:20px;height:20px;border-radius:50%;background:'+c+';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(G).bindTooltip(t); k.on("dragend",function(){ var q=k.getLatLng(); if(S.ph==="home") setPt(m,{lat:q.lat,lng:q.lng},null,true); }); }
+function draw(keep){ if(!G) return; G.clearLayers(); routeLine=null; var b=[]; if(S.o){pin(S.o,"#000000","o","Desde: "+lab(S.on,S.oref));b.push([S.o.lat,S.o.lng])} if(S.d){pin(S.d,"#DE1135","d","Hasta: "+lab(S.dn,S.dref));b.push([S.d.lat,S.d.lng])} if(S.o && S.d){ calcularRutaReal(S.o, S.d).then(function(res){ S.km = res.km; S.cuadras = getCuadras(); if(G) routeLine = L.polyline(res.puntos, {color:"#000000", weight:5, opacity:0.85}).addTo(G); }); } if(keep || !map)return; if(b.length===2) map.fitBounds(b,{padding:[40,40]}); else if(b.length===1) map.setView(b[0],16); }
+function setPt(m,p,n,keep){ if(m==="o"){ S.o=p; S.on=n||"Punto en el mapa"; if(!S.d){ S.mode="d"; S.msg="¿A dónde vas?"; } } else { S.d=p; S.dn=n||"Punto en el mapa"; } S.res=[]; draw(keep); go("home"); setTimeout(function(){ var qEl = $("q"); if(qEl && S.mode === "d" && !S.d){ qEl.value = ""; qEl.placeholder = "¿A dónde vas? (ej: peron 412)"; qEl.focus(); } }, 100); }
+if (window.map) { window.map.on("click",function(e){ if(S.ph!=="home")return; if(S.mode==="o")S.oref="";else S.dref=""; setPt(S.mode,{lat:e.latlng.lat,lng:e.latlng.lng},"Punto marcado"); }); }
+function mode(m){ S.mode = m; if(m === "o"){ S.o = null; S.on = ""; S.oref = ""; } else if(m === "d"){ S.d = null; S.dn = ""; S.dref = ""; } S.res = []; draw(); go("home"); }
+function loc(){ toast("Buscando tu ubicación…"); navigator.geolocation.getCurrentPosition(function(g){ var p = {lat: g.coords.latitude, lng: g.coords.longitude}; var enRosario = (p.lng > BB.w && p.lng < BB.e && p.lat > BB.s && p.lat < BB.n); if(enRosario){ setPt("o", p, "Ubicación actual"); if (window.map) window.map.setView([p.lat, p.lng], 16); } else { setPt("o", { lat: CEN.lat, lng: CEN.lng }, "Centro (Rosario de la Frontera)"); } }, function(){ setPt("o", { lat: CEN.lat, lng: CEN.lng }, "Centro (Rosario de la Frontera)"); }, { enableHighAccuracy: true, timeout: 8000 }); }
+function find(){ var q = $("q").value.trim(); if(!q){ toast("Escribí una calle"); return; } S.msg = "Buscando…"; go("home"); $("q").value = q; buscarDireccion(q).then(function(rs){ S.res = rs; S.msg = rs.length ? "Seleccioná la dirección:" : "No encontramos esa calle. Probá de nuevo o tocala en el mapa."; go("home"); $("q").value = q; }).catch(function(){ toast("No se pudo buscar."); go("home"); }); }
+function pickRes(i){ var r = S.res[i]; if(!r) return; var ref = r.refSugerida || (r.num ? "altura " + r.num : ""); if(S.mode === "o") S.oref = ref; else S.dref = ref; setPt(S.mode, r.p, r.n); }
+function opts(){ if(!S.o||!S.d){toast("Elegí origen y destino");return} calcularRutaReal(S.o, S.d).then(function(res){ S.km = res.km; S.cuadras = getCuadras(); go("opt"); }); }
 
-function verificarViajeActivo(){
-  S.o = null; S.on = ""; S.oref = ""; S.d = null; S.dn = ""; S.dref = ""; S.km = 0; S.cuadras = 0; S.mode = "o"; S.res = []; draw();
-  cambiarSeccion("home");
-  var viajeIdGuardado = localStorage.getItem("uder_active_viaje");
-  if(viajeIdGuardado){
-    fetch("/api/estado-viaje?id=" + encodeURIComponent(viajeIdGuardado)).then(function(r){ return r.json() }).then(function(res){
-      var v = res.viaje;
-      if(v && ["buscando", "aceptado", "en_camino", "en_curso"].indexOf(v.estado) >= 0){ restaurarViaje(v); }
-      else { localStorage.removeItem("uder_active_viaje"); S.viajeId = null; }
-    }).catch(function(){});
+function go(ph){
+  clearInterval(tm);clearInterval(pollTm);
+  if((!U || !U.nombre) && ph !== "welcome" && ph !== "reg" && ph !== "login"){ ph = "welcome"; }
+  S.ph = ph;
+  var v = $("v");
+  if(!v) return;
+  var showMap = (U && U.nombre && (ph === "home" || ph === "opt" || ph === "search" || ph === "pick" || ph === "trip"));
+  $("map").style.display = showMap ? "block" : "none";
+  $("top_bar").style.display = (U && U.nombre) ? "flex" : "none";
+  $("bottom_nav").style.display = (U && U.nombre) ? "flex" : "none";
+  if(showMap && window.map) window.map.invalidateSize();
+  if(ph==="home"||ph==="opt"){ if(carMarker && window.map){ window.map.removeLayer(carMarker); carMarker = null; } S.mapFitDone = false; }
+
+  if(ph==="home"){
+    if(S.viajeId){ v.innerHTML = '<div style="text-align:center;padding:30px 10px"><div style="font-size:40px;margin-bottom:10px">🚗</div><h3 style="margin:0 0 8px;font-size:20px;font-weight:800">Tenés un viaje en curso</h3><p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Hacia: '+lab(S.dn, S.dref)+'</p><button class="btn-uber" onclick="go(S.ph || \'search\')">Ver estado de mi viaje</button></div>'; return; }
+    var placeholderTxt = S.mode === "o" ? "¿Dónde te retiramos? (ej: guemes 248)" : "¿A dónde vas? (ej: peron 412)";
+    var saludo = "¿A dónde vamos, " + esc(U.nombre) + "?";
+    v.innerHTML = '<h2 style="font-size:22px;font-weight:800;margin:0 0 12px">'+saludo+'</h2><div class="chips-row"><button class="chip-uber" onclick="loc()">🎯 Mi ubicación</button><button class="chip-uber" aria-pressed="'+(S.mode==="o")+'" onclick="mode(\'o\')">Punto de retiro</button><button class="chip-uber" aria-pressed="'+(S.mode==="d")+'" onclick="mode(\'d\')">Destino</button></div><div class="search-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg><input id="q" placeholder="'+placeholderTxt+'"><button class="search-btn" onclick="find()">Buscar</button></div>' + (S.res.length ? '<div style="margin-bottom:14px">' + S.res.map(function(r,i){ return '<button class="search-res-item" onclick="pickRes('+i+')"><i>📍</i><div><b>'+esc(r.n)+'</b><small>Rosario de la Frontera</small></div></button>'; }).join("") + '</div>' : '') + '<div style="background:var(--surface);border-radius:12px;padding:12px 16px;margin-bottom:14px"><div style="font-size:11px;color:var(--ink-secondary);font-weight:800;letter-spacing:0.5px">RUTA SELECCIONADA</div><div style="font-size:14px;margin-top:6px"><b>Salida:</b> '+(S.o?lab(S.on,S.oref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div><div style="font-size:14px;margin-top:4px"><b>Destino:</b> '+(S.d?lab(S.dn,S.dref):'<span style="color:var(--ink-secondary)">Sin elegir</span>')+'</div></div>' + (S.o && S.d ? '<button class="btn-uber" onclick="opts()">Ver precios y viajes</button>' : '<button class="btn-uber" style="background:#E0E0E0;color:#888;cursor:not-allowed">Elegí origen y destino</button>');
+    var qEl = $("q"); if(qEl) qEl.addEventListener("keydown",function(e){if(e.key==="Enter")find()});
   }
+  if(ph==="actividad"){ v.innerHTML = '<div style="padding:40px 0;text-align:center"><p style="color:var(--ink-secondary)">Cargando tus viajes…</p></div>'; if (!sb) { v.innerHTML = '<div style="text-align:center;padding:40px 20px"><p>Error de conexión con la base de datos.</p></div>'; return; } var req = sb.from("viajes").select("*"); if(U && U.id){ req = req.eq("pasajero_id", U.id); } else if(U && U.nombre){ req = req.ilike("pasajero_nombre", "%" + U.nombre + "%"); } req.order("creado_en", { ascending: false }).limit(20).then(function(r){ var viajes = r.data || []; if(!viajes.length){ v.innerHTML = '<div style="text-align:center;padding:50px 20px"><div style="font-size:48px;margin-bottom:12px">🚗</div><h3 style="margin:0 0 8px;font-size:22px;font-weight:800">No tenés viajes aún</h3><p style="color:var(--ink-secondary);font-size:14px;margin:0 0 24px">Cuando pidas un auto en Rosario de la Frontera, va a figurar acá.</p><button class="btn-uber" onclick="cambiarSeccion(\'home\')">Pedir un viaje</button></div>'; return; } var h = '<h2 style="font-size:24px;font-weight:800;margin:0 0 16px">Tus viajes</h2>'; viajes.forEach(function(x){ var f = new Date(x.creado_en); var fTxt = f.toLocaleDateString("es-AR", { day:"numeric", month:"short" }) + " · " + f.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit" }); var estadoBadge = x.estado === "finalizado" ? '<span style="background:#E8F5E9;color:#1B5E20;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">Completado</span>' : x.estado === "cancelado" ? '<span style="background:#FFEBEE;color:#C62828;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">Cancelado</span>' : '<span style="background:#FFF3CD;color:#856404;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">En curso</span>'; h += '<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.03)"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><b>'+esc(x.tipo)+'</b><small style="display:block;color:var(--ink-secondary)">'+fTxt+'</small></div><b style="font-size:16px">'+M(x.monto)+'</b></div><div style="font-size:13px;line-height:1.5"><div>📍 '+esc(x.origen_nombre)+'</div><div>🏁 '+esc(x.destino_nombre)+'</div></div><div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">' + estadoBadge + '<span style="font-size:12px;color:var(--ink-secondary)">'+esc(x.forma_pago)+'</span></div></div>'; }); v.innerHTML = h; }).catch(function(){ v.innerHTML = '<div style="text-align:center;padding:40px 20px"><p>No se pudo cargar la actividad.</p><button class="btn-uber" onclick="cambiarSeccion(\'actividad\')">Reintentar</button></div>'; }); }
+  if(ph==="cuenta"){ var nomUser = (U && U.nombre) ? U.nombre : "Facundo"; var apeUser = (U && U.apellido) ? U.apellido : ""; var mailUser = (U && U.email) ? U.email : "Sin correo registrado"; v.innerHTML = '<div style="padding:10px 0"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px"><div style="display:flex;align-items:center;gap:14px"><div style="width:64px;height:64px;border-radius:50%;background:#000;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900">' + esc(nomUser.charAt(0)) + '</div><div><h2 style="margin:0;font-size:22px;font-weight:800">'+esc(nomUser)+' '+esc(apeUser)+'</h2><span style="background:var(--surface);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;color:var(--ink-secondary)">⭐ 5.0 · Pasajero</span></div></div><button class="chip-uber" onclick="editarNombrePerfil()">✏️ Editar</button></div><div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px"><div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px;margin-bottom:10px">INFORMACIÓN DE TU CUENTA</div><div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Nombre:</b> '+esc(nomUser)+' '+esc(apeUser)+'</div><div style="font-size:14px;padding:8px 0;border-bottom:1px solid #E8E8E8"><b>Email:</b> '+esc(mailUser)+'</div><div style="font-size:14px;padding:8px 0"><b>Ciudad:</b> Rosario de la Frontera, Salta</div></div><div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:11px;font-weight:800;color:var(--ink-secondary);letter-spacing:1px">MÉTODOS DE PAGO</div>' + (!U || !U.card ? '<button class="chip-uber" style="padding:4px 10px;font-size:12px" onclick="go(\'tarjeta_form\')">+ Agregar tarjeta</button>' : '') + '</div><div style="font-size:14px;padding:6px 0">💵 <b>Efectivo</b> (Pago en mano al chofer)</div><div style="font-size:14px;padding:6px 0">🔵 <b>Mercado Pago</b> (Checkout online)</div>' + (U && U.card ? '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #E8E8E8;margin-top:6px"><span>💳 <b>'+esc(U.card.brand)+' ···· '+esc(U.card.last4)+'</b> <small style="color:var(--ok)">(Débito directo)</small></span><button style="border:0;background:none;color:var(--bad);font-weight:700;font-size:12px;cursor:pointer" onclick="eliminarTarjeta()">Quitar</button></div>' : '') + '</div><button class="btn-uber" style="background:#FFF0F0;color:var(--bad);border:1px solid #FFCDD2" onclick="logout()">Cerrar sesión</button></div>'; }
+  if(ph==="tarjeta_form"){ v.innerHTML = '<div style="padding:10px 0"><h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Agregar tarjeta</h2><p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Débito o crédito para cobrarte automáticamente los viajes sin salir de Uder.</p><label style="font-size:12px;font-weight:700">NÚMERO DE TARJETA</label><input id="c_n" inputmode="numeric" placeholder="4500 0000 0000 0000" maxlength="19" class="field-input" oninput="this.value=this.value.replace(/\\D/g,\'\').slice(0,19).replace(/(.{4})/g,\'$1 \').trim()"><div style="display:flex;gap:12px"><div style="flex:1"><label style="font-size:12px;font-weight:700">VENCIMIENTO</label><input id="c_e" inputmode="numeric" placeholder="MM/AA" maxlength="5" class="field-input" oninput="var d=this.value.replace(/\\D/g,\'\').slice(0,4);this.value=d.length>2?d.slice(0,2)+\'/\'+d.slice(2):d"></div><div style="flex:1"><label style="font-size:12px;font-weight:700">CVV</label><input id="c_c" type="password" inputmode="numeric" placeholder="123" maxlength="4" class="field-input"></div></div><label style="font-size:12px;font-weight:700">TITULAR DE LA TARJETA</label><input id="c_t" placeholder="Como figura en el plástico" class="field-input"><label style="font-size:12px;font-weight:700">DNI DEL TITULAR</label><input id="c_dni" inputmode="numeric" placeholder="Número de documento" maxlength="8" class="field-input"><button class="btn-uber" onclick="guardarTarjetaNativa()">Vincular tarjeta</button><button class="btn-ghost-uber" onclick="cambiarSeccion(\'cuenta\')">Cancelar</button></div>'; }
+  if(ph==="welcome"){ v.innerHTML = '<div style="text-align:center;padding:30px 10px"><div style="width:72px;height:72px;background:#000;color:var(--accent);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;margin-bottom:18px">U</div><h2 style="font-size:26px;font-weight:800;margin:0 0 8px">Te damos la bienvenida a Uder</h2><p style="color:var(--ink-secondary);font-size:15px;margin:0 0 26px">Iniciá sesión o registrate para viajar en Rosario de la Frontera.</p><button class="btn-uber" style="background:#fff;color:#000;border:1px solid #ddd;margin-bottom:16px" onclick="loginGoogle()"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.43 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.99 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.57 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>Continuar con Google</button><div style="text-align:left;background:var(--surface);border-radius:14px;padding:18px;margin-bottom:14px"><div style="font-weight:700;margin-bottom:10px">O ingresá con tu correo</div><input id="l_e" type="email" placeholder="Email" class="field-input"><input id="l_w" type="password" placeholder="Contraseña" class="field-input"><button class="btn-uber" onclick="doLoginEmail()">Ingresar</button></div><button class="btn-ghost-uber" onclick="go(\'reg\')">¿No tenés cuenta? Registrate gratis</button></div>'; }
+  if(ph==="reg"){ v.innerHTML = '<div style="padding:20px 10px"><h2 style="font-size:24px;font-weight:800;margin:0 0 6px">Crear cuenta</h2><p style="color:var(--ink-secondary);font-size:14px;margin:0 0 20px">Registrate gratis para pedir viajes.</p><input id="r_n" placeholder="Nombre/s" class="field-input"><input id="r_a" placeholder="Apellido" class="field-input"><input id="r_e" type="email" placeholder="Email" class="field-input"><input id="r_w" type="password" placeholder="Contraseña (mínimo 6)" class="field-input"><button class="btn-uber" onclick="doRegistroEmail()">Crear cuenta</button><button class="btn-ghost-uber" onclick="go(\'welcome\')">Volver al inicio</button></div>'; }
+  if(ph==="opt"){ var cuadras = getCuadras(); var noche = esNocturno(); var tagTarifa = noche ? "🌙 Tarifa Nocturna" : "☀️ Tarifa Diurna"; var txtPago = S.pg === "Tarjeta" && U && U.card ? "💳 " + U.card.brand + " ···· " + U.card.last4 : (S.pg === "Mercado Pago" ? "🔵 Mercado Pago" : "💵 Efectivo (Pago en mano)"); v.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0;font-size:20px;font-weight:800">Elige un viaje</h3><span style="font-size:12px;font-weight:700;color:var(--ink-secondary)">'+cuadras+' cuadras ('+S.km.toFixed(1)+' km) · '+tagTarifa+'</span></div>' + TY.map(function(t,i){ var isSelected = (i === S.ty); return '<div class="ride-card '+(isSelected?'selected':'')+'" onclick="S.ty='+i+';go(\'opt\')"><div class="ride-left"><div class="ride-icon">'+t[3]+'</div><div class="ride-info"><h4>'+t[0]+' <span>👤 4</span></h4><p>'+t[4]+' · '+t[1]+'</p></div></div><div class="ride-price"><b>'+M(price(i))+'</b></div></div>'; }).join("") + '<div class="payment-bar" onclick="abrirModalPago()"><div><span>'+txtPago+'</span></div><span style="color:var(--ink-secondary)">Cambiar ❯</span></div><button class="btn-uber" onclick="pedirViajeReal()">Elegir viaje '+TY[S.ty][0]+' · '+M(price(S.ty))+'</button><button class="btn-ghost-uber" onclick="cambiarSeccion(\'home\')">Modificar ruta</button>'; }
+  if(ph==="search"){ v.innerHTML = '<div style="text-align:center;padding:15px 0"><h3 style="margin:0 0 6px;font-size:20px;font-weight:800">Buscando tu '+TY[S.ty][0]+'…</h3><p style="margin:0 0 16px;color:var(--ink-secondary);font-size:14px">Avisando a los conductores más cercanos en Rosario de la Frontera.</p><div class="bar" style="height:6px;border-radius:10px;background:#EEEEEE;overflow:hidden;margin-bottom:20px"><i style="width:65%;display:block;height:100%;background:#000"></i></div><button class="btn-uber" style="background:var(--surface);color:#000" onclick="cancelarViajeActual()">Cancelar pedido</button></div>'; pollTm = setInterval(consultarViaje, 2000); }
+  if(ph==="pick"){ var d = S.dr || ["Conductor", "Auto en camino", "---"]; v.innerHTML = '<div style="padding:10px 0"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h3 style="margin:0;font-size:20px;font-weight:800">'+esc(d[0])+' viene a buscarte</h3><p style="margin:4px 0 0;color:var(--ink-secondary);font-size:14px">'+esc(d[1])+'</p></div><div class="plate" style="font-size:15px">'+esc(d[2])+'</div></div><div id="eta_chofer" style="margin:16px 0"><span class="badge-status">🚗 Localizando conductor en el mapa…</span></div><div style="background:var(--surface);padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;display:flex;justify-content:space-between"><span>Forma de pago: <b>'+esc(S.pg)+'</b></span><span>Total: <b>'+M(price(S.ty))+'</b></span></div><button class="btn-whatsapp" onclick="compartirPorWhatsApp()">📲 Compartir viaje por WhatsApp</button><button class="btn-ghost-uber" style="color:var(--bad)" onclick="cancelarViajeActual()">Cancelar viaje</button></div>'; pollTm = setInterval(consultarViaje, 2000); }
+  if(ph==="trip"){ v.innerHTML = '<div style="padding:10px 0"><h3 style="margin:0;font-size:20px;font-weight:800">Viaje en curso</h3><p style="margin:4px 0 14px;color:var(--ink-secondary);font-size:14px">Con '+esc(S.dr[0])+' hacia tu destino</p><div id="eta_destino" style="margin-bottom:16px"><span class="badge-status">En viaje a destino…</span></div><div style="background:var(--surface);padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:14px;font-weight:600">Total a pagar:</span><b style="font-size:20px">'+M(price(S.ty))+'</b></div><button class="btn-whatsapp" onclick="compartirPorWhatsApp()">📲 Compartir viaje por WhatsApp</button></div>'; pollTm = setInterval(consultarViaje, 2000); }
+  if(ph==="done"){ v.innerHTML = '<div style="text-align:center;padding:20px 0"><h2 style="font-size:26px;font-weight:800;margin:0">¡Llegaste a destino!</h2><div style="font-size:42px;font-weight:900;margin:16px 0;letter-spacing:-1px">'+M(price(S.ty))+'</div><p style="color:var(--ink-secondary);margin-bottom:24px">'+(S.pg==="Efectivo"?"Pagale en efectivo a tu chofer.":"El cobro fue procesado automáticamente.")+'</p><button class="btn-uber" onclick="S.d=null;S.dn=\'\';S.viajeId=null;localStorage.removeItem(\'uder_active_viaje\');draw();cambiarSeccion(\'home\')">Listo</button></div>'; }
 }
-
-function restaurarViaje(v){
-  S.viajeId = v.id; localStorage.setItem("uder_active_viaje", v.id);
-  S.o = { lat: v.origen_lat, lng: v.origen_lng }; S.on = v.origen_nombre; S.oref = v.origen_ref || "";
-  S.d = { lat: v.destino_lat, lng: v.destino_lng }; S.dn = v.destino_nombre; S.dref = v.destino_ref || "";
-  S.km = v.km; S.cuadras = v.cuadras || Math.round(v.km * 10); S.pg = v.forma_pago; draw();
-  if(v.estado === "buscando"){ go("search"); }
-  else if(v.estado === "aceptado" || v.estado === "en_camino"){ S.dr = [v.conductor_nombre || "Conductor", v.vehiculo || "Vehículo", v.patente || "
+document.addEventListener("DOMContentLoaded", function() { if (!U) { go("welcome"); } else { go("home"); } if (sb) { sb.auth.getSession().then(function(r){ if(r.data && r.data.session && r.data.session.user){ sincronizarUsuario(r.data.session.user); } else if (!U || !U.nombre) { go("welcome"); } else { verificarViajeActivo(); } }).catch(function() { verificarViajeActivo(); }); sb.auth.onAuthStateChange(function(event, session){ if(session && session.user){ sincronizarUsuario(session.user); } }); } else { verificarViajeActivo(); } if (typeof volverMP === 'function') { volverMP(); } });
+</script>
+</body>
+</html>
